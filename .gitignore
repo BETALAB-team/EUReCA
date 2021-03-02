@@ -3,6 +3,8 @@ RCenv.yml
 AppuntiCoseDaFare.txt
 *.docx
 /RC_classes/__pycache__/
-/OutputReport/
+/OutputReport/*
+/OutputReport/1C/*
+/OutputReport/2C/*
 Main_Parametrico.py
 Elenco_pacchetti.txt
