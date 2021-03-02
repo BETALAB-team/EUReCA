@@ -1,0 +1,8 @@
+.spyproject
+RCenv.yml
+AppuntiCoseDaFare.txt
+*.docx
+/RC_classes/__pycache__/
+/OutputReport/
+Main_Parametrico.py
+Elenco_pacchetti.txt
