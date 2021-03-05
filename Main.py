@@ -15,31 +15,31 @@ import os
 import pvlib
 import numpy as np
 import time as tm
-from RC_classes.IrradiancePreProcessor import PlanesIrradiances
 from RC_classes.Envelope import loadEnvelopes
 from RC_classes.EndUse import loadArchetype, loadSimpleArchetype
 from RC_classes.CityJSON import JsonCity
-from RC_classes.WeatherData import TskyCalc, SolarPosition, rescale_weather, rescale_sol_gain
+from RC_classes.WeatherData import  Weather
 from RC_classes.BuildingsPlants import loadPlants
 
 #%%
 '''Setting Input Data'''
 # PREPROCESSING
-iopath = os.path.join('.','Input', 'ITA_Venezia-Tessera.161050_IGDG.epw')         # Epw directory from home folder
+epw_name = 'ITA_Venezia-Tessera.161050_IGDG.epw'
+input_path = os.path.join('..','Input')
 year = 2020                                                                    # Setting an year
 first_day = 7                                                                  # Setting the first day of the year (1 Monday)
 tz='Europe/Rome'                                                               # Setting the thermal zone
 azSubdiv = 8                                                                   # Azimuth subdivision
 hSubdiv = 3                                                                    # Tilt subdivision
 SolarCalc = False                                                              # Need of a Solar Calculation?
-env_path = os.path.join('.','Input','Envelopes.xlsx')                          # Envelope directory from home folder
-schedpath = os.path.join('.','Input','ScheduleSemp.xlsx')                     # Annual schedules
+env_path = os.path.join('..','Input','Envelopes.xlsx')                          # Envelope directory from home folder
+schedpath = os.path.join('..','Input','ScheduleSemp.xlsx')                     # Annual schedules
 SchedMethod = str('A')                                                         # A Daily schedules, B yearly schedules
-plant_path = os.path.join('.','Input','PlantsList.xlsx')                       # Plants list and properties
+plant_path = os.path.join('..','Input','PlantsList.xlsx')                       # Plants list and properties
 
 # SIMULATION
 ts = 1                                                                         # Timestep per hour
-hours = 8760                                                                   # Hours of simulation
+hours = 8760                                                                   # Hours of simulation 
 years = 1                                                                      # Years of simulation
 model = str('2C')                                                              # Select model: '1C' or '2C'
 mode = str('cityjson')                                                         # Select mode: 'geojson' or 'cityjson'
@@ -121,7 +121,14 @@ with 64 km/h
 '''PRE-PROCESSING'''
 
 start = tm.time()
-
+# Creation of the weather obj
+weather = Weather(epw_name, input_path = input_path, tz = tz, 
+                 year = year, ts = ts, hours = hours, n_years = 1, 
+                 irradiances_calc = True, 
+                 azSubdiv = azSubdiv, hSubdiv = hSubdiv, 
+                 shad_tol = [toll_az,
+                             toll_dist,
+                             toll_theta])
 
 
 '''Loading Envelope and Schedule Data'''

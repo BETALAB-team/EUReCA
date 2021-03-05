@@ -508,7 +508,7 @@ class Weather():
         try:
             epw = pvlib.iotools.read_epw(epw_file, coerce_year = year)                       # Reading the epw via pvlib 
         except FileNotFoundError:
-            raise FileNotFoundError("Weather epw file not found in the Input folder: epw name {epw_name}, input folder {input_folder}")
+            raise FileNotFoundError(f"Weather epw file not found in the Input folder: epw name {epw_name}, input folder {input_path}")
         
         epw_res = epw[0].reset_index(drop=True)                                        # Exporting the hourly values
         lat, lon = epw[1]['latitude'], epw[1]['longitude']                             # Extracting latitude and longitude from the epw
