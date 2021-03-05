@@ -408,7 +408,13 @@ class Weather():
         init
     '''
 
-    def __init__(self,epw_name, input_path = '.', tz = 'Europe/Rome', year = 2020,ts = 2, hours = 8760, n_years = 1, IrradiancesCalc = True, azSubdiv = 8, hSubdiv = 3):
+    def __init__(self,epw_name, input_path = '.', tz = 'Europe/Rome', 
+                 year = 2020, ts = 2, hours = 8760, n_years = 1, 
+                 irradiances_calc = True, 
+                 azSubdiv = 8, hSubdiv = 3, 
+                 shad_tol = [80.,
+                             100.,
+                             80.]):
         '''
         initialize weather obj
         It processes the epw file to extract arrays of temperature, wind, humidity etc......
@@ -433,6 +439,8 @@ class Weather():
             number of the different direction (azimuth) solar radiation will be calculated
         hSubdiv: int
             number of the different direction (solar height) solar radiation will be calculated      
+        shad_tol: list of floats
+            list of the tollerances for urban shading calc (azimuth, disance, theta)
             
         Returns
         -------
@@ -471,14 +479,29 @@ class Weather():
             raise TypeError(f'Weather object, init, input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
         if not isinstance(hSubdiv, int):
             raise TypeError(f'Weather object, init, input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
-        
+        if not isinstance(shad_tol,list):
+            raise TypeError(f'Weather object, init, input shad_tol is not list: shad_tol {shad_tol}')
+        if not isinstance(shad_tol[0],float) or not isinstance(shad_tol[1],float) or not isinstance(shad_tol[2],float):
+            try:
+                shad_tol[0] = float(shad_tol[0])
+                shad_tol[1] = float(shad_tol[1])
+                shad_tol[2] = float(shad_tol[2])
+            except:
+                raise TypeError(f'Weather object, init, input shad_tol is not a list of floats: shad_tol {shad_tol}') 
+            
         # Check input data quality
         
         if ts > 4:
-            wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+            wrn(f"\n\nWeather object, init,  input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
         if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\nPlanesIrradiances class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
-     
+            wrn(f"\n\nWeather object, init,  solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+        if shad_tol[0] < 0.0 or shad_tol[0] > 90.0:
+            wrn(f"\n\Weather object, init,  toll_az is out of range [0-90]..... toll_az {shad_tol[0]}\n")
+        if shad_tol[1] < 0.0 or shad_tol[1] > 200.0:
+            wrn(f"\n\Weather object, init,  toll_dist is out of range [0-200]..... toll_dist {shad_tol[1]}\n")
+        if shad_tol[2] < 0.0 or shad_tol[2] > 90.0:
+            wrn(f"\n\Weather object, init,  toll_theta is out of range [0-90]..... toll_theta {shad_tol[2]}\n")
+                    
         epw_file = os.path.join(input_path,epw_name)
      
         # Importing and processing weather data from .epw 
@@ -508,10 +531,32 @@ class Weather():
         # Inizialization of Solar Gain DataFrame 
         # Creates a dataframe with the hourly solar radiation ond angle of incidence for several directions 
         
-        if IrradiancesCalc:
+        if irradiances_calc:
             Irradiances=PlanesIrradiances(site,epw,year,azSubdiv,hSubdiv)
             Irradiances.Irradiances.to_csv(os.path.join(input_path,'PlanesIrradiances.csv'))
         
         # Solar Gain DataFrame 
         Solar_Gains = pd.read_csv(os.path.join(input_path,'PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
         Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
+        
+        # Memorizing the attributes needed for the sim
+        
+        self.ts = ts                    # number of timesteps in an hour
+        self.hours = hours              # number of hours of a sim
+        self.sim_time = [ts,hours]      #
+        self.tau = 3600/ts              # number of seconds of a time step (for the solution of the networks)
+        self.Text = T_ext               # External air temperature [°C]
+        self.RHext = RH_ext             # External relative humidity [0-1]
+        self.azSubdiv = azSubdiv        # Number of azimuth subdivision [-]
+        self.hSubdiv = hSubdiv          # Number of height subdivision [-]
+        self.w = w                      # wind velocity [m/s]
+        self.dT_er = dT_er              # Average temperature diff between external air and sky vault[°C]
+        self.THextAv = T_ext_H_avg      # Average heating season air temperature [°C]
+        
+        self.SolarPosition = Solar_position
+        self.SolarGains = Solar_Gains
+        
+        # tollerances for urban shading calculation
+        self.Az_toll = shad_tol[0]      # [°]
+        self.Dist_toll = shad_tol[1]    # [m]
+        self.Theta_toll = shad_tol[2]   # [°]
