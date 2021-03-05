@@ -1968,7 +1968,7 @@ class Building:
             self.Pnom_C_BD = -1e20
 
 
-    def BDplants(self,Plants_list,T_ext_H_avg):
+    def BDplants(self,Plants_list,weather):
         
         '''
         This method allows to set the plant of each building and to
@@ -1978,8 +1978,8 @@ class Building:
             ----------
             Plants_list: dictionary
                 dictionary with plant_key/Plants data
-            T_ext_H_avg : float
-                external average temperature during the heating seasn
+            weather : RC_classes.WeatherData.Weather obj
+                object of the class weather WeatherData module
                     
         Returns
         -------
@@ -1990,12 +1990,14 @@ class Building:
         
         if not isinstance(Plants_list, dict):
             raise TypeError(f' Building class, BDplants, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')
-        if not isinstance(T_ext_H_avg, float):
-            raise TypeError(f' Building class, BDplants, bd {self.name}, T_ext_H_avg must be a float: T_ext_H_avg {T_ext_H_avg}')
-                
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+    
         # Set building plants
         
-        self.BDPlant.setPlant(Plants_list,self.Pnom_H_BD,self.Pnom_C_BD,T_ext_H_avg)
+        self.BDPlant.setPlant(Plants_list,weather,
+                              Pnom_H = self.Pnom_H_BD, 
+                              Pnom_C = self.Pnom_C_BD)
         
         
     def solve(self,t,Plants_list,T_e,RH_e,p_extsat,tau,Plant_calc,model = '1C'):

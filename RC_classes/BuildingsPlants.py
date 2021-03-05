@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 from warnings import warn as wrn
+from RC_classes.WeatherData import  Weather
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
@@ -122,7 +123,7 @@ class Plants():
         except KeyError:
             raise KeyError(f"Cooling plant type not found: C_plant_type {C_plant_type}. Set a proper one")
     
-    def setPlant(self,Typologies,Pnom_H,Pnom_C,T_ext_H_avg):
+    def setPlant(self,Typologies,weather,Pnom_H = 1E10,Pnom_C = -1E10):
         '''
         Sets plant design power
         
@@ -130,12 +131,12 @@ class Plants():
             ----------
             Typologies: dictionary
                 dictionary with plant_key/Plants data
+            weather : RC_classes.WeatherData.Weather obj
+                object of the class weather WeatherData module
             Pnom_H : float
                 Design Heating power  [kW]
             Pnom_C : float
                 Design Cooling power  [kW]
-            T_ext_H_avg : float
-                Average external temperature during the heating season.
                 
         Returns
         -------
@@ -151,17 +152,22 @@ class Plants():
             raise TypeError(f'Plant setPlant, Pnom_H must be a float: Pnom_H {Pnom_H}')
         if not isinstance(Pnom_C, float):
             raise TypeError(f'Plant setPlant, Pnom_C must be a float: Pnom_C {Pnom_C}')
-        if not isinstance(T_ext_H_avg, float):
-            raise TypeError(f'Plant setPlant, T_ext_H_avg must be a float: T_ext_H_avg {T_ext_H_avg}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+        
+        # Check data quality
+        
+        if Pnom_H > 1E9 or Pnom_C < -1E9:
+            wrn(f"There' a building plant with a design power outside limits [-1E9:1E9]: P_non_H {Pnom_H}, P_nom_C {Pnom_C}")
         
         # Heating plant 
         
         if self.H_plant_type == 'IdealLoad':
             pass
         elif self.H_plant_type == 'CondensingBoiler':
-            self.heating_Plant.setCondensingBoiler(Typologies,Pnom_H,T_ext_H_avg)
+            self.heating_Plant.setCondensingBoiler(Typologies,Pnom_H,weather.THextAv)
         elif self.H_plant_type == 'TraditionalBoiler':
-            self.heating_Plant.setTraditionalBoiler(Typologies,Pnom_H,T_ext_H_avg)
+            self.heating_Plant.setTraditionalBoiler(Typologies,Pnom_H,weather.THextAv)
         
         # Cooling plant 
         

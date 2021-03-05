@@ -195,7 +195,7 @@ print('DesignDaysCalc:       ', end - start)
    
 start = tm.time()
 if Plant_calc == 'YES':
-    Padua.cityplants(Plants_list,T_ext_H_avg)
+    Padua.cityplants(Plants_list,weather)
 else:
     pass
 end = tm.time()

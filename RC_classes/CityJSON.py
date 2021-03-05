@@ -731,7 +731,7 @@ class JsonCity():
     
     
     ''' Setting plant of each building and checking plant efficiency'''
-    def cityplants(self,Plants_list,T_ext_H_avg):
+    def cityplants(self,Plants_list,weather):
         
         '''
         Setting plant of each building and checking plant efficiency
@@ -740,8 +740,8 @@ class JsonCity():
         ----------
         Plants_list : dict
             dictionary contaning all the implemented plants
-        T_ext_H_avg : float
-            average external temperature during the heating season [°C]
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
         
         Returns
         -------
@@ -752,12 +752,12 @@ class JsonCity():
 
         if not isinstance(Plants_list, dict):
             raise TypeError(f'Ops... JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}')
-        if not isinstance(T_ext_H_avg, float):
-            raise TypeError(f'Ops... JsonCity class - cityplants, T_ext_H_avg is not a float: T_ext_H_avg {T_ext_H_avg}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
 
         # Setting plant
         for bd in self.buildings.values():
-            bd.BDplants(Plants_list,T_ext_H_avg)
+            bd.BDplants(Plants_list,weather)
     
     
     '''Energy simulation of the city'''
