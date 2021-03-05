@@ -1,7 +1,7 @@
 .spyproject
 RCenv.yml
-/OutputReport/1C/.csv
-/OutputReport/2C/.csv
+/OutputReport/1C/*.csv
+/OutputReport/2C/*.csv
 AppuntiCoseDaFare.txt
 *.docx
 /RC_classes/__pycache__/
