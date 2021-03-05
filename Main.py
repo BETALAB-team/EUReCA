@@ -33,17 +33,17 @@ azSubdiv = 8                                                                   #
 hSubdiv = 3                                                                    # Tilt subdivision
 SolarCalc = False                                                              # Need of a Solar Calculation?
 env_path = os.path.join(input_path,'Envelopes.xlsx')                          # Envelope directory from home folder
-schedpath = os.path.join(input_path,'ScheduleSemp.xlsx')                     # Annual schedules
-SchedMethod = str('A')                                                         # A Daily schedules, B yearly schedules
+schedpath = os.path.join(input_path,'ScheduleComp.xlsx')                     # Annual schedules
+SchedMethod = str('B')                                                         # A Daily schedules, B yearly schedules
 plant_path = os.path.join(input_path,'PlantsList.xlsx')                       # Plants list and properties
 
 # SIMULATION
 ts = 1                                                                         # Timestep per hour
 hours = 8760                                                                   # Hours of simulation (must be 8760 currently)
 years = 1                                                                      # Years of simulation
-model = str('2C')                                                              # Select model: '1C' or '2C'
-mode = str('geojson')                                                         # Select mode: 'geojson' or 'cityjson'
-jsonfile = str('PiovegoRestricted.geojson')                      # Select .geojson or .json file
+model = str('1C')                                                              # Select model: '1C' or '2C'
+mode = str('cityjson')                                                         # Select mode: 'geojson' or 'cityjson'
+jsonfile = str('PaduaRestricted.json')                      # Select .geojson or .json file
 path=os.path.join('.','Input', jsonfile)
 Shading_calc = True                                                           # Select 'YES' or 'NO' to take into consideration the shading effect
 toll_az = float(80)                                                            # Semi-tollerance on azimuth of shading surface [°]
@@ -52,14 +52,14 @@ toll_theta = float(80)                                                          
 R_f = float(0)                                                                 # Reduction factor of the direct solar radiation due to the shading effect [0-1]
 DD_boundaries = np.array([[167,504],[4681,5017]], dtype = int)                 # Heating and Cooling Design Days Periods
 Time_to_regime = 168                                                           # Time needed to reach a regime condition for Design Days Calculation
-DesignDays_calc = str('YES')                                                   # Select 'YES' or 'NO' to calculate or not design days demand
-Plant_calc = str('YES')                                                        # Select 'YES' or 'NO' to calculate or not buildings plant
+DesignDays_calc = str('NO')                                                   # Select 'YES' or 'NO' to calculate or not design days demand
+Plant_calc = str('NO')                                                        # Select 'YES' or 'NO' to calculate or not buildings plant
 
 # OUTPUT REPORT
-OutRep = bool(False)
+OutRep = bool(True)
 
 # Urban Canyon Data
-UWG_calc = bool(True) 
+UWG_calc = bool(False) 
 UWG_data = {
     'Area' : float(538000),
     'Diameter': float(800),
@@ -120,7 +120,6 @@ with 64 km/h
 #%%
 '''PRE-PROCESSING'''
 # Cleaning warning file
-
 if os.path.isfile(os.path.join('.','OutputReport','warnings.txt')):
     os.remove(os.path.join('.','OutputReport','warnings.txt'))
 
@@ -142,7 +141,7 @@ if SchedMethod == 'A':
     PlantDays=[2520,3984,6192,6912]                                            # 15th April, 15th June, 15th September, 15th October
     sched = loadSimpleArchetype(schedpath,np.arange(8760),first_day,ts,PlantDays)
 elif SchedMethod == 'B':
-    sched = loadArchetype(schedpath,np.arange(8760,ts))
+    sched = loadArchetype(schedpath,np.arange(8760),ts)
 else:
     sys.exit('Set a proper schedule inporting methodology')
 

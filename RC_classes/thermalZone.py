@@ -579,7 +579,7 @@ class ThermalZone:
             phi_sol_gl = 0
             
             if i.type == 'ExtWall' or i.type == 'Roof':
-                irradiance = weather.SolarGain[str(float(i.azimuth_round))][str(float(i.height_round))]  
+                irradiance = weather.SolarGains[str(float(i.azimuth_round))][str(float(i.height_round))]  
                 BRV = irradiance['direct'].to_numpy()                           
                 TRV = irradiance['global'].to_numpy()
                 DRV = TRV -BRV
@@ -613,7 +613,7 @@ class ThermalZone:
                     phi_sol_op = self.F_so_op*TRV*self.alpha*self.sr_ew*self.U_ew_net*self.A_ew-self.F_r*self.sr_ew*self.U_ew_net*self.A_ew*h_r*weather.dT_er
                 
             if i.type == 'Roof':
-                TRH = weather.SolarGain['0.0']['0.0']['global'].to_numpy()
+                TRH = weather.SolarGains['0.0']['0.0']['global'].to_numpy()
                 self.F_r = i.F_r
                 self.alpha = self.Strat['Roof'].alpha_est
                 self.sr_rf = self.Strat['Roof'].R_se
