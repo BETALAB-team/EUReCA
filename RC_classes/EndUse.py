@@ -4,7 +4,7 @@ import sys
 import pandas as pd
 import os
 import numpy as np
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions to create the schedule archetypes

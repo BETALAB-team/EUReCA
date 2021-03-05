@@ -9,7 +9,7 @@ import pandas as pd
 from RC_classes.RSMDef import RSMDef
 from RC_classes.param import Param
 import os
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 
 # import pvlib
 # import math

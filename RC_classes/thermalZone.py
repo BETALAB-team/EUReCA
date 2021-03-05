@@ -4,7 +4,7 @@ import sys
 import statistics
 import os
 from copy import deepcopy as cp
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 import pvlib
 import matplotlib.pyplot as plt
 import numpy as np

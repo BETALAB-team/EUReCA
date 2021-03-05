@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 from scipy import interpolate
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions

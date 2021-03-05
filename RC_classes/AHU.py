@@ -2,7 +2,7 @@
 
 import sys
 import numpy as np
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 
 #%% ---------------------------------------------------------------------------------------------------
 

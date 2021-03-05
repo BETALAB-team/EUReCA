@@ -7,13 +7,13 @@ import geopandas as gpd
 import numpy as np
 import time as tm
 import pandas as pd
-from warnings import warn as wrn
 from cjio import cityjson
 from RC_classes.WeatherData import SolarPosition, Weather
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
 from RC_classes.Geometry import Surface
 from RC_classes.Climate import UrbanCanyon
+from RC_classes.auxiliary_functions import wrn
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions

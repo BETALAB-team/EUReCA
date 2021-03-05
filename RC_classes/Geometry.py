@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pyclipper as pc
 from RC_classes.Envelope import loadEnvelopes
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions

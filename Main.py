@@ -119,6 +119,10 @@ with 64 km/h
 
 #%%
 '''PRE-PROCESSING'''
+# Cleaning warning file
+
+if os.path.isfile(os.path.join('.','OutputReport','warnings.txt')):
+    os.remove(os.path.join('.','OutputReport','warnings.txt'))
 
 start = tm.time()
 # Creation of the weather obj

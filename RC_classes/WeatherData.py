@@ -3,7 +3,7 @@
 import numpy as np
 import statistics
 import pandas as pd
-from warnings import warn as wrn
+from RC_classes.auxiliary_functions import wrn
 import os
 import pvlib
 
