@@ -5,7 +5,6 @@ import statistics
 import pandas as pd
 from warnings import warn as wrn
 import os
-from warnings import warn as wrn
 import pvlib
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -165,112 +164,97 @@ def rescale_sol_gain(ts,df):
     return df.resample(m).interpolate(method='linear').reset_index(drop=True)                               # Steps interpolation Resampling
 
 
-#%% ---------------------------------------------------------------------------------------------------
-# Weather class
-class Weather():
+def get_irradiance(site,time,solar_position, surf_tilt, surf_az,irradiance,year):
     '''
-    This class is a container for all weather data.
-    It processes the epw file to extract arrays of temperature, wind, humidity etc......
+    function from pvlib to calculate irradiance on a specific surface
+    https://pvlib-python.readthedocs.io/en/stable/auto_examples/plot_ghi_transposition.html#sphx-glr-auto-examples-plot-ghi-transposition-py    
     
-    Methods:
-        init
+    Parameters
+    ----------
+    site : pvlib.location.Location
+        Location object from pvlib.
+    time: pandas series
+        time index of the epw object from pvlib
+    solar_position : pandas dataframe 
+            the solar position dataframe from pvlib
+    surf_tilt: float
+        tilt of the surface
+    surf_az: float
+        azimuth of the surface
+    irradiance:   pandas dataframe  
+        dataframe from the epw with ghi, dni, dhi
+    year : int
+        year of the simulation, just to set the dataframe index
+        
+    Returns
+    -------
+    pandas DataFrame with the irradiances on the surface 
     '''
-
-    def __init__(self,epw_name,tz = 'Europe/Rome', year = 2020,ts = 2, hours = 8760, n_years = 1, IrradiancesCalc = True):
-        '''
-        initialize weather obj
-        It processes the epw file to extract arrays of temperature, wind, humidity etc......
     
-        Parameters
-        ----------
-        epw_name : str
-            name of the epw file. It must be included in the Input folder
-        tz : str
-            this is the time zone. For a list of the avilable see: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-        year : int 
-            the year of simulation. it is used only to create a pd.DataFrame.
-        ts : int
-            number of time steps in a hour.
-        hours : int 
-            number of hours
-        n_years : int
-            number of years of sim
+    # Check input data type
         
-        Returns
-        -------
-        None
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(epw_name, str):
-            raise TypeError(f'Weather object, init, input epw_name is not a string: epw_name {epw_name}') 
-        if not isinstance(tz, str):
-            raise TypeError(f'Weather object, init, input tz is not a string: tz {tz}') 
-        if not isinstance(year, int):
-            try:
-                year = int(year)
-            except:
-                raise TypeError(f'Weather object, init, input year is not an int: year {year}') 
-        if not isinstance(ts, int):
-            try:
-                ts = int(ts)
-            except:
-                raise TypeError(f'Weather object, init, input ts is not an int: ts {ts}') 
-        if not isinstance(hours, int):
-            try:
-                hours = int(hours)
-            except:
-                raise TypeError(f'Weather object, init, input hours is not an int: hours {hours}') 
-        if not isinstance(n_years, int):
-            try:
-                n_years = int(n_years)
-            except:
-                raise TypeError(f'Weather object, init, input n_years is not an int: n_years {n_years}') 
-
-        # Check input data quality
-        
-        epw_file = os.path.join('.','Input',epw_name)
-        
+    if not isinstance(site, pvlib.location.Location):
+        raise TypeError(f'Ops... input site is not a pvlib location object: site {site}') 
+    if not isinstance(time, pd.core.indexes.datetimes.DatetimeIndex):
+        raise TypeError(f'Ops... input time is not a pandas series: time {time}') 
+    if not isinstance(solar_position, pd.core.frame.DataFrame):
+        raise TypeError(f'Ops... input solar_position is not a pandas dataframe: solar_position {solar_position}') 
+    if not isinstance(surf_tilt, float):
         try:
-            f = open(epw_file)
-        except FileNotFoundError:
-            raise FileNotFoundError("Weather epw file not found in the Input folder: epw name {epw_name}")
-        finally:
-            f.close()
-        if ts > 4:
-            wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
-         
-        # Importing and processing weather data from .epw 
-        epw = pvlib.iotools.read_epw(epw_file, coerce_year = year)                       # Reading the epw via pvlib 
-        epw_res = epw[0].reset_index(drop=True)                                        # Exporting the hourly values
-        lat, lon = epw[1]['latitude'], epw[1]['longitude']                             # Extracting latitude and longitude from the epw
-        site = pvlib.location.Location(lat, lon, tz = tz)                              # Creating a location variable
-        time = np.arange(8760)                                                         # Time vector inizialization
-        
-        # Weather Data and Average temperature difference between Text and Tsky 
-        w = epw_res['wind_speed']                                                      # [m/s]
-        T_ext =epw_res['temp_air']                                                     # [°C]
-        T_ext_H_avg = np.mean([T_ext[0:2160],T_ext[6599:8759]])                        # [°C]
-        RH_ext = epw_res['relative_humidity']/100                                      # [0-1]
-        T_dp = epw_res['temp_dew']                                                     # [°C]
-        P_ = epw_res['atmospheric_pressure']                                           # [Pa]
-        n_opaque = epw_res['opaque_sky_cover']                                         # [0-10]
-        dT_er = TskyCalc(T_ext,T_dp,P_,n_opaque)                                       # Average temperature difference between Text and Tsky
-        w,T_ext,RH_ext,T_dp,P_,n_opaque = rescale_weather(ts,w,T_ext,RH_ext,T_dp,P_,n_opaque)
-        Solar_position = site.get_solarposition(times=epw[0].index).reset_index(drop=True)
-        Solar_position = SolarPosition(ts,Solar_position)
-        
-        # Inizialization of Solar Gain DataFrame 
-        # Creates a dataframe with the hourly solar radiation ond angle of incidence for several directions 
-        
-        if IrradiancesCalc:
-            Irradiances=PlanesIrradiances(site,epw,year,azSubdiv,hSubdiv)
-            Irradiances.Irradiances.to_csv(os.path.join('.','Input','PlanesIrradiances.csv'))
-        
-        # Solar Gain DataFrame 
-        Solar_Gains = pd.read_csv(os.path.join('.','Input','PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
-        Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
+            surf_tilt = float(surf_tilt)
+        except:
+            raise TypeError(f'Ops... input surf_tilt is not a float: surf_tilt {surf_tilt}') 
+    if not isinstance(surf_az, float):
+        try:
+            surf_az = float(surf_az)
+        except:
+            raise TypeError(f'Ops... input surf_az is not a float: surf_az {surf_az}') 
+    if not isinstance(irradiance, pd.core.frame.DataFrame):
+        raise TypeError(f'Ops... input irradiance is not a pandas dataframe: irradiance {irradiance}') 
+    if not isinstance(year, int):
+        try:
+            year = int(year)
+        except:
+            raise TypeError(f'Ops... input year is not an integer: year {year}') 
+    
+    # Control input data quality
+    
+    if surf_tilt < 0 or surf_tilt > 90 or  surf_az < -180 or surf_az > 180:
+        wrn(f"\n\nget_irradiance funtion, are you sure that the surface orientation is correct?? surf_tilt {surf_tilt}, surf_az {surf_az}\n")
+
+    # Use pvlib function to calculate the irradiance on the surface
+    
+    surf_az = surf_az+180
+    POA_irradiance = pvlib.irradiance.get_total_irradiance(
+        surface_tilt=surf_tilt,
+        surface_azimuth=surf_az,
+        dni_extra=pvlib.irradiance.get_extra_radiation(time,solar_constant=1366.1, method='spencer', epoch_year=year),
+        dni=irradiance['dni'],
+        ghi=irradiance['ghi'],
+        dhi=irradiance['dhi'],
+        solar_zenith=solar_position['apparent_zenith'],
+        solar_azimuth=solar_position['azimuth'],
+        model='isotropic',
+        model_perez='allsitescomposite1990',
+        airmass=site.get_airmass(solar_position=solar_position))
+    AOI = pvlib.irradiance.aoi(
+        surface_tilt=surf_tilt,
+        surface_azimuth=surf_az,
+        solar_zenith=solar_position['apparent_zenith'],
+        solar_azimuth=solar_position['azimuth'])
+    
+    # Cleaning AOI vector
+    
+    for i in range(len(AOI)): 
+        if AOI[i] > 90 or solar_position['apparent_zenith'][i] > 90:
+            AOI[i] = 90
+    
+    return pd.DataFrame({'GHI': irradiance['ghi'],
+                         'POA': POA_irradiance['poa_global'],
+                         'POA_B': POA_irradiance['poa_direct'],
+                         'POA_D': POA_irradiance['poa_global']-POA_irradiance['poa_direct'],
+                         'AOI':AOI,
+                         'solar zenith':solar_position['apparent_zenith']})
 
 #%% ---------------------------------------------------------------------------------------------------
 # SolarPosition class
@@ -320,3 +304,214 @@ class SolarPosition():
         self.elevation = sp['elevation'].to_numpy()
         self.azimuth = sp['azimuth'].to_numpy() - 180
         self.EOfTime = sp['equation_of_time'].to_numpy()
+        
+#%%--------------------------------------------------------------------------------------------------- 
+#%% PlanesIrradiances class
+
+class PlanesIrradiances:
+    
+    '''
+    This class is a preprocessor of solar radiation
+    Estimates the annual huorly solar radiation for a specific set of decided surfaces
+    
+    When initialized, the number of azimuth orientations and the number of height orientation must be given
+    Solar irradiance will be calculated for the entire set of these orientations
+    
+    example: if number of azimuth subdivision is 4 solar irradiance will be calculate for N E S W
+
+    Methods:
+        init
+    '''
+        
+    def __init__(self,site,epw,year = 2020,azSubdiv = 8,hSubdiv = 3):
+    
+        '''
+        initialize PlaneIrradiances object
+        
+        Parameters
+        ----------
+        site : pvlib.location.Location
+            Location object from pvlib.
+        epw : tuple from pvlib read_epw
+            contains 2 dataframe with the epw characteristics
+        year : int
+            year of the simulation, just to set the dataframe index
+        azSubdiv: int
+            number of the different direction (azimuth) solar radiation will be calculated
+        hSubdiv: int
+            number of the different direction (solar height) solar radiation will be calculated      
+            
+        Returns
+        -------
+        None
+        '''
+        
+        # Check input data type
+        
+        if not isinstance(site, pvlib.location.Location):
+            raise TypeError(f'Ops... input site is not a pvlib location object: site {site}') 
+        if not isinstance(epw, tuple):
+            raise TypeError(f'Ops... input epw is not a tuple: epw {epw}') 
+        if not isinstance(epw[0], pd.core.frame.DataFrame):
+            raise TypeError(f'Ops... input epw[0] is not a pandas dataframe: epw[0] {epw[0]}') 
+        if not isinstance(epw[1], dict):
+            raise TypeError(f'Ops... input epw[1] is not a dictionary: epw[1] {epw[1]}') 
+        if not isinstance(year, int):
+            raise TypeError(f'Ops... input year is not an integer: year {year}') 
+        if not isinstance(azSubdiv, int):
+            raise TypeError(f'Ops... input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
+        if not isinstance(hSubdiv, int):
+            raise TypeError(f'Ops... input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
+        
+        # Control input data quality
+    
+        if azSubdiv > 10 or hSubdiv > 5:
+            wrn(f"\n\nPlanesIrradiances class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+     
+        # Creates the dataframe with global beam and Angle of Incidence for many directions
+        
+        time = epw[0].index
+        irradiance = epw[0][['ghi','dni','dhi']]
+        self.solar_position = site.get_solarposition(times=time)
+        
+        azimuth = np.linspace(-180,180,azSubdiv+1)[:-1]
+        height = np.linspace(90,0,hSubdiv+1)[:-1]
+        components = ['global','direct','AOI']
+        
+        col = pd.MultiIndex.from_product([azimuth,height,components], names=['Azimuth', 'Height','Component'])
+        col = col.union(pd.MultiIndex.from_product([[0],[0],components], names=['Azimuth', 'Height','Component']))
+        Irradiances = pd.DataFrame(0., index=time, columns=col)
+        
+        for az in azimuth:
+            for h in height:
+                POA = get_irradiance(site,time,self.solar_position, h, az,irradiance,year)
+                Irradiances[az,h,'global']= POA['POA']
+                Irradiances[az,h,'direct']= POA['POA_B']
+                Irradiances[az,h,'AOI']= POA['AOI']
+                
+        POA = get_irradiance(site,time,self.solar_position, 0, 0,irradiance,year)
+        
+        Irradiances[0,0,'global']= POA['POA']
+        Irradiances[0,0,'direct']= POA['POA_B']
+        Irradiances[0,0,'AOI']= POA['AOI']
+        
+        self.Irradiances=Irradiances
+
+#%% ---------------------------------------------------------------------------------------------------
+# Weather class
+class Weather():
+    '''
+    This class is a container for all weather data.
+    It processes the epw file to extract arrays of temperature, wind, humidity etc......
+    
+    Methods:
+        init
+    '''
+
+    def __init__(self,epw_name, input_path = '.', tz = 'Europe/Rome', year = 2020,ts = 2, hours = 8760, n_years = 1, IrradiancesCalc = True, azSubdiv = 8, hSubdiv = 3):
+        '''
+        initialize weather obj
+        It processes the epw file to extract arrays of temperature, wind, humidity etc......
+    
+        Parameters
+        ----------
+        epw_name : str
+            path of the epw file.
+        input_path : str
+            path of the Input files.
+        tz : str
+            this is the time zone. For a list of the avilable see: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+        year : int 
+            the year of simulation. it is used only to create a pd.DataFrame.
+        ts : int
+            number of time steps in a hour.
+        hours : int 
+            number of hours
+        n_years : int
+            number of years of sim
+        azSubdiv: int
+            number of the different direction (azimuth) solar radiation will be calculated
+        hSubdiv: int
+            number of the different direction (solar height) solar radiation will be calculated      
+            
+        Returns
+        -------
+        None
+        '''
+        
+        # Check input data type
+        
+        if not isinstance(epw_name, str):
+            raise TypeError(f'Weather object, init, input epw_file is not a string: epw_file {epw_file}') 
+        if not isinstance(input_path, str):
+            raise TypeError(f'Weather object, init, input input_path is not a string: input_path {input_path}') 
+        if not isinstance(tz, str):
+            raise TypeError(f'Weather object, init, input tz is not a string: tz {tz}') 
+        if not isinstance(year, int):
+            try:
+                year = int(year)
+            except:
+                raise TypeError(f'Weather object, init, input year is not an int: year {year}') 
+        if not isinstance(ts, int):
+            try:
+                ts = int(ts)
+            except:
+                raise TypeError(f'Weather object, init, input ts is not an int: ts {ts}') 
+        if not isinstance(hours, int):
+            try:
+                hours = int(hours)
+            except:
+                raise TypeError(f'Weather object, init, input hours is not an int: hours {hours}') 
+        if not isinstance(n_years, int):
+            try:
+                n_years = int(n_years)
+            except:
+                raise TypeError(f'Weather object, init, input n_years is not an int: n_years {n_years}') 
+        if not isinstance(azSubdiv, int):
+            raise TypeError(f'Weather object, init, input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
+        if not isinstance(hSubdiv, int):
+            raise TypeError(f'Weather object, init, input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
+        
+        # Check input data quality
+        
+        if ts > 4:
+            wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+        if azSubdiv > 10 or hSubdiv > 5:
+            wrn(f"\n\nPlanesIrradiances class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+     
+        epw_file = os.path.join(input_path,epw_name)
+     
+        # Importing and processing weather data from .epw 
+        try:
+            epw = pvlib.iotools.read_epw(epw_file, coerce_year = year)                       # Reading the epw via pvlib 
+        except FileNotFoundError:
+            raise FileNotFoundError("Weather epw file not found in the Input folder: epw name {epw_name}, input folder {input_folder}")
+        
+        epw_res = epw[0].reset_index(drop=True)                                        # Exporting the hourly values
+        lat, lon = epw[1]['latitude'], epw[1]['longitude']                             # Extracting latitude and longitude from the epw
+        site = pvlib.location.Location(lat, lon, tz = tz)                              # Creating a location variable
+        time = np.arange(8760)                                                         # Time vector inizialization
+        
+        # Weather Data and Average temperature difference between Text and Tsky 
+        w = epw_res['wind_speed']                                                      # [m/s]
+        T_ext =epw_res['temp_air']                                                     # [°C]
+        T_ext_H_avg = np.mean([T_ext[0:2160],T_ext[6599:8759]])                        # [°C]
+        RH_ext = epw_res['relative_humidity']/100                                      # [0-1]
+        T_dp = epw_res['temp_dew']                                                     # [°C]
+        P_ = epw_res['atmospheric_pressure']                                           # [Pa]
+        n_opaque = epw_res['opaque_sky_cover']                                         # [0-10]
+        dT_er = TskyCalc(T_ext,T_dp,P_,n_opaque)                                       # Average temperature difference between Text and Tsky
+        w,T_ext,RH_ext,T_dp,P_,n_opaque = rescale_weather(ts,w,T_ext,RH_ext,T_dp,P_,n_opaque)
+        Solar_position = site.get_solarposition(times=epw[0].index).reset_index(drop=True)
+        Solar_position = SolarPosition(ts,Solar_position)
+        
+        # Inizialization of Solar Gain DataFrame 
+        # Creates a dataframe with the hourly solar radiation ond angle of incidence for several directions 
+        
+        if IrradiancesCalc:
+            Irradiances=PlanesIrradiances(site,epw,year,azSubdiv,hSubdiv)
+            Irradiances.Irradiances.to_csv(os.path.join(input_path,'PlanesIrradiances.csv'))
+        
+        # Solar Gain DataFrame 
+        Solar_Gains = pd.read_csv(os.path.join(input_path,'PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
+        Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
