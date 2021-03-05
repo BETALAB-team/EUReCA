@@ -539,8 +539,7 @@ class Weather():
         Solar_Gains = pd.read_csv(os.path.join(input_path,'PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
         Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
         
-        # Memorizing the attributes needed for the sim
-        
+        # Memorizing the attributes needed for the sim        
         self.ts = ts                    # number of timesteps in an hour
         self.hours = hours              # number of hours of a sim
         self.sim_time = [ts,hours]      #
