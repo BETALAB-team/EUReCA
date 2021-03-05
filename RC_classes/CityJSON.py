@@ -658,7 +658,7 @@ class JsonCity():
     
     
     '''Design Power calculation during design days'''
-    def designdays(self,Plant_calc,Time_to_regime,design_days,T_ext,RH_ext,tau):
+    def designdays(self,Plant_calc,Time_to_regime,design_days,weather):
         
         '''
         Design Power calculation during design days
@@ -671,13 +671,9 @@ class JsonCity():
             time needed to reach a regime condition for Design Days Calculation
         design_days : list
             period of design days calculation
-        T_ext : array of float64
-            external air temperature [°C]            
-        RH_ext : array of float64
-            external relative humidity [0-1]
-        tau : float
-            timestep [s]
-        
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
+
         Returns
         -------
         None
@@ -692,21 +688,10 @@ class JsonCity():
             raise TypeError(f'Ops... JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
         if not isinstance(design_days, list):
             raise TypeError(f'Ops... JsonCity class - designdays, design_days is not a list: design_days {design_days}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - designdays, T_ext is not a np.ndarray: T_ext {T_ext}')
-        if not isinstance(RH_ext, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - designdays, RH_ext is not a np.ndarray: RH_ext {RH_ext}')
-        if not isinstance(tau, float):
-            raise TypeError(f'Ops... JsonCity class - designdays, tau is not a float: tau {tau}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
-        # Check input data quality
-              
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nJsonCity class - designdays, input T_ext is out of plausible range: T_ext {T_ext}\n")
-        if not np.all(np.greater(RH_ext,-0.001)) or not np.all(np.less(RH_ext,1.001)):
-            wrn(f"\n\nJsonCity class - designdays, input RH_ext is out of plausible range: RH_ext {RH_ext}\n")
-
-        
+       
         # Calculation in Heating and Cooling seasons
         for bd in self.buildings.values():
             bd.BDdesigndays_Heating(Plant_calc)
@@ -715,8 +700,8 @@ class JsonCity():
             if t == design_days[1][0]:
                 x = t
                 while x < design_days[1][Time_to_regime - 1]:
-                    T_e = T_ext[t]
-                    RH_e = RH_ext[t]
+                    T_e = weather.Text[t]
+                    RH_e = weather.RHext[t]
         
                     if T_e < 0:
                         p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
@@ -724,12 +709,12 @@ class JsonCity():
                         p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
         
                     for bd in self.buildings.values():
-                        bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,tau,Plant_calc,self.model)
+                        bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
                         
                     x = x + 1
             else:
-                T_e = T_ext[t]
-                RH_e = RH_ext[t]
+                T_e = weather.Text[t]
+                RH_e = weather.RHext[t]
             
                 if T_e < 0:
                     p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
@@ -737,8 +722,7 @@ class JsonCity():
                     p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
             
                 for bd in self.buildings.values():
-                
-                    bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,tau,Plant_calc,self.model)
+                    bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
         
         # Reset starting values
         for bd in self.buildings.values():

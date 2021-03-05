@@ -152,7 +152,7 @@ print('Pre-processing:       ', end - start)
 ''' SIMULATION '''
 path=os.path.join(input_path, jsonfile)
 sim_time = np.arange(len(weather.Text)) 
-if DesignDays_calc == 'NO' and Plant_calc == 'YES':
+if not DesignDays_calc == 'YES' and Plant_calc == 'YES':
     print('------------------------------------------------------------------------------'+
           '\nWARNING: To do plant calculation Design Days calculation must be done!!\nSimulation will run doing the calculation of the design days\n'+
           '------------------------------------------------------------------------------')
@@ -188,11 +188,7 @@ print('Paramscalc:           ', end - start)
 start = tm.time()
 design_days = [np.arange(DD_boundaries[0,0]*ts,DD_boundaries[0,1]*ts),np.arange(DD_boundaries[1,0]*ts,DD_boundaries[1,1]*ts)] 
 if DesignDays_calc == 'YES':
-    Padua.designdays(Plant_calc,Time_to_regime,design_days,T_ext,RH_ext,3600/ts)
-elif DesignDays_calc == 'NO':
-    pass
-else:
-    sys.exit('Select an allowed value of DesignDays_calc')
+    Padua.designdays(Plant_calc,Time_to_regime,design_days,weather)
 
 end = tm.time()
 print('DesignDaysCalc:       ', end - start)
