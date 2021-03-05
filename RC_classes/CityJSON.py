@@ -13,7 +13,7 @@ from RC_classes.WeatherData import SolarPosition
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
 from RC_classes.Geometry import Surface
-from RC_classes.Climate_rev_v1 import UrbanCanyon
+from RC_classes.Climate import UrbanCanyon
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
