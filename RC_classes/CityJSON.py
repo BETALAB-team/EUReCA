@@ -9,7 +9,7 @@ import time as tm
 import pandas as pd
 from warnings import warn as wrn
 from cjio import cityjson
-from RC_classes.WeatherData import SolarPosition
+from RC_classes.WeatherData import SolarPosition, Weather
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
 from RC_classes.Geometry import Surface
@@ -50,7 +50,7 @@ def cityobj(p):
         
 
 
-def createBuilding(name,bd,vertList,mode,n_Floors,azSubdiv,hSubdiv,envelopes,sim_time):
+def createBuilding(name,bd,vertList,mode,n_Floors,envelopes,weather):
     
     '''
     This function allows to identify buildings and their attributes when
@@ -68,14 +68,10 @@ def createBuilding(name,bd,vertList,mode,n_Floors,azSubdiv,hSubdiv,envelopes,sim
         cityjson or geojson mode calculation
     n_Floors : int
         initialization of the building's number of floors
-    azSubdiv : int
-        number of azimuth subdivision
-    hSubdiv : int
-        number of tilt subdivision
     envelopes : dict
         envelope information for each age class category
-    sim_time : list
-        list containing timestep per hour and hours of simulation info
+    weather : RC_classes.WeatherData.Weather obj
+        object of the class weather WeatherData module
     
     Returns
     -------
@@ -94,15 +90,11 @@ def createBuilding(name,bd,vertList,mode,n_Floors,azSubdiv,hSubdiv,envelopes,sim
         raise TypeError(f'Ops... createBuilding function, mode is not a str: mode {mode}')
     if not isinstance(n_Floors, int):
         raise TypeError(f'Ops... createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
-    if not isinstance(azSubdiv, int):
-        raise TypeError(f'Ops... createBuilding function, azSubdiv is not a int: azSubdiv {azSubdiv}')
-    if not isinstance(hSubdiv, int):
-        raise TypeError(f'Ops... createBuilding function, hSubdiv is not a int: hSubdiv {hSubdiv}')
     if not isinstance(envelopes, dict):
         raise TypeError(f'Ops... createBuilding function, envelopes is not a dict: envelopes {envelopes}')
-    if not isinstance(sim_time, list):
-        raise TypeError(f'Ops... createBuilding function, sim_time is not a list: sim_time {sim_time}')
-    
+    if not isinstance(weather, Weather):
+        raise TypeError(f'Ops... createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            
     # Check input data quality
 
     for vtx in vertList:
@@ -116,13 +108,8 @@ def createBuilding(name,bd,vertList,mode,n_Floors,azSubdiv,hSubdiv,envelopes,sim
             vtx[2] = float(vtx[2])
         except ValueError:
             raise ValueError(f'Ops... createBuilding function, a coordinate is not a float: input {vtx}')     
-    if azSubdiv > 10 or hSubdiv > 5:
-        wrn(f"\n\createBuilding function, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
     if not bool(envelopes):
         wrn(f"\n\createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}\n")
-    if sim_time[0] > 6:
-        wrn(f"\n\createBuilding function, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}\n")
-
     
     
     # Setting the attributes of the building
@@ -149,7 +136,7 @@ def createBuilding(name,bd,vertList,mode,n_Floors,azSubdiv,hSubdiv,envelopes,sim
                     surfaces.append(surf)
         
         # Building class initialization
-        return Building(name,surfaces,use,mode,n_Floors,azSubdiv,hSubdiv,envelopes,age,1,1,H_plant,C_plant,sim_time)
+        return Building(name,mode,surfaces,n_Floors,use,envelopes,age,1,1,H_plant,C_plant,weather)
 
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -181,7 +168,7 @@ class JsonCity():
     V_0_vent = 0.                                                              # Starting average volumetric flow rate outgoing the Air Handling units [m3/s]
     H_waste_0 = 0.                                                             # Starting waste heating rejected by external condensers [kW]
     
-    def __init__(self,json_path,model,azSubdiv,hSubdiv,envelopes,sim_time,mode='cityjson'):
+    def __init__(self,json_path,envelopes,weather,model = '1C', mode='cityjson'):
         
         '''
         This method creates the city from the json file
@@ -190,16 +177,12 @@ class JsonCity():
         ----------
         json_path : str
             path of the cityJSON file
-        model : str
-            Resistance-Capacitance model used
-        azSubdiv : int
-            number of azimuth subdivision
-        hSubdiv : int
-            number of tilt subdivision
         envelopes : dict
             envelope information for each age class category
-        sim_time : list
-            list containing timestep per hour and hours of simulation info    
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
+        model : str
+            Resistance-Capacitance model used
         mode : str
             cityjson or geojson mode calculation
         
@@ -215,14 +198,10 @@ class JsonCity():
             raise TypeError(f'Ops... JsonCity class, json_path is not a str: json_path {json_path}')
         if not isinstance(model, str):
             raise TypeError(f'Ops... JsonCity class, model is not a str: model {model}')
-        if not isinstance(azSubdiv, int):
-            raise TypeError(f'Ops... JsonCity class, azSubdiv is not a int: azSubdiv {azSubdiv}')
-        if not isinstance(hSubdiv, int):
-            raise TypeError(f'Ops... JsonCity class, hSubdiv is not a int: hSubdiv {hSubdiv}')
         if not isinstance(envelopes, dict):
             raise TypeError(f'Ops... JsonCity class, envelopes is not a dict: envelopes {envelopes}')
-        if not isinstance(sim_time, list):
-            raise TypeError(f'Ops... JsonCity class, sim_time is not a list: sim_time {sim_time}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
             raise TypeError(f'Ops... JsonCity class, mode is not a str: mode {mode}')
 
@@ -230,13 +209,8 @@ class JsonCity():
         
         if model != '1C' and  model != '2C':
             wrn(f"\n\JsonCity class, the model doesn't exist..... model {model}\n")
-        if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\JsonCity class, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
         if not bool(envelopes):
             wrn(f"\n\JsonCity class, the envelopes dictionary is empty..... envelopes {envelopes}\n")
-        if sim_time[0] > 6:
-            wrn(f"\n\JsonCity class, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}\n")
-
 
         # Creation of the city
         self.model = model
@@ -255,7 +229,7 @@ class JsonCity():
                     raise ValueError('json file vertices are not a list')
                 if not(isinstance(self.n_Floors, int)):
                     raise ValueError('The floor number is not an integer')
-                self.buildings[bd]=createBuilding(bd,self.jsonBuildings[bd],self.city.j['vertices'],self.mode,self.n_Floors,azSubdiv,hSubdiv,envelopes,sim_time)
+                self.buildings[bd]=createBuilding(bd,self.jsonBuildings[bd],self.city.j['vertices'],self.mode,self.n_Floors,envelopes,weather)
         
         # Case of GeoJSON file availability:
         elif mode=='geojson':
@@ -302,17 +276,18 @@ class JsonCity():
                 except KeyError:
                     self.cooling_plant = 'IdealLoad'
                     
-                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['nome'],build_surf,
-                                                                self.city.loc[i]['Uso'],
-                                                                self.mode,
+                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['nome'], 
+                                                                self.mode, 
+                                                                build_surf,
                                                                 self.city.loc[i]['n_piani'],
-                                                                azSubdiv,hSubdiv,envelopes,
+                                                                self.city.loc[i]['Uso'],                                                                                                                             
+                                                                envelopes,
                                                                 self.city.loc[i]['età'],
                                                                 self.rh_net,
                                                                 self.rh_gross,
                                                                 self.heating_plant,
                                                                 self.cooling_plant,
-                                                                sim_time)
+                                                                weather)
                 
         else:
             sys.exit('Set a proper mode')

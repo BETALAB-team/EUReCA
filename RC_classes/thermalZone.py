@@ -16,6 +16,7 @@ from RC_classes.EndUse import loadArchetype, Archetype
 from RC_classes.AHU import AirHandlingUnit
 from RC_classes.PVPlant import DistrictPVGIS
 from RC_classes.BuildingsPlants import Plants
+from RC_classes.WeatherData import  Weather
 #from mpl_toolkits.mplot3d import Axes3D
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -1577,7 +1578,10 @@ class Building:
     eps_se = 0.9
     h_r = 5*eps_se  # external radiative heat transfer coefficient [W/(m2 K)]
     
-    def __init__(self,buildingName,surfList,end_use,mode,n_Floors,azSubdiv,hSubdiv,envelopes,archId,rh_net,rh_gross,heating_plant,cooling_plant,sim_time):
+    def __init__(self,buildingName,mode,surfList,n_Floors,
+                 end_use,envelopes,archId,
+                 rh_net,rh_gross,
+                 heating_plant,cooling_plant,weather):
         '''
         Initializes the building object
         Builds up teh building geometry with respet to the input data
@@ -1587,6 +1591,8 @@ class Building:
             ----------
             buildingName : string
                 string with the building name or id
+            mode : str
+                This is or 'cityjson' or 'geojson'. Depending on this the number of floors is calculated differently
             surfList : list of lists
                 this list includes all surfaces vertices. three layer list [m]
                 
@@ -1602,14 +1608,10 @@ class Building:
                                    .
                                             
                 ]
+            n_Floors : number of floors
+                used only for geojson
             end_use : str
                 the string with the end use archetype name
-            mode : str
-                This is or 'cityjson' or 'geojson'. Depending on this the number of floors is calculated differently
-            azSubdiv: int
-                number of azimuth subdivision
-            hSubdiv: int
-                number of azimuth subdivision
             envelopes : dictionary
                 dictionary of Envelopes objects that returns from loadEnvelopes
             archId : string
@@ -1622,8 +1624,7 @@ class Building:
                 string with the heating plant typology
             cooling_plant : str
                 string with the cooling plant typology
-            sim_time : list of int
-                List of int with the number of time steps per hour (first), the number of hours (second)             
+
 
         Returns
         -------
@@ -1643,16 +1644,11 @@ class Building:
             raise TypeError(f'Ops... Building class, bd {buildingName}, input end_use is not a string: end_use {end_use}')    
         if not isinstance(mode, str):
             raise TypeError(f'Ops... Building class, bd {buildingName}, input mode is not a string: mode {mode}')                   
-        if not isinstance(azSubdiv, int):
+        if not isinstance(n_Floors, int):
             try:
-                azSubdiv = int(azSubdiv)
-            except ValueError:
-                raise TypeError(f'Ops... Building class, bd {buildingName},  azSubdiv is not a int: azSubdiv {azSubdiv}') 
-        if not isinstance(hSubdiv, int):
-            try:
-                hSubdiv = int(hSubdiv)
-            except ValueError:
-                raise TypeError(f'Ops... Building class, bd {buildingName}, hSubdiv is not a int: hSubdiv {hSubdiv}') 
+                n_Floors = int(n_Floors)
+            except:
+                raise TypeError(f'Ops... Building class, bd {buildingName}, n_Floors is not a int: n_Floors {n_Floors}') 
         if not isinstance(envelopes, dict):
             raise TypeError(f'Ops... Building class, bd {buildingName}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
         if not isinstance(archId, str):
@@ -1671,15 +1667,13 @@ class Building:
             raise TypeError(f'Ops... Building class, bd {buildingName}, input heating_plant is not a string: heating_plant {heating_plant}')  
         if not isinstance(cooling_plant, str):
             raise TypeError(f'Ops... Building class, bd {buildingName}, input cooling_plant is not a string: cooling_plant {cooling_plant}')  
-        if not isinstance(sim_time, list) or not isinstance(sim_time[0], int) or not isinstance(sim_time[1], int):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, sim_time is not a list of int: sim_time {sim_time}') 
-        
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+
         # check input data quality
         
         if mode != 'cityjson' and mode != 'geojson':
             raise ValueError(f'Ops... Building class, bd {buildingName}, input mode must be "cityjson" or "geojson": mode {mode}')   
-        if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\nBuilding class, init, bd {buildingName}, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
         if rh_gross < 0.5 or rh_gross > 1.5:
             wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}\n")
         if rh_net < 0.5 or rh_net > 1.5:
@@ -1691,8 +1685,8 @@ class Building:
         THIS IS FOR LOD1
         ---
         '''
-        ts = sim_time[0]
-        hours = sim_time[1]
+        ts = weather.sim_time[0]
+        hours = weather.sim_time[1]
         
         # Output vectors inizialization 
         
@@ -1736,7 +1730,7 @@ class Building:
             for surf in surfList:
                 self.wwr = envelopes[archId].Window.wwr
                 i += 1
-                surface = Surface('Building Surface '+str(i),azSubdiv,hSubdiv,self.wwr,rh_gross,surf)
+                surface = Surface('Building Surface '+str(i),weather.azSubdiv,weather.hSubdiv,self.wwr,rh_gross,surf)
                 self.buildingSurfaces['Building Surface '+str(i)]=surface
                 self.ii = i
         except KeyError:

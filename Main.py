@@ -25,25 +25,25 @@ from RC_classes.BuildingsPlants import loadPlants
 '''Setting Input Data'''
 # PREPROCESSING
 epw_name = 'ITA_Venezia-Tessera.161050_IGDG.epw'
-input_path = os.path.join('..','Input')
+input_path = os.path.join('.','Input')
 year = 2020                                                                    # Setting an year
 first_day = 7                                                                  # Setting the first day of the year (1 Monday)
 tz='Europe/Rome'                                                               # Setting the thermal zone
 azSubdiv = 8                                                                   # Azimuth subdivision
 hSubdiv = 3                                                                    # Tilt subdivision
 SolarCalc = False                                                              # Need of a Solar Calculation?
-env_path = os.path.join('..','Input','Envelopes.xlsx')                          # Envelope directory from home folder
-schedpath = os.path.join('..','Input','ScheduleSemp.xlsx')                     # Annual schedules
+env_path = os.path.join(input_path,'Envelopes.xlsx')                          # Envelope directory from home folder
+schedpath = os.path.join(input_path,'ScheduleSemp.xlsx')                     # Annual schedules
 SchedMethod = str('A')                                                         # A Daily schedules, B yearly schedules
-plant_path = os.path.join('..','Input','PlantsList.xlsx')                       # Plants list and properties
+plant_path = os.path.join(input_path,'PlantsList.xlsx')                       # Plants list and properties
 
 # SIMULATION
 ts = 1                                                                         # Timestep per hour
-hours = 8760                                                                   # Hours of simulation 
+hours = 8760                                                                   # Hours of simulation (must be 8760 currently)
 years = 1                                                                      # Years of simulation
 model = str('2C')                                                              # Select model: '1C' or '2C'
-mode = str('cityjson')                                                         # Select mode: 'geojson' or 'cityjson'
-jsonfile = str('PaduaRestricted.json')                      # Select .geojson or .json file
+mode = str('geojson')                                                         # Select mode: 'geojson' or 'cityjson'
+jsonfile = str('PiovegoRestricted.geojson')                      # Select .geojson or .json file
 path=os.path.join('.','Input', jsonfile)
 Shading_calc = str('NO')                                                       # Select 'YES' or 'NO' to take into consideration the shading effect
 toll_az = float(80)                                                            # Semi-tollerance on azimuth of shading surface [°]
@@ -130,8 +130,8 @@ weather = Weather(epw_name, input_path = input_path, tz = tz,
                              toll_dist,
                              toll_theta])
 
-
-'''Loading Envelope and Schedule Data'''
+ 
+# Loading Envelope and Schedule Data 
 envelopes = loadEnvelopes(env_path)                                            # Envelope file loading
 
 if SchedMethod == 'A':
@@ -142,7 +142,7 @@ elif SchedMethod == 'B':
 else:
     sys.exit('Set a proper schedule inporting methodology')
 
-'''Plants List'''
+# Plants List 
 Plants_list = loadPlants(plant_path)
 
 end = tm.time()
@@ -150,8 +150,8 @@ print('Pre-processing:       ', end - start)
 
 #%% 
 ''' SIMULATION '''
-path=os.path.join('.','Input', jsonfile)
-sim_time = np.arange(len(T_ext)) 
+path=os.path.join(input_path, jsonfile)
+sim_time = np.arange(len(weather.Text)) 
 if DesignDays_calc == 'NO' and Plant_calc == 'YES':
     print('------------------------------------------------------------------------------'+
           '\nWARNING: To do plant calculation Design Days calculation must be done!!\nSimulation will run doing the calculation of the design days\n'+
@@ -160,8 +160,8 @@ if DesignDays_calc == 'NO' and Plant_calc == 'YES':
     
 'District initialization'
 start = tm.time()
-Padua = JsonCity(path,model,azSubdiv,hSubdiv,envelopes,[ts,hours],mode)
-Padua.create_urban_canyon([ts,hours],UWG_calc,UWG_data)
+Padua = JsonCity(path,envelopes,weather,model = model,mode = mode)
+Padua.create_urban_canyon([weather.ts,weather.hours],UWG_calc,UWG_data)
 end = tm.time()
 print('Jsoncity:             ', end - start)
 

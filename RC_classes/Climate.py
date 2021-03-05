@@ -399,7 +399,7 @@ class UrbanCanyon(object):
     T_urb_0 = 24+273.15                                                        # [K]
     T_boundary_0 = 18+273.15                                                   # [K
     
-    def __init__(self,sim_time,data,meso_path = 'RC_classes'):
+    def __init__(self,sim_time,data,meso_path = os.path.join('.','RC_classes')):
         '''
         Initializes an Urban Canyon and sets some parameters
         
