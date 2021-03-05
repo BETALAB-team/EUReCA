@@ -122,36 +122,7 @@ with 64 km/h
 
 start = tm.time()
 
-'''Importing and processing weather data from .epw'''
-epw = pvlib.iotools.read_epw(iopath, coerce_year = year)                       # Reading the epw via pvlib 
-epw_res = epw[0].reset_index(drop=True)                                        # Exporting the hourly values
-lat, lon = epw[1]['latitude'], epw[1]['longitude']                             # Extracting latitude and longitude from the epw
-site = pvlib.location.Location(lat, lon, tz = tz)                              # Creating a location variable
-time = np.arange(8760)                                                         # Time vector inizialization
 
-'''Weather Data and Average temperature difference between Text and Tsky'''
-w = epw_res['wind_speed']                                                      # [m/s]
-T_ext =epw_res['temp_air']                                                     # [°C]
-T_ext_H_avg = np.mean([T_ext[0:2160],T_ext[6599:8759]])                        # [°C]
-RH_ext = epw_res['relative_humidity']/100                                      # [0-1]
-T_dp = epw_res['temp_dew']                                                     # [°C]
-P_ = epw_res['atmospheric_pressure']                                           # [Pa]
-n_opaque = epw_res['opaque_sky_cover']                                         # [0-10]
-dT_er = TskyCalc(T_ext,T_dp,P_,n_opaque)                                       # Average temperature difference between Text and Tsky
-w,T_ext,RH_ext,T_dp,P_,n_opaque = rescale_weather(ts,w,T_ext,RH_ext,T_dp,P_,n_opaque)
-Solar_position = site.get_solarposition(times=epw[0].index).reset_index(drop=True)
-Solar_position = SolarPosition(ts,Solar_position)
-
-'''Inizialization of Solar Gain DataFrame'''
-'''Creates a dataframe with the hourly solar radiation ond angle of incidence for several directions'''
-
-if SolarCalc:
-    Irradiances=PlanesIrradiances(site,epw,year,azSubdiv,hSubdiv)
-    Irradiances.Irradiances.to_csv(os.path.join('.','Input','PlanesIrradiances.csv'))
-
-'''Solar Gain DataFrame'''
-Solar_Gains = pd.read_csv(os.path.join('.','Input','PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
-Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
 
 '''Loading Envelope and Schedule Data'''
 envelopes = loadEnvelopes(env_path)                                            # Envelope file loading
