@@ -129,9 +129,9 @@ envelopes = loadEnvelopes(env_path)                                            #
 
 if SchedMethod == 'A':
     PlantDays=[2520,3984,6192,6912]                                            # 15th April, 15th June, 15th September, 15th October
-    sched = loadSimpleArchetype(schedpath,time,first_day,ts,PlantDays)
+    sched = loadSimpleArchetype(schedpath,np.arange(8760),first_day,ts,PlantDays)
 elif SchedMethod == 'B':
-    sched = loadArchetype(schedpath,time,ts)
+    sched = loadArchetype(schedpath,np.arange(8760,ts)
 else:
     sys.exit('Set a proper schedule inporting methodology')
 

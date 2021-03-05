@@ -272,11 +272,6 @@ class Weather():
         Solar_Gains = pd.read_csv(os.path.join('.','Input','PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
         Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
 
-
-
-
-
-
 #%% ---------------------------------------------------------------------------------------------------
 # SolarPosition class
 class SolarPosition():
