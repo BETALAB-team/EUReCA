@@ -2,6 +2,7 @@
 RCenv.yml
 /OutputReport/1C/*.csv
 /OutputReport/2C/*.csv
+/OutputReport/warnings.txt
 AppuntiCoseDaFare.txt
 *.docx
 /RC_classes/__pycache__/
