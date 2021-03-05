@@ -2000,7 +2000,7 @@ class Building:
                               Pnom_C = self.Pnom_C_BD)
         
         
-    def solve(self,t,Plants_list,T_e,RH_e,p_extsat,tau,Plant_calc,model = '1C'):
+    def solve(self,t,T_e,RH_e,p_extsat,tau,Plants_list,Plant_calc,model = '1C'):
 
         '''
         This method allows to calculate Cooling maximum power required by
@@ -2010,8 +2010,6 @@ class Building:
             ----------
             t : int
                 timestep of the simulation
-            Plants_list: dictionary
-                dictionary with plant_key/Plants data
             T_e : float
                 external temperature [°C]
             RH_e : float
@@ -2020,6 +2018,8 @@ class Building:
                 atmospheric pressure [Pa]
             tau: int
                 time constant (3600 s for hourly sim)
+            Plants_list: dictionary
+                dictionary with plant_key/Plants data
             Plant_calc  : string
                 'YES' or 'NO' 
             model : string

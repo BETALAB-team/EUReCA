@@ -761,7 +761,7 @@ class JsonCity():
     
     
     '''Energy simulation of the city'''
-    def citysim(self,time,T_ext,RH_ext,w,Solar_Gains,Solar_position,T_sky,tau,Plant_calc,Plants_list):
+    def citysim(self,time,weather,Plant_calc,Plants_list):
         
         '''
         This method allows the energy simulation of the city
@@ -770,20 +770,8 @@ class JsonCity():
         ----------
         time : simulation timestep
             array of int32
-        T_ext : array of float64
-            external air temperature [°C]      
-        RH_ext : array of float64
-            external relative humidity [0-1]   
-        w : array of float64
-            wind speed [m/s]   
-        Solar_Gains : dataframe
-            solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)  
-        Solar_position : WeatherData.SolarPosition
-            Object containing information about the position of the sun over the time of simulation
-        T_sky : array of float64
-            sky temperature [°C]
-        tau : float
-            timestep [s]
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
         Plant_calc : str
             YES if plant calculation is performed, NO viceversa
         Plants_list : dict
@@ -798,20 +786,8 @@ class JsonCity():
         
         if not isinstance(time, np.ndarray):
             raise TypeError(f'Ops... JsonCity class - citysim, time is not a np.ndarray: time {time}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - citysim, T_ext is not a np.ndarray: T_ext {T_ext}')
-        if not isinstance(RH_ext, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - citysim, RH_ext is not a np.ndarray: RH_ext {RH_ext}')
-        if not isinstance(w, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - citysim, w is not a numpy.array: w {w}')
-        if not isinstance(Solar_Gains, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... JsonCity class - citysim, Solar_Gains is not a DataFrame: Solar_Gains {Solar_Gains}')
-        if not isinstance(Solar_position, SolarPosition):
-            raise TypeError(f'Ops... JsonCity class - citysim, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
-        if not isinstance(T_sky, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - citysim, T_sky is not a np.ndarray: T_sky {T_sky}')
-        if not isinstance(tau, float):
-            raise TypeError(f'Ops... JsonCity class - citysim, tau is not a float: tau {tau}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(Plant_calc, str):
             raise TypeError(f'Ops... JsonCity class - citysim, Plant_calc is not a str: Plant_calc {Plant_calc}')
         if not isinstance(Plants_list, dict):
@@ -822,18 +798,13 @@ class JsonCity():
         for t in time:
             if not isinstance(time[t], np.int32):
                 wrn(f"\n\nJsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}\n")
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nJsonCity class - citysim, input T_ext is out of plausible range: T_ext {T_ext}\n")
-        if not np.all(np.greater(RH_ext,-0.001)) or not np.all(np.less(RH_ext,1.001)):
-            wrn(f"\n\nJsonCity class - citysim, input RH_ext is out of plausible range: RH_ext {RH_ext}\n")
-        if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-            wrn(f"\n\nJsonCity class - citysim, input w is out of plausible range: w {w}\n")            
-
-        
+       
         # Energy simulation of the city
         for t in time:
-            T_e = T_ext[t]
-            RH_e = RH_ext[t]
+            T_e = weather.Text[t]
+            RH_e = weather.RHext[t]
+            w = weather.w[t]
+            zenith = weather.SolarPosition.zenith[t]
             if T_e < 0:
                 p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
             else:
@@ -841,9 +812,18 @@ class JsonCity():
                 
             # Urban Heat Island evaluation
             if self.urban_canyon_calc:
-                radiation = [Solar_Gains['0.0','0.0','global'].iloc[t],
-                             Solar_Gains['0.0','0.0','direct'].iloc[t]]
-                self.urban_canyon.solve_canyon(t,T_e,w[t],radiation,self.T_w_0,T_sky[t],self.H_waste_0*1000,Solar_position.zenith[t],[self.T_out_inf,self.T_out_AHU],[self.V_0_inf,self.V_0_vent])
+                radiation = [weather.SolarGains['0.0','0.0','global'].iloc[t],
+                             weather.SolarGains['0.0','0.0','direct'].iloc[t]]
+                self.urban_canyon.solve_canyon(t,
+                                               T_e,
+                                               w,
+                                               radiation,
+                                               self.T_w_0,
+                                               T_e-weather.dT_er,
+                                               self.H_waste_0*1000,
+                                               zenith,
+                                               [self.T_out_inf,self.T_out_AHU],
+                                               [self.V_0_inf,self.V_0_vent])
                 T_e = self.urban_canyon.T_urb[t] - 273.15
                 
             # Vectors initialization
@@ -856,7 +836,14 @@ class JsonCity():
             
             # Linear system resolution
             for bd in self.buildings.values():
-                bd.solve(t,Plants_list,T_e,RH_e,p_extsat,tau,Plant_calc,self.model)
+                bd.solve(t,
+                         T_e,
+                         RH_e,
+                         p_extsat,
+                         weather.tau,
+                         Plants_list,
+                         Plant_calc,
+                         self.model)
                 T_w_bd = np.append(T_w_bd, bd.T_wall_0)
                 T_out_inf_bd = np.append(T_out_inf_bd, bd.T_out_inf)
                 T_out_vent_bd =np.append(T_out_vent_bd, bd.T_out_AHU)

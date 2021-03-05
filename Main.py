@@ -203,7 +203,7 @@ print('Building Plant:       ', end - start)
 
 'Simulation'
 start = tm.time()
-Padua.citysim(sim_time,T_ext,RH_ext,w,Solar_Gains,Solar_position,(T_ext - dT_er),3600/ts,Plant_calc,Plants_list)
+Padua.citysim(sim_time,weather,Plant_calc,Plants_list)
 end = tm.time()
 print('Simulation:           ', end - start)
 
