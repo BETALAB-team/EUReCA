@@ -45,7 +45,7 @@ model = str('2C')                                                              #
 mode = str('geojson')                                                         # Select mode: 'geojson' or 'cityjson'
 jsonfile = str('PiovegoRestricted.geojson')                      # Select .geojson or .json file
 path=os.path.join('.','Input', jsonfile)
-Shading_calc = str('NO')                                                       # Select 'YES' or 'NO' to take into consideration the shading effect
+Shading_calc = True                                                           # Select 'YES' or 'NO' to take into consideration the shading effect
 toll_az = float(80)                                                            # Semi-tollerance on azimuth of shading surface [°]
 toll_dist = float(100)                                                         # Tollerance on distance of shading surface [m]
 toll_theta = float(80)                                                          # Semi-tollerance on position of the shading surfaces [°]
@@ -167,18 +167,20 @@ print('Jsoncity:             ', end - start)
 
 'Mutual shading effect evaluation'
 start = tm.time()
-if Shading_calc == 'YES':
-    Padua.shading_effect(mode,toll_az,toll_dist,toll_theta,Solar_position,R_f)
-elif Shading_calc == 'NO':
-    pass
-else:
-    sys.exit('Select an allowed value of Shading_calc')
+if Shading_calc:
+    Padua.shading_effect(weather.SolarPosition,
+                         mode = mode,
+                         toll_az = weather.Az_toll,
+                         toll_dist = weather.Dist_toll,
+                         toll_theta = weather.Theta_toll,
+                         R_f = R_f)
+
 end = tm.time()
 print('Shading effect TOT:   ', end - start)
 
 'Parameters and loads calculation'
 start = tm.time()
-Padua.paramsandloads(envelopes,sched,Solar_Gains,w,T_ext,dT_er,mode)
+Padua.paramsandloads(envelopes,sched,weather, mode = mode)
 end = tm.time()
 print('Paramscalc:           ', end - start)
 

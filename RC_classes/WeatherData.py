@@ -539,6 +539,14 @@ class Weather():
         Solar_Gains = pd.read_csv(os.path.join(input_path,'PlanesIrradiances.csv'),header=[0,1,2],index_col=[0])
         Solar_Gains = rescale_sol_gain(ts,Solar_Gains)
         
+        # Check some weather data values
+        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
+            wrn(f"\n\nWeather class, input T_ext is out of plausible range: T_ext {T_ext}\n")
+        if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
+            wrn(f"\n\nWeather class, input w is out of plausible range: w {w}\n")       
+        if not np.all(np.greater(RH_ext,-0.0001)) or not np.all(np.less(RH_ext,1.)):
+            wrn(f"\n\nWeather class, input w is out of plausible range: w {w}\n")       
+        
         # Memorizing the attributes needed for the sim        
         self.ts = ts                    # number of timesteps in an hour
         self.hours = hours              # number of hours of a sim

@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 from warnings import warn as wrn
+from RC_classes.WeatherData import  Weather
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
@@ -182,18 +183,14 @@ class DistrictPVGIS:
         self.l = l
         
 
-    def PV_calc(self,Solar_Gain,T_ext,w):
+    def PV_calc(self,weather):
         '''
         PV_calc calculate the electricity production
         
         Parameters
         ----------
-        Solar_Gain : dataframe
-            solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)
-        T_ext : array of float64
-            external temperature [°C]
-        w : array of float64
-            wind speed [m/s]
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
         
         Returns
         -------
@@ -202,24 +199,13 @@ class DistrictPVGIS:
 
         # Check input data 
         
-        if not isinstance(Solar_Gain, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... DistrictPVGIS class, Solar_Gain is not a DataFrame: Solar_Gain {Solar_Gain}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... DistrictPVGIS class, T_ext is not a numpy.ndarray: T_ext {T_ext}')
-        if not isinstance(w, np.ndarray):
-            raise TypeError(f'Ops... DistrictPVGIS class, w is not a numpy.ndarray: w {w}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
-        # Check input data quality
-        
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nDistrictPVGIS class, input T_ext is out of plausible range: T_ext {T_ext}\n")
-        if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-            wrn(f"\n\nDistrictPVGIS class, input w is out of plausible range: w {w}\n")
-
         # Irradiance on the tilted surface
         Tilt_rad = np.radians(self.Tilt)                                             # Degree to radians conversion
-        irradiance = Solar_Gain[str(self.Az)][str(self.Tilt)]
-        irradiance0 = Solar_Gain[str(0.0)][str(0.0)]
+        irradiance = weather.SolarGains[str(self.Az)][str(self.Tilt)]
+        irradiance0 = weather.SolarGains[str(0.0)][str(0.0)]
         self.AOI = irradiance['AOI'].to_numpy()                                      # Angle of incidence [°]
         self.BRTS = irradiance['direct'].to_numpy()                                  # Direct radiation [W/m2]
         self.DRTS = irradiance['global'].to_numpy()-irradiance['direct'].to_numpy()  # Diffuse radiation [W/m2]
@@ -230,6 +216,6 @@ class DistrictPVGIS:
         
         # Electrical power calculation
         for t in time:
-            self.P[t], self.etaRel[t], self.FB[t] = PVGIS_production(self.Tilt,TRTS[t],self.BRTS[t],self.DRTS[t],self.RRTS[t],T_ext[t],w[t],self.P_nom,self.AOI[t])
+            self.P[t], self.etaRel[t], self.FB[t] = PVGIS_production(self.Tilt,TRTS[t],self.BRTS[t],self.DRTS[t],self.RRTS[t],weather.Text[t],weather.w[t],self.P_nom,self.AOI[t])
             self.P_el[t] = self.P[t]/1000                                      # [kW]
         self.Tot_prod = sum(self.P_el)/1000                                    # [MWh]

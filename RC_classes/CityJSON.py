@@ -384,13 +384,19 @@ class JsonCity():
             self.urban_canyon_data = None 
    
     
-    def shading_effect(self,mode,toll_az,toll_dist,toll_theta,Solar_position,R_f):
+    def shading_effect(self,Solar_position,mode = 'cityjson',
+                       toll_az = 80.,
+                       toll_dist = 100. ,
+                       toll_theta = 80.,
+                       R_f = 0.):
         
         '''
         This method takes into account the shading effect between buildings surfaces
         
         Parameters
         ----------
+        Solar_position : WeatherData.SolarPosition
+            Object containing information about the position of the sun over the time of simulation
         mode : str
             cityjson or geojson mode calculation
         toll_az : float
@@ -399,8 +405,6 @@ class JsonCity():
             tollerance on distance of shading surface [m]
         toll_theta : float
             semi-tollerance on position of the shading surfaces [°]
-        Solar_position : WeatherData.SolarPosition
-            Object containing information about the position of the sun over the time of simulation
         R_f : float
             Reduction factor of the direct solar radiation due to the shading effect [0-1]
         
@@ -599,7 +603,7 @@ class JsonCity():
                 self.all_Vertsurf[x][0].shading_effect = shading_eff_01
 
     
-    def paramsandloads(self,envelopes,sched_db,Solar_Gains,w,T_ext,dT_er,mode):
+    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson'):
         
         '''
         This method permits to calculate the equivalent electrical network
@@ -611,14 +615,8 @@ class JsonCity():
             envelope information for each age class category   
         sched_db : dict
             dictionary containing the operational schedules for each end-use category
-        Solar_Gains : dataframe
-            solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)  
-        w : array of float64
-            wind speed [m/s]
-        T_ext : array of float64
-            external air temperature [°C]
-        dT_er : float
-            average temperature difference between Text and Tsky [°C]
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
         mode : str
             cityjson or geojson mode calculation
         
@@ -634,14 +632,8 @@ class JsonCity():
             raise TypeError(f'Ops... JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
         if not isinstance(sched_db, dict):
             raise TypeError(f'Ops... JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
-        if not isinstance(Solar_Gains, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, Solar_Gains is not a DataFrame: Solar_Gains {Solar_Gains}')
-        if not isinstance(w, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, w is not a numpy.array: w {w}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, T_ext is not a numpy.array: T_ext {T_ext}')
-        if not isinstance(dT_er, float):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, dT_er is not a float: dT_er {dT_er}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
             raise TypeError(f'Ops... JsonCity class - paramsandloads, mode is not a str: mode {mode}')
         
@@ -651,10 +643,6 @@ class JsonCity():
             wrn(f"\n\JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}\n")
         if not bool(sched_db):
             wrn(f"\n\JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}\n")
-        if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-            wrn(f"\n\nJsonCity class - paramsandloads, input w is out of plausible range: w {w}\n")            
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nJsonCity class - paramsandloads, input T_ext is out of plausible range: T_ext {T_ext}\n")
         if mode != 'geojson' and  mode != 'cityjson':
             wrn(f"\n\JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}\n")
 
@@ -662,11 +650,11 @@ class JsonCity():
         if mode == 'cityjson':
             for bd in self.buildings.values():
                 self.archId = 1
-                bd.BDParamsandLoads(self.model,envelopes,sched_db,Solar_Gains,w,T_ext,dT_er)
+                bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
         
         elif mode == 'geojson':
             for i in self.city.index:
-                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,Solar_Gains,w,T_ext,dT_er)
+                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
     
     
     '''Design Power calculation during design days'''

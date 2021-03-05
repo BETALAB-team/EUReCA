@@ -525,17 +525,15 @@ class ThermalZone:
         self.UA_tot = self.Htr_op + self.Htr_w
 
         
-    def calculate_zone_loads_ISO13790(self,Solar_gain,dT_er,h_r):
+    def calculate_zone_loads_ISO13790(self,weather,h_r):
         '''
         Calculates the heat gains on the three nodes of the ISO 13790 network
         Vectorial calculation
         
         Parameters
             ----------
-            Solar_gain : pd.DataFrame
-                This dataframe includes solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)
-            dT_er : float
-                average temeprature difference between external air and sky vault [°C]
+            weather : RC_classes.WeatherData.weather
+                weather obj
             h_r : float    
                 external radiative heat transfer coefficient W/(m2 K)
                 
@@ -546,26 +544,26 @@ class ThermalZone:
         
         # Check input data type
         
-        if not isinstance(dT_er, float):
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+        if not isinstance(weather.dT_er, float):
             try:
-                dT_er = float(dT_er)
+                weather.dT_er = float(weather.dT_er)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, dT_er input is not an float: dT_er {dT_er}')
+                raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, dT_er input is not an float: dT_er {weather.dT_er}')
         if not isinstance(h_r, float):
             try:
                 h_r = float(h_r)
             except ValueError:
                 raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, h_r input is not an float: h_r {h_r}')
-        if not isinstance(Solar_gain,  pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, Solar_gain input is not an DataFrame: Solar_gain {Solar_gain}')
-                 
+    
         # Check input data quality
         
         if h_r < 0.:
             wrn(f"\n\n Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the h_r is negative: h_r {h_r}.")
         
-        if not 0. <= dT_er < 30.:
-            wrn(f"\n\n Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the dT_er is outside limits [0,30] °C: dT_er {dT_er}.")
+        if not 0. <= weather.dT_er < 30.:
+            wrn(f"\n\n Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the dT_er is outside limits [0,30] °C: dT_er {weather.dT_er}.")
         
         # First calculation of internal heat gains 
         
@@ -581,7 +579,7 @@ class ThermalZone:
             phi_sol_gl = 0
             
             if i.type == 'ExtWall' or i.type == 'Roof':
-                irradiance = Solar_gain[str(float(i.azimuth_round))][str(float(i.height_round))]  
+                irradiance = weather.SolarGain[str(float(i.azimuth_round))][str(float(i.height_round))]  
                 BRV = irradiance['direct'].to_numpy()                           
                 TRV = irradiance['global'].to_numpy()
                 DRV = TRV -BRV
@@ -610,17 +608,17 @@ class ThermalZone:
                 self.sr_ew = self.Strat['ExtWall'].R_se
                 self.U_ew_net = self.Strat['ExtWall'].U_net
                 if i.OnOff_shading == 'On':
-                    phi_sol_op = self.F_so_op*(BRV*i.shading_effect + DRV)*self.alpha*self.sr_ew*self.U_ew_net*self.A_ew-self.F_r*self.sr_ew*self.U_ew_net*self.A_ew*h_r*dT_er
+                    phi_sol_op = self.F_so_op*(BRV*i.shading_effect + DRV)*self.alpha*self.sr_ew*self.U_ew_net*self.A_ew-self.F_r*self.sr_ew*self.U_ew_net*self.A_ew*h_r*weather.dT_er
                 else:
-                    phi_sol_op = self.F_so_op*TRV*self.alpha*self.sr_ew*self.U_ew_net*self.A_ew-self.F_r*self.sr_ew*self.U_ew_net*self.A_ew*h_r*dT_er
+                    phi_sol_op = self.F_so_op*TRV*self.alpha*self.sr_ew*self.U_ew_net*self.A_ew-self.F_r*self.sr_ew*self.U_ew_net*self.A_ew*h_r*weather.dT_er
                 
             if i.type == 'Roof':
-                TRH = Solar_gain['0.0']['0.0']['global'].to_numpy()
+                TRH = weather.SolarGain['0.0']['0.0']['global'].to_numpy()
                 self.F_r = i.F_r
                 self.alpha = self.Strat['Roof'].alpha_est
                 self.sr_rf = self.Strat['Roof'].R_se
                 self.U_rf_net = self.Strat['Roof'].U_net
-                phi_sol_op = TRH*self.alpha*self.sr_rf*self.U_rf_net*self.A_ew-self.F_r*self.sr_rf*self.U_rf_net*self.A_ew*h_r*dT_er
+                phi_sol_op = TRH*self.alpha*self.sr_rf*self.U_rf_net*self.A_ew-self.F_r*self.sr_rf*self.U_rf_net*self.A_ew*h_r*weather.dT_er
                 
             # Total solar gain     
             phi_sol_gl_tot += phi_sol_gl
@@ -869,17 +867,15 @@ class ThermalZone:
         self.Htr_op = sum(HAW_v)
         self.Htr_w = sum(HAF_v) 
 
-    def calculate_zone_loads_vdi6007(self,T_ext,Solar_gain):
+    def calculate_zone_loads_vdi6007(self,weather):
         '''
         Calculates zone loads for the vdi 6007 standard
         Also the external equivalent temperature
         
         Parameters
         ----------
-        T_ext : array of float64
-            external temperature [°C]
-        Solar_Gain : dataframe
-            solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)
+            weather : RC_classes.WeatherData.weather
+                weather obj
                
         Returns
         -------
@@ -888,16 +884,11 @@ class ThermalZone:
 
         # Check input data type
         
-        if not isinstance(Solar_gain, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... Thermal zone calculate_zone_loads_vdi6007, bd {self.bd_name}, Solar_Gain is not a DataFrame: Solar_Gain {Solar_Gain}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... Thermal zone calculate_zone_loads_vdi6007, bd {self.bd_name}, T_ext is not a numpy.ndarray: T_ext {T_ext}')
-
-        # Check input data quality
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nDistrictPVGIS class, input Text is out of plausible range: Text {Text}\n")
-         
+        # Check input data quality
+                
         '''
         Eerd = Solar_gain['0.0']['0.0']['Global']*rho_ground                          #
         Eatm = Solar_gain['0.0']['0.0']['Global']-Solar_gain['0.0']['0.0']['Direct']
@@ -906,12 +897,13 @@ class ThermalZone:
         
         '''
         
-        Eatm, Eerd, theta_erd, theta_atm = longWaveRadiation(T_ext)
+        Eatm, Eerd, theta_erd, theta_atm = longWaveRadiation(weather.Text)
         #fil =  (Eatm + Eerd)*(theta_erd - theta_atm)
         alpha_str_A = 5
         
         # Creates some vectors and set some parameters
         
+        T_ext = weather.Text
         theta_eq = np.zeros([len(T_ext),len(self.surfaces)])
         delta_theta_eq_lw = np.zeros([len(T_ext),len(self.surfaces)])
         delta_theta_eq_kw = np.zeros([len(T_ext),len(self.surfaces)])
@@ -933,7 +925,7 @@ class ThermalZone:
                     shading = surface.shading_effect
                 else:
                     shading = 1
-                irradiance = Solar_gain[str(float(surface.azimuth_round))][str(float(surface.height_round))]
+                irradiance = weather.SolarGains[str(float(surface.azimuth_round))][str(float(surface.height_round))]
                 AOI = irradiance['AOI'].to_numpy()
                 BRV = irradiance['direct'].to_numpy()                           
                 TRV = irradiance['global'].to_numpy()
@@ -1788,7 +1780,7 @@ class Building:
         self.Pnom_C_BD = -1e20
 
         
-    def BDParamsandLoads(self,model,envelopes,sched_db,Solar_gain,w,T_ext,dT_er,splitInZone=False):
+    def BDParamsandLoads(self,model,envelopes,sched_db,weather,splitInZone=False):
         '''
         This method allows to initialize thermal zones and to calculate
         Parameters and Internal and Solar loads for each zone of the buildings
@@ -1801,14 +1793,8 @@ class Building:
                 dictionary of Envelopes objects that returns from loadEnvelopes 
             sched_db : dictionary
                 dictionary of Archetypes objects that returns from loadArchetype 
-            Solar_Gain : dataframe
-                solar radiation and angle of incidence on several reference tilted surfaces (from PlaneIrradiances)
-            w : array of float64
-                wind speed [m/s]
-            T_ext : array of float64
-                external temperature [°C]
-            dT_er : float
-                average temeprature difference between external air and sky vault [°C]
+            weather : RC_classes.WeatherData.Weather obj
+                object of the class weather WeatherData module
             splitInZone : boolean
                 Only True available
 
@@ -1825,28 +1811,13 @@ class Building:
             raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
         if not isinstance(sched_db, dict):
             raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, sched_db is not a dictionary: sched_db {sched_db}... print help for more info') 
-        if not isinstance(Solar_gain, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, Solar_gain is not a DataFrame: Solar_gain {Solar_gain}')
-        if not isinstance(T_ext, np.ndarray):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, T_ext is not a numpy.ndarray: T_ext {T_ext}')
-        if not isinstance(w, np.ndarray):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, w is not a numpy.ndarray: w {w}')
-        if not isinstance(dT_er, float):
-            try:
-                dT_er = float(dT_er)
-            except ValueError:  
-                raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, bd {self.bd_name}, dT_er input is not an float: dT_er {dT_er}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(splitInZone, bool):
             raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, splitInZone is not a boolean: splitInZone {splitInZone}')
         
         # Check input data quality
         
-        if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nDistrictPVGIS class, input Text is out of plausible range: Text {Text}\n")
-        if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-            wrn(f"\n\nDistrictPVGIS class, input w is out of plausible range: w {w}\n")
-        if not 0. <= dT_er < 30.:
-            wrn(f"\n\n Building class, BDParamsandLoads, bd {self.name}, the dT_er is outside limits [0,30] °C: dT_er {dT_er}.")
         if splitInZone:
             raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, splitInZone must be False: splitInZone {splitInZone}. MultiZone building not implemented yet')
         
@@ -1857,17 +1828,22 @@ class Building:
             self.buildingSurfaces['Building Surface '+str(self.ii+2)] = SurfaceInternalMass(('Building Surface '+str(self.ii+1)),(self.total_area-self.footprint),surfType='IntFloor')
             self.buildingSurfaces['Building Surface '+str(self.ii+3)] = SurfaceInternalMass(('Building Surface '+str(self.ii+2)),self.Rat_iw*self.nFloors*self.footprint,surfType='IntWall')
             try:
-                self.zones['Zone'] = ThermalZone(1,self.name,envelopes[self.archId],sched_db[self.end_use],self.buildingSurfaces.values(),self.Volume,self.footprint*self.nFloors,self.l)
+                self.zones['Zone'] = ThermalZone(1,self.name,
+                                                 envelopes[self.archId],sched_db[self.end_use],
+                                                 self.buildingSurfaces.values(),
+                                                 self.Volume,
+                                                 self.footprint*self.nFloors,
+                                                 self.l)
             except KeyError:
                 raise KeyError(f"\n\n Building class, BDParamsandLoads: bd {self.name}, the end use archetype not found. key {self.end_use}\nList of possible archetypes: \n {sched_db.keys()}")
         
             if model == '1C':
                 self.zones['Zone'].zoneParameter13790()
-                self.zones['Zone'].calculate_zone_loads_ISO13790(Solar_gain,dT_er,self.h_r)
+                self.zones['Zone'].calculate_zone_loads_ISO13790(weather,self.h_r)
             
             elif model == '2C':
                 self.zones['Zone'].zoneParameter6007()
-                self.zones['Zone'].calculate_zone_loads_vdi6007(T_ext,Solar_gain)
+                self.zones['Zone'].calculate_zone_loads_vdi6007(weather)
             
             else:
                 raise ValueError(f'Building class, BDParamsandLoads, bd {self.name}. Give a proper model: "2C" or "1C"')
@@ -1875,7 +1851,7 @@ class Building:
         # PV calc
         
         self.BuildPV = DistrictPVGIS(self.extRoofArea,self.l)
-        self.BuildPV.PV_calc(Solar_gain,T_ext,w)
+        self.BuildPV.PV_calc(weather)
         
         
     def BDdesigndays_Heating(self,Plant_calc):
