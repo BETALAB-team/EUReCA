@@ -52,8 +52,8 @@ toll_theta = float(80)                                                          
 R_f = float(0)                                                                 # Reduction factor of the direct solar radiation due to the shading effect [0-1]
 DD_boundaries = np.array([[167,504],[4681,5017]], dtype = int)                 # Heating and Cooling Design Days Periods
 Time_to_regime = 168                                                           # Time needed to reach a regime condition for Design Days Calculation
-DesignDays_calc = str('NO')                                                   # Select 'YES' or 'NO' to calculate or not design days demand
-Plant_calc = str('NO')                                                        # Select 'YES' or 'NO' to calculate or not buildings plant
+DesignDays_calc = str('YES')                                                   # Select 'YES' or 'NO' to calculate or not design days demand
+Plant_calc = str('YES')                                                        # Select 'YES' or 'NO' to calculate or not buildings plant
 
 # OUTPUT REPORT
 OutRep = bool(True)
