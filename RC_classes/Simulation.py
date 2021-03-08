@@ -53,6 +53,9 @@ class Sim():
 
         self.name = 'city'
         
+        # Dictionsary with sim times
+        self.times = {}
+        
     def set_input_from_text_file (self, input_path):
         '''
         This method read an input file with three dictionaries 
@@ -285,11 +288,156 @@ class Sim():
             
         # This dictionary is not checked because it is already checked in the Climate file and urban canyon class  
         self.UWG_data = UWG_data
-        
-        # Dictionsary with sim times
-        self.times = {}
-
     
+    def set_input_from_excel_file(self, input_path):
+        '''
+        This method import the simulation inputs from the excel file
+        The layout of the file excel is meaningful and mustn't be modified
+
+        Parameters
+        ----------
+        input_path : str
+            The path of the excel input file.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        try: 
+            self.excel_input = pd.read_excel(input_path, usecols = 'D')
+            self.excel_input = self.excel_input['Unnamed: 3']
+            self.input_folder = os.path.join('.',str(self.excel_input.loc[5]))    
+            self.epw_name = str(self.excel_input.loc[0])    
+            self.envelopes_name = str(self.excel_input.loc[1])  
+            self.end_uses_name = str(self.excel_input.loc[2])
+            self.plants_name = str(self.excel_input.loc[3])   
+            self.json_name = str(self.excel_input.loc[4])
+            
+            self.json_mode = str(self.excel_input.loc[7])   
+            self.end_uses_mode = str(self.excel_input.loc[6])  
+        except ValueError:
+            raise ValueError(f"""There's something wrong in the data types of the excel input file (input files).
+                             
+                               default_input_path : str
+                               epw : str
+                               envelopes : str
+                               end-uses : str
+                               plants : str
+                               json : str
+                               json_mod : str
+                               end-uses_mod : str
+                               """)
+        try: 
+            self.excel_input = pd.read_excel(input_path, usecols = 'B', skiprows = 12)
+            self.excel_input = self.excel_input['Unnamed: 1']
+            self.year = int(self.excel_input.loc[0]) 
+            self.first_day = int(self.excel_input.loc[1])
+            self.tz = str(self.excel_input.loc[2])
+            self.ts = int(self.excel_input.loc[3])
+            self.hours = int(self.excel_input.loc[4])
+            self.model = str(self.excel_input.loc[5])
+            self.DD_boundaries = np.array(
+                             [[self.excel_input.loc[6],self.excel_input.loc[7]], 
+                              [self.excel_input.loc[8],self.excel_input.loc[9]]],
+                             dtype = int)
+            self.time_to_regime = int(self.excel_input.loc[10])
+            self.DoDDcalc = bool(self.excel_input.loc[11])
+            self.DoPlantCalc = bool(self.excel_input.loc[12])
+            self.StampOutputReport = bool(self.excel_input.loc[13])
+            
+            
+            self.azSubdiv = int(self.excel_input.loc[14])
+            self.hSubdiv = int(self.excel_input.loc[15])
+            self.SolarCalc = bool(self.excel_input.loc[16])
+            
+            
+            self.ShadingCalc = bool(self.excel_input.loc[17])
+            self.azToll = float(self.excel_input.loc[18])
+            self.distToll = float(self.excel_input.loc[19])
+            self.thetaToll = float(self.excel_input.loc[20])
+            self.R_f = float(self.excel_input.loc[21])
+            
+        except ValueError:
+            raise ValueError(f"""There's something wrong in the data types of the excel input file (Sim input).
+                             
+                               year : int 
+                               first_day : int 
+                               tz : str
+                               ts : int 
+                               hours : int 
+                               model : str
+                               DD_boundaries : np.array
+                               Time_to_regime : int 
+                               DesignDays_calc : bool
+                               Plant_calc : bool
+                               OutputReport : bool
+                               
+                               azSubdiv : int 
+                               hSubdiv : int 
+                               SolarCalc : bool
+                               Shading_calc : bool
+                               toll_az : float
+                               toll_dist : float
+                               toll_theta : float
+                               R_f : float
+                               """)
+            
+        try:
+            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 37)
+            self.excel_input = self.excel_input['Unnamed: 2']
+            self.UWGCalc =  bool(self.excel_input.loc[0])
+            self.UWG_data = {       
+                            'UWG_calc' : bool(self.excel_input.loc[0]), 
+                            'Area' : float(self.excel_input.loc[1]),
+                            'Diameter': float(self.excel_input.loc[2]),
+                            'Perimeter': float(self.excel_input.loc[3]),
+                            'Ortogonal_length': float(self.excel_input.loc[4]),
+                            'h_layer_inf': int(2),
+                            'h_layer_sup': int(150),
+                            'z_i_day': int(1000),
+                            'z_i_night': int(50),
+                            'z_i_m': int(10),
+                            'z_i_ref': int(150),
+                            'ExtWall_radiative_coef': float(self.excel_input.loc[5]),
+                            'ExtWall_convective_coef': float(self.excel_input.loc[6]),
+                            'ExtWall_emissivity': float(self.excel_input.loc[7]),
+                            'ExtWall_reflection': float(self.excel_input.loc[8]),
+                            'Average_U_windows': float(self.excel_input.loc[9]),
+                            'Vegetation_density': float(self.excel_input.loc[10]),
+                            'Road_radiative_coef': float(self.excel_input.loc[11]),
+                            
+                            'Road_layers': np.array([
+                                [0.05, 1.9*10**6, 273 + 10],
+                                [0.2 , 2*10**6,   273 + 12],
+                                [1   , 1.4*10**6, 273 + 13],
+                                ], dtype = float),                          # first column thickness [m], second capacity [J/m3K], first row asphalt, second stones, third gravel 
+                                
+                            'Soil_layers': np.array([
+                                [3 , 1.4*10**6, 273 + 10],
+                                [3 , 1.4*10**6, 273 + 12],
+                                [3 , 1.4*10**6, 273 + 13],
+                                ], dtype = float),                          # first column thickness [m], second capacity [J/m3K]
+                            'T_deep': float(13+273),
+                            
+                            
+                            'cars_number_over_1000_px': float(self.excel_input.loc[12]),
+                            'motorcycles_number_over_1000_px': float(self.excel_input.loc[13]),
+                            'othervehicle_number_over_1000_px': float(self.excel_input.loc[14]),
+                            'emission_factor_cars_over_1000_px': float(	self.excel_input.loc[15] ),
+                            'emission_factor_motorcycles_over_1000_px': float(self.excel_input.loc[16]),
+                            'emission_factor_othervehicle_over_1000_px': float(self.excel_input.loc[17]),
+                            'vehicle_multiplying_factor': float(self.excel_input.loc[18]),
+                            'distance_per_hour': float(self.excel_input.loc[19]*1000),
+                            'population_density': float(self.excel_input.loc[20]),
+                            'first_day': self.first_day,
+                            'Hw_week': np.array([0.9,0.5,0.9,2.1,3.3,4.2,5.8,7.1,6.3,5.8,5.4,5.4,5.8,6.3,6.7,7.1,7.5,5.8,4.2,3.3,2.5,1.7,1.3,0.9])/100,
+                            'Hw_end': np.array([1.7,1.2,1.,1.7,2.6,3.3,4.2,5,5.8,6.2,6.7,6.7,6.7,6.7,6.3,5.8,5,4.6,4.2,3.7,3.3,2.9,2.5,2.1])/100    
+                            }
+        except ValueError:
+            raise ValueError(f"""There's something wrong in the data types of the excel input file (UWG data).""")
+        
     def preprocessing(self):
         '''
         Pre-processing

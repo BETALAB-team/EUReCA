@@ -439,8 +439,22 @@ class UrbanCanyon(object):
                     [3 , 1.4*10**6, 273 + 12],
                     [3 , 1.4*10**6, 273 + 13],
                     ], dtype = float),                          # first column thickness [m], second capacity [J/m3K]
-                'T_deep': float(13+273)
-                }               
+                'T_deep': float(13+273)    
+    
+                'cars_number_over_1000_px': float(39545000/60360),
+                'motorcycles_number_over_1000_px': float(6896000/60360),
+                'othervehicle_number_over_1000_px': float(5364000/60360),
+                'emission_factor_cars_over_1000_px': float(	24.74 ),
+                'emission_factor_motorcycles_over_1000_px': float(13.34),
+                'emission_factor_othervehicle_over_1000_px': float(104.95),
+                'vehicle_multiplying_factor': float(1),
+                'distance_per_hour': float(64000),
+                'population_density': float(2283.2),
+                'first_day': Sim_input['first_day'],
+                'Hw_week': np.array([0.9,0.5,0.9,2.1,3.3,4.2,5.8,7.1,6.3,5.8,5.4,5.4,5.8,6.3,6.7,7.1,7.5,5.8,4.2,3.3,2.5,1.7,1.3,0.9])/100,
+                'Hw_end': np.array([1.7,1.2,1.,1.7,2.6,3.3,4.2,5,5.8,6.2,6.7,6.7,6.7,6.7,6.3,5.8,5,4.6,4.2,3.7,3.3,2.9,2.5,2.1])/100                    
+                }        
+                
             meso_path : string
                 path containing the meso file
                 
