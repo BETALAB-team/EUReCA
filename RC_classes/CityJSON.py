@@ -665,8 +665,8 @@ class JsonCity():
         
         Parameters
         ----------
-        Plant_calc : str
-            YES if plant calculation is performed, NO viceversa
+        Plant_calc : bool
+            True if plant calculation is performed, False viceversa
         Time_to_regime : int
             time needed to reach a regime condition for Design Days Calculation
         design_days : list
@@ -682,8 +682,8 @@ class JsonCity():
         
         # Check input data type
         
-        if not isinstance(Plant_calc, str):
-            raise TypeError(f'Ops... JsonCity class - designdays, Plant_calc is not a str: Plant_calc {Plant_calc}')
+        if not isinstance(Plant_calc, bool):
+            raise TypeError(f'Ops... JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}')
         if not isinstance(Time_to_regime, int):
             raise TypeError(f'Ops... JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
         if not isinstance(design_days, list):
@@ -772,8 +772,8 @@ class JsonCity():
             array of int32
         weather : RC_classes.WeatherData.Weather obj
             object of the class weather WeatherData module
-        Plant_calc : str
-            YES if plant calculation is performed, NO viceversa
+        Plant_calc : bool
+            True if plant calculation is performed, False viceversa
         Plants_list : dict
             dictionary contaning all the implemented plants
         
@@ -788,8 +788,8 @@ class JsonCity():
             raise TypeError(f'Ops... JsonCity class - citysim, time is not a np.ndarray: time {time}')
         if not isinstance(weather, Weather):
             raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        if not isinstance(Plant_calc, str):
-            raise TypeError(f'Ops... JsonCity class - citysim, Plant_calc is not a str: Plant_calc {Plant_calc}')
+        if not isinstance(Plant_calc, bool):
+            raise TypeError(f'Ops... JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}')
         if not isinstance(Plants_list, dict):
             raise TypeError(f'Ops... JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
 

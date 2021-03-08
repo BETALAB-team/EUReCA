@@ -1861,8 +1861,8 @@ class Building:
         
         Parameters
             ----------
-            Plant_calc  : string
-                'YES' or 'NO' 
+            Plant_calc  : bool
+                True or False
         
         Returns
         -------
@@ -1871,20 +1871,15 @@ class Building:
         
         # Check input data type
         
-        if not isinstance(Plant_calc, str):
-            raise TypeError(f'Ops... Building class, BDdesigndays_Heating, bd {self.name}, input Plant_calc is not a string: Plant_calc {Plant_calc}')         
-        
-        # Check input data quality
-        
-        if Plant_calc!='YES' and Plant_calc!='NO':
-            raise ValueError(f"Building class, BDdesigndays_Heating, bd {self.name}. Give a proper Plant_calc: 'YES' or 'NO' ")
+        if not isinstance(Plant_calc, bool):
+            raise TypeError(f'Ops... Building class, BDdesigndays_Heating, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         for z in self.zones.values():
             z.solveDD_Heating()
             self.Pnom_H_BD = (self.zones['Zone'].heatFlow_DDH + self.zones['Zone'].latentFlow_DDH)/1000  # [kW]
             self.PDesignH = self.Pnom_H_BD
             
-        if Plant_calc == 'NO':
+        if not Plant_calc:
             self.Pnom_H_BD = 1e20
         
     
@@ -1906,8 +1901,8 @@ class Building:
                 atmospheric pressure [Pa]
             tau: int
                 time constant (3600 s for hourly sim)
-            Plant_calc  : string
-                'YES' or 'NO' 
+            Plant_calc  : bool
+                True or False 
             model : string
                 '1C' model or '2C' model
                     
@@ -1945,13 +1940,11 @@ class Building:
                 tau = int(tau)
             except ValueError:  
                 raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, tau input is not a float: tau {tau}')
-        if not isinstance(Plant_calc, str):
-            raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, input Plant_calc is not a string: Plant_calc {Plant_calc}')         
+        if not isinstance(Plant_calc, bool):
+            raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         # Check input data quality
         
-        if Plant_calc!='YES' and Plant_calc!='NO':
-            raise ValueError(f"Building class, BDdesigndays_Cooling, bd {self.name}. Give a proper Plant_calc: 'YES' or 'NO' ")
         if not -50. <= T_e < 50.:
             wrn(f"\n\n Building class, BDdesigndays_Cooling, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         if not .0 <= RH_e <= 1.:
@@ -1964,7 +1957,7 @@ class Building:
             self.Pnom_C_BD = min((self.zones['Zone'].heatFlow + self.zones['Zone'].latentFlow)/1000 + self.zones['Zone'].ZoneAHU.AHUDemand)   # [kW]
             self.PDesignC = self.Pnom_C_BD
             
-        if Plant_calc == 'NO':
+        if not Plant_calc:
             self.Pnom_C_BD = -1e20
 
 
@@ -2020,8 +2013,8 @@ class Building:
                 time constant (3600 s for hourly sim)
             Plants_list: dictionary
                 dictionary with plant_key/Plants data
-            Plant_calc  : string
-                'YES' or 'NO' 
+            Plant_calc  : bool
+                True or False 
             model : string
                 '1C' model or '2C' model
                     
@@ -2061,13 +2054,11 @@ class Building:
                 tau = int(tau)
             except ValueError:  
                 raise TypeError(f'Ops... Building class, solve, bd {self.name}, tau input is not a float: tau {tau}')
-        if not isinstance(Plant_calc, str):
-            raise TypeError(f'Ops... Building class, solve, bd {self.name}, input Plant_calc is not a string: Plant_calc {Plant_calc}')         
+        if not isinstance(Plant_calc, bool):
+            raise TypeError(f'Ops... Building class, solve, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         # Check input data quality
         
-        if Plant_calc!='YES' and Plant_calc!='NO':
-            raise ValueError(f"Building class, solve, bd {self.name}. Give a proper Plant_calc: 'YES' or 'NO' ")
         if not -50. <= T_e < 50.:
             wrn(f"\n\n Building class, solve, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         if not .0 <= RH_e <= 1.:
@@ -2093,11 +2084,9 @@ class Building:
         self.T_out_AHU = self.zones['Zone'].ZoneAHU.T_out
         self.G_vent_0 = self.zones['Zone'].G_da_vent[t] / self.zones['Zone'].rho_air
         
-        if Plant_calc == 'YES':
+        if Plant_calc:
             self.BDPlant.solvePlant(Plants_list,self.heatFlowBD[t] + self.latentFlowBD[t] + self.AHUDemandBD[t],t,T_e,self.Air_tempBD[t],self.RH_iBD[t])
             self.H_waste = self.BDPlant.H_waste[t]
-        elif Plant_calc == 'NO':
-            pass
             
     def checkExtWalls(self):
         
