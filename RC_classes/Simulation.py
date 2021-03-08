@@ -53,17 +53,9 @@ class Sim():
 
         self.name = 'city'
         
-    def set_input_from_dictionary (self, Input_files,
-                                  Sim_input,
-                                  UWG_data):
+    def set_input_from_text_file (self, input_path):
         '''
-        This method sets the inputh data from 3 different dictionaries
-        Input_files
-        Sim_input
-        UWG_data
-
-        Parameters
-        ----------
+        This method read an input file with three dictionaries 
         Input_files : dictionary
                     Dictionary that includes these keys and values:
                             default_input_path : str
@@ -149,6 +141,11 @@ class Sim():
                                     'Hw_end': np.array([1.7,1.2,1.,1.7,2.6,3.3,4.2,5,5.8,6.2,6.7,6.7,6.7,6.7,6.3,5.8,5,4.6,4.2,3.7,3.3,2.9,2.5,2.1])/100    
                                     }
 
+        Parameters
+        ----------
+        input_path : str
+            path of the input file to read 
+
         Returns
         -------
         None.
@@ -156,6 +153,9 @@ class Sim():
         '''
         
         # Loading Input_files
+        
+        exec(open(input_path).read(), globals())
+        
         
         try:
             self.input_folder = str(Input_files['default_input_path'])    
@@ -603,11 +603,11 @@ if __name__ == '__main__':
                  'model' : '2C',                                # model to be used (2C, 1C)
                  'DD_boundaries' : np.array(
                                  [[167,504], [4681,5017]],
-                                 dtype = int),                   # Heating and Cooling Design Days Periods
+                                 dtype = int),                  # Heating and Cooling Design Days Periods
                  'Time_to_regime' : 168,                        # Time needed to reach a regime condition for Design Days Calculation
-                 'DesignDays_calc' : str('YES'),                # Select 'YES' or 'NO' to calculate or not design days demand
-                 'Plant_calc' : str('YES'),                     # Select 'YES' or 'NO' to calculate or not buildings plant
-                 'OutputReport' : bool(True), 
+                 'DesignDays_calc' : True,                      # Select 'YES' or 'NO' to calculate or not design days demand
+                 'Plant_calc' : True,                           # Select 'YES' or 'NO' to calculate or not buildings plant
+                 'OutputReport' : True,  
                  
                  'azSubdiv' : 8,                                # Azimuth subdivision
                  'hSubdiv' : 3,                                 # Tilt subdivision

@@ -1,38 +1,38 @@
 # Setting Input Data 
 
-Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',
-               'envelopes' : 'Envelopes.xlsx',
-               'end-uses' : 'ScheduleSemp.xlsx',
-               'plants' : 'PlantsList.xlsx',
-               'json' : 'PaduaRestricted.json',
-               'default_input_path' : os.path.join('.','Input'),
-               'end-uses_mod' : 'Daily',
-               'json_mod' : 'cityjson'
+Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw file name
+               'envelopes' : 'Envelopes.xlsx',                      # STR : envelopes file name
+               'end-uses' : 'ScheduleSemp.xlsx',                    # STR : end-uses file name
+               'plants' : 'PlantsList.xlsx',                        # STR : plants file name
+               'json' : 'PaduaRestricted.json',                     # STR : json file name
+               'default_input_path' : os.path.join('.','Input'),    # STR : input path file name
+               'end-uses_mod' : 'Daily',                            # STR : Daily or Yearly
+               'json_mod' : 'cityjson'                              # STR : geojson or cityjson
                }
 
-Sim_input = {'year' : 2020,                                 # the year, it is usedin order to create the schedule set, but it's almost useless
-             'first_day' : 7,                               # first day of the year
-             'tz' : 'Europe/Rome',                          # Thermal zone
-             'ts' : 1,                                      # Number of time-steps per hour
-             'hours' : 8760,                                # number of hours (actually only 8760 is implemented)
-             'model' : '2C',                                # model to be used (2C, 1C)
+Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
+             'first_day' : 7,                               # INT : first day of the year
+             'tz' : 'Europe/Rome',                          # STR : Thermal zone
+             'ts' : 1,                                      # INT : Number of time-steps per hour
+             'hours' : 8760,                                # INT : number of hours (actually only 8760 is implemented)
+             'model' : '2C',                                # STR : model to be used (2C, 1C)
              'DD_boundaries' : np.array(
                              [[167,504], [4681,5017]],
-                             dtype = int),                   # Heating and Cooling Design Days Periods
-             'Time_to_regime' : 168,                        # Time needed to reach a regime condition for Design Days Calculation
-             'DesignDays_calc' : str('YES'),                # Select 'YES' or 'NO' to calculate or not design days demand
-             'Plant_calc' : str('YES'),                     # Select 'YES' or 'NO' to calculate or not buildings plant
-             'OutputReport' : bool(True), 
+                             dtype = int),                  # np.array : Heating and Cooling Design Days Periods
+             'Time_to_regime' : 168,                        # INT : Time needed to reach a regime condition for Design Days Calculation
+             'DesignDays_calc' : True,                      # BOOL : Select 'YES' or 'NO' to calculate or not design days demand
+             'Plant_calc' : True,                           # BOOL : Select 'YES' or 'NO' to calculate or not buildings plant
+             'OutputReport' : True, 
              
-             'azSubdiv' : 8,                                # Azimuth subdivision
-             'hSubdiv' : 3,                                 # Tilt subdivision
-             'SolarCalc' : False,                           # Need of a Solar Calculation?
+             'azSubdiv' : 8,                                # INT : Azimuth subdivision
+             'hSubdiv' : 3,                                 # INT : Tilt subdivision
+             'SolarCalc' : False,                           # BOOL : Need of a Solar Calculation?
  
-             'Shading_calc' : True,                         # Select 'YES' or 'NO' to take into consideration the shading effect
-             'toll_az' : float(80),                         # Semi-tollerance on azimuth of shading surface [°]
-             'toll_dist' : float(100),                      # Tollerance on distance of shading surface [m]
-             'toll_theta' : float(80),                      # Semi-tollerance on position of the shading surfaces [°]
-             'R_f' : float(0)                               # Reduction factor of the direct solar radiation due to the shading effect [0-1]
+             'Shading_calc' : True,                         # BOOL : Select 'YES' or 'NO' to take into consideration the shading effect
+             'toll_az' : float(80),                         # FLOAT : Semi-tollerance on azimuth of shading surface [°]
+             'toll_dist' : float(100),                      # FLOAT : Tollerance on distance of shading surface [m]
+             'toll_theta' : float(80),                      # FLOAT : Semi-tollerance on position of the shading surfaces [°]
+             'R_f' : float(0)                               # FLOAT : Reduction factor of the direct solar radiation due to the shading effect [0-1]
 
             }
 
@@ -45,12 +45,12 @@ UWG_data = {
     'Diameter': float(800),
     'Perimeter': float(3280),
     'Ortogonal_length': float(800),
-    'h_layer_inf': 2,
-    'h_layer_sup': 150,
-    'z_i_day': 1000,
-    'z_i_night': 50,
-    'z_i_m': 10,
-    'z_i_ref': 150,
+    'h_layer_inf': int(2),
+    'h_layer_sup': int(150),
+    'z_i_day': int(1000),
+    'z_i_night': int(50),
+    'z_i_m': int(10),
+    'z_i_ref': int(150),
     'ExtWall_radiative_coef': float(5),
     'ExtWall_convective_coef': float(17),
     'ExtWall_emissivity': float(0.85),
