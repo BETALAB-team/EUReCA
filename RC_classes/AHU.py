@@ -150,7 +150,7 @@ class AirHandlingUnit:
             raise TypeError(f'Ops... input G_da_vent is not a positive float: G_da_vent {G_da_vent}')
         if not AHUOnOff in [0,1,-1]:
             raise TypeError(f'Ops... input AHUOnOff must be 0,1,-1: AHUOnOff {AHUOnOff}')
-        if not isinstance(AHUHUM, np.bool_):
+        if not isinstance(AHUHUM, bool):
             raise TypeError(f'Ops... input AHUHUM is not a boolean: AHUHUM {AHUHUM}')
         if (not isinstance(Sens_Recovery_eff, float)) or Sens_Recovery_eff < 0. or Sens_Recovery_eff > 1.:
             raise TypeError(f'Ops... input Sens_Recovery_eff must be included in the range 0-1: Sens_Recovery_eff {Sens_Recovery_eff}')

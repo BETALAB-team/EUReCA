@@ -1297,12 +1297,12 @@ class ThermalZone:
         RH_int_set_H = self.schedules.HeatingRHSP[t]
         RH_int_set_C = self.schedules.CoolingRHSP[t]
         AHUOnOff = self.schedules.AHUOnOff[t]
-        AHUHUM = self.schedules.AHUHUM[t]
+        AHUHUM = self.schedules.scalar_data['AHUHUM']
         self.T_sup[t] = self.schedules.AHUTSupp[t]
         x_sup = self.schedules.AHUxSupp[t]
-        Sens_Recovery_eff = self.schedules.sensRec[t]
-        Lat_Recovery_eff = self.schedules.latRec[t]
-        OutAirRatio = self.schedules.outdoorAirRatio[t]
+        Sens_Recovery_eff = self.schedules.scalar_data['sensRec']
+        Lat_Recovery_eff = self.schedules.scalar_data['latRec']
+        OutAirRatio = self.schedules.scalar_data['outdoorAirRatio']
               
         self.x_ext[t] = 0.622*(RH_e*p_extsat/(self.p_atm-(RH_e*p_extsat)))
         self.G_v[t] = self.schedules.vapour[t]*self.zone_area

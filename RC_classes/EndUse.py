@@ -124,12 +124,16 @@ def loadSimpleArchetype(path,timeIndex,first_day = 1,ts = 1, PlantDays = [2520,3
     
     # Creation of the archetypes' dictionary
     
-    names = ex.sheet_names                                                     # See all sheet names
     archetypes = dict()
     last_H_day = PlantDays[0]
     first_C_day = PlantDays[1]
     last_C_day = PlantDays[2]
     first_H_day = PlantDays[3]
+    
+    # read archetype names from the excel sheet
+    archetype_list = pd.read_excel(path,sheet_name='GeneralData',header=[0],index_col=[0], skiprows = 1)
+    names = archetype_list.index
+    
     for use in names:
         archetypes[use] = Archetype(use)
         year = pd.DataFrame()
@@ -144,7 +148,7 @@ def loadSimpleArchetype(path,timeIndex,first_day = 1,ts = 1, PlantDays = [2520,3
         year.loc[last_H_day:first_C_day,('Plant Availability','[-]')]=year.loc[last_H_day:first_C_day,('Plant Availability','[-]')]*0
         year.loc[first_C_day:last_C_day,('Plant Availability','[-]')]=year.loc[first_C_day:last_C_day,('Plant Availability','[-]')]*-1
         year.loc[last_C_day:first_H_day,('Plant Availability','[-]')]=year.loc[last_C_day:first_H_day,('Plant Availability','[-]')]*0
-        archetypes[use].loadSchedSemp(year)
+        archetypes[use].loadSchedSemp(year, archetype_list.loc[use])
         archetypes[use].rescale_df(ts)
         archetypes[use].create_np()
 
@@ -205,6 +209,7 @@ class Archetype:
         
         self.name = name
         self.sched_df = pd.DataFrame()
+        self.scalar_data = {}
         '''
         Take care of units!!!
         All formula referes to the complex schedule file units, 
@@ -250,15 +255,16 @@ class Archetype:
             self.sched_df['AHUHUM'] = sched[arch['AHUHUM']]
             self.sched_df['AHUTSupp'] = sched[arch['AHUTSupp']]
             self.sched_df['AHUxSupp'] = sched[arch['AHUxSupp']]
-            self.sched_df['conFrac'] = arch['ConvFrac']
-            self.sched_df['AHUHumidistat'] = bool(arch['AHUHum'])
-            self.sched_df['sensRec'] = arch['SensRec']
-            self.sched_df['latRec'] = arch['LatRec']
-            self.sched_df['outdoorAirRatio'] = arch['OutAirRatio']
+            
+            self.scalar_data['conFrac'] = arch['ConvFrac']
+            self.scalar_data['AHUHumidistat'] = bool(arch['AHUHum'])
+            self.scalar_data['sensRec'] = arch['SensRec']
+            self.scalar_data['latRec'] = arch['LatRec']
+            self.scalar_data['outdoorAirRatio'] = arch['OutAirRatio']
         except KeyError:
             raise KeyError(f'Archetype object {self.name}: can not find all schedules')
         
-    def loadSchedSemp(self,year_df):
+    def loadSchedSemp(self,year_df,supplementary_data):
         '''
         Used for ScheduleSemp.xlsx Excel file
         
@@ -266,6 +272,10 @@ class Archetype:
             ----------
             arch : pandas dataframe
                 This includes the yearly schedule of a single archetype
+            supplementary_data : pd.series
+                This series includes some additional data about the archetype (Sensible and 
+                                                                               Latent AHU recovery, 
+                                                                               Convective fraction of internal gains)
             
         Returns
         -------
@@ -297,11 +307,34 @@ class Archetype:
         self.sched_df['AHUTSupp'] = pd.Series([22.]*8760,index=self.sched_df['appliances'].index)
         self.sched_df['AHUxSupp'] = pd.Series([0.005]*8760,index=self.sched_df['appliances'].index)
         self.sched_df['AHUxSupp'].iloc[3984:6192] = 0.007
-        self.sched_df['conFrac'] = 0.9
-        self.sched_df['AHUHUM'] = False
-        self.sched_df['sensRec'] = 0.6
-        self.sched_df['latRec']= 0.
-        self.sched_df['outdoorAirRatio'] = 1.
+        
+        try:
+            self.scalar_data['conFrac'] = float(supplementary_data.loc['ConvFrac'])
+            self.scalar_data['AHUHUM'] = bool(supplementary_data.loc['AHUHum'])
+            self.scalar_data['sensRec'] = float(supplementary_data.loc['SensRec'])
+            self.scalar_data['latRec']= float(supplementary_data.loc['LatRec'])
+            self.scalar_data['outdoorAirRatio'] = float(supplementary_data.loc['OutAirRatio'])
+        except KeyError:
+            raise KeyError(f"Loading end use {self.name}. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio")
+        except ValueError:
+            raise ValueError(f"""Loading end use {self.name}. GeneralData
+                             I'm not able to parse the General data. 
+                                 ConvFrac should be a float {supplementary_data['ConvFrac']}
+                                 AHUHum should be a boolean {supplementary_data['AHUHum']}
+                                 SensRec should be a float {supplementary_data['SensRec']}
+                                 LatRec  should be a float {supplementary_data['LatRec']}
+                                 OutAirRatio   should be a float {supplementary_data['OutAirRatio']}
+                             """)
+        
+        # Check the quality of input data
+        if not 0. <= self.scalar_data['conFrac'] <= 1.:
+            wrn(f"Loading end use {self.name}. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac {self.scalar_data['conFrac']}")
+        if not 0. <= self.scalar_data['sensRec'] <= 1.:
+            wrn(f"Loading end use {self.name}. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['sensRec']}")
+        if not 0. <= self.scalar_data['latRec'] <= 1.:
+            wrn(f"Loading end use {self.name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['latRec']}")
+        if not 0. <= self.scalar_data['outdoorAirRatio'] <= 1.:
+            wrn(f"Loading end use {self.name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {self.scalar_data['outdoorAirRatio']}")
         
     def rescale_df(self,ts):
         '''
@@ -360,14 +393,14 @@ class Archetype:
         self.plantOnOffSens = self.sched_df['plantOnOffSens'].to_numpy(dtype = np.int_)
         self.plantOnOffLat = self.sched_df['plantOnOffLat'].to_numpy(dtype = np.int_)
         self.AHUOnOff = self.sched_df['AHUOnOff'].to_numpy(dtype = np.int_)
-        self.AHUHUM = self.sched_df['AHUHUM'].to_numpy(dtype = np.bool_)
+        #self.AHUHUM = self.sched_df['AHUHUM'].to_numpy(dtype = np.bool_)
         self.AHUTSupp = self.sched_df['AHUTSupp'].to_numpy(dtype = np.float_)
         self.AHUxSupp = self.sched_df['AHUxSupp'].to_numpy(dtype = np.float_)
-        self.conFrac = self.sched_df['conFrac'].to_numpy(dtype = np.float_)
+        #self.conFrac = self.sched_df['conFrac'].to_numpy(dtype = np.float_)
         #self.AHUHumidistat = self.sched_df['AHUHum']
-        self.sensRec = self.sched_df['sensRec'].to_numpy(dtype = np.float_)
-        self.latRec = self.sched_df['latRec'].to_numpy(dtype = np.float_)
-        self.outdoorAirRatio = self.sched_df['outdoorAirRatio'].to_numpy(dtype = np.float_)        
+        #self.sensRec = self.sched_df['sensRec'].to_numpy(dtype = np.float_)
+        #self.latRec = self.sched_df['latRec'].to_numpy(dtype = np.float_)
+        #self.outdoorAirRatio = self.sched_df['outdoorAirRatio'].to_numpy(dtype = np.float_)        
 
 #%%--------------------------------------------------------------------------------------------------- 
 #%%

@@ -11,8 +11,8 @@ city = Sim()
 
 # Loading the input data
 
-#city.set_input_from_text_file(os.path.join('.','Input','SimInput'))
-city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
+city.set_input_from_text_file(os.path.join('.','Input','SimInput'))
+#city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
 
 
 # Loading weather data, envelopes and schedules
