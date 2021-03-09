@@ -51,7 +51,7 @@ class Sim():
 
         '''
 
-        self.name = 'city'
+        self.name = name
         
         # Dictionsary with sim times
         self.times = {}
