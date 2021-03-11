@@ -5,4 +5,9 @@ The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua
 
 ## Set up
-The tool is distributed via GitHub repository. It can be freely cloned with git, `git clone ...`, or clicking on the **code** bottom, downloading the zip file.
+The tool is distributed via GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** bottom and downloading the zip file.
+
+In the reposotory it is also included an RC.yml, which provides the python packages needed to run the EUReCA simulation. The virtual environment can be easily set up using the [Anaconda](https://www.anaconda.com/) package manager. Using the comand line: 
+```
+conda -env 
+```
