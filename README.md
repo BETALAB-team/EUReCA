@@ -7,7 +7,8 @@ This research project has been developed within the [BETALAB](https://research.d
 ## Set up
 The tool is distributed via GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** bottom and downloading the zip file.
 
-In the reposotory it is also included an RC.yml, which provides the python packages needed to run the EUReCA simulation. The virtual environment can be easily set up using the [Anaconda](https://www.anaconda.com/) package manager. Using the comand line: 
+In the reposotory it is also included an RC.yml, which provides the python packages needed to run the EUReCA simulation. The virtual environment can be easily set up using the [Anaconda](https://www.anaconda.com/) package manager. With the comand line: 
 ```
-conda -env 
+conda -env  create -f EUReCA_PATH\RC.yml
 ```
+Or using the Anaconda navigator application, under `Environments -> Import -> Import environment from path` and searching for  `EUReCA_PATH\RC.yml`. The environment will be set up for you by the conda package manager. 
