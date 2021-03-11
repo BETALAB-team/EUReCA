@@ -32,5 +32,6 @@ To simulate cities energy consumption in EUReCA, some input files must be prepar
 - The `city.json` model. See the next section for further info on the alternatives.
 
 ### The JSON city model
+...
 
 
