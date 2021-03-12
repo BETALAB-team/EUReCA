@@ -13,7 +13,7 @@ Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw 
 Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
              'first_day' : 7,                               # INT : first day of the year
              'tz' : 'Europe/Rome',                          # STR : Thermal zone
-             'ts' : 3,                                      # INT : Number of time-steps per hour
+             'ts' : 1,                                      # INT : Number of time-steps per hour
              'hours' : 8760,                                # INT : number of hours (actually only 8760 is implemented)
              'model' : '1C',                                # STR : model to be used (2C, 1C)
              'DD_boundaries' : np.array(

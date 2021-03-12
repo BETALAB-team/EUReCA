@@ -6,7 +6,7 @@ import numpy as np
 import time as tm
 from RC_classes.Envelope import loadEnvelopes
 from RC_classes.EndUse import loadArchetype, loadSimpleArchetype
-from RC_classes.CityJSON import JsonCity
+from RC_classes.City import City
 from RC_classes.WeatherData import  Weather
 from RC_classes.BuildingsPlants import loadPlants
 
@@ -503,7 +503,7 @@ class Sim():
         # District initialization'
         start = tm.time()
         
-        self.city = JsonCity(os.path.join(self.input_folder,self.json_name),
+        self.city = City(os.path.join(self.input_folder,self.json_name),
                                       self.envelopes, self.weather, model = self.model,mode = self.json_mode)
         
         self.city.create_urban_canyon([self.weather.ts,self.weather.hours],self.UWGCalc,self.UWG_data)
@@ -512,7 +512,7 @@ class Sim():
         
         self.times['city creation'] = end - start
         
-        print('Jsoncity:             ', end - start)
+        print('City:             ', end - start)
         
     
     

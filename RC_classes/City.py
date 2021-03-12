@@ -140,9 +140,9 @@ def createBuilding(name,bd,vertList,mode,n_Floors,envelopes,weather):
 
 
 #%% ---------------------------------------------------------------------------------------------------
-#%% JsonCity class
+#%% City class
 
-class JsonCity():
+class City():
     
     '''
     This class manages the city via json input file: geojson or cityjson
@@ -252,7 +252,7 @@ class JsonCity():
                 pavimento = []
                 soffitto = []
                 z_pav = 0
-                z_soff = self.city.loc[i].altezza
+                z_soff = self.city.loc[i]['Height']
                 for n in range(len(coords)):
                     pavimento.append(coords[n]+[z_pav])
                     soffitto.append(coords[-n]+[z_soff])  
@@ -264,25 +264,25 @@ class JsonCity():
                         
                 build_surf.append(pavimento)
                 build_surf.append(soffitto)
-                self.rh_net = self.city.loc[i]['rh_net']
-                self.rh_gross = self.city.loc[i]['rh_gross']
+                self.rh_net = self.city.loc[i]['VolCoeff']
+                self.rh_gross = self.city.loc[i]['ExtWallCoeff']
                 
                 try:
-                    self.heating_plant = self.city.loc[i]['Heating_plant']
+                    self.heating_plant = self.city.loc[i]['H_Plant']
                 except KeyError:
                     self.heating_plant = 'IdealLoad'
                 try:
-                    self.cooling_plant = self.city.loc[i]['Cooling_plant']
+                    self.cooling_plant = self.city.loc[i]['C_Plant']
                 except KeyError:
                     self.cooling_plant = 'IdealLoad'
                     
-                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['nome'], 
+                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['Name'], 
                                                                 self.mode, 
                                                                 build_surf,
-                                                                self.city.loc[i]['n_piani'],
-                                                                self.city.loc[i]['Uso'],                                                                                                                             
+                                                                self.city.loc[i]['Nfloors'],
+                                                                self.city.loc[i]['Use'],                                                                                                                             
                                                                 envelopes,
-                                                                self.city.loc[i]['età'],
+                                                                self.city.loc[i]['Age'],
                                                                 self.rh_net,
                                                                 self.rh_gross,
                                                                 self.heating_plant,
