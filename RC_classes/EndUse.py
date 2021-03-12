@@ -182,7 +182,6 @@ class Archetype:
         rescale_df
         create_np
     ''' 
-
     
     def __init__(self,name):
     
@@ -241,7 +240,7 @@ class Archetype:
         try:
             self.sched_df['appliances'] = sched[arch['Appliances']]
             self.sched_df['lighting'] = sched[arch['Lighting']]
-            self.sched_df['people'] = sched[arch['People']]
+            self.sched_df['people'] = sched[arch['People (Sensible)']]
             self.sched_df['vapour'] = sched[arch['Vapour']]
             self.sched_df['heatingTSP'] = sched[arch['HeatTSP']]
             self.sched_df['coolingTSP'] = sched[arch['CoolTSP']]

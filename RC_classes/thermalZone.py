@@ -335,7 +335,7 @@ class ThermalZone:
     T_wall_0 =  15                                                              # [°C]
     
     conv_people = 1.                                                            # people convective fraction (with respect to convective and radiant)
-    conv_app = 1.                                                               # appliances convective fraction (with respect to convective and radiant)
+    conv_app = .5                                                               # appliances convective fraction (with respect to convective and radiant)
     
     sigma_fhk = 0         # percentage of heating from from radiant floor (vdi 6007)
     sigma_fhk_aw = 0      # percentage of radiant floor systems embedded in external (AW) walls (vdi 6007) 
@@ -567,7 +567,7 @@ class ThermalZone:
         
         # First calculation of internal heat gains 
         
-        phi_int = (self.schedules.people*self.sens_frac+self.schedules.appliances+self.schedules.lighting)*self.zone_area
+        phi_int = (self.schedules.people+self.schedules.appliances+self.schedules.lighting)*self.zone_area
         phi_sol_gl_tot = 0
         phi_sol_op_tot = 0
         
@@ -955,8 +955,8 @@ class ThermalZone:
         
         # Calculates internal heat gains
         
-        Q_il_str_I = (self.schedules.people*self.sens_frac*(1-self.conv_people)+self.schedules.appliances*(1-self.conv_app)+self.schedules.lighting*(1-self.conv_app))*self.zone_area
-        self.Q_il_kon_I = (self.schedules.people*self.sens_frac*(self.conv_people)+self.schedules.appliances*(self.conv_app)+self.schedules.lighting*(self.conv_app))*self.zone_area
+        Q_il_str_I = (self.schedules.people*(1-self.conv_people)+self.schedules.appliances*(1-self.conv_app)+self.schedules.lighting*(1-self.conv_app))*self.zone_area
+        self.Q_il_kon_I = (self.schedules.people*(self.conv_people)+self.schedules.appliances*(self.conv_app)+self.schedules.lighting*(self.conv_app))*self.zone_area
         
         Q_il_str_I_iw = Q_il_str_I * (self.Araum-self.Aaw)/self.Araum
         Q_il_str_I_aw = Q_il_str_I * self.Aaw/self.Araum
@@ -1669,7 +1669,7 @@ class Building:
         if rh_gross < 0.5 or rh_gross > 1.5:
             wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}\n")
         if rh_net < 0.5 or rh_net > 1.5:
-            wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rn_net {rn_net}\n")
+            wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_net {rh_net}\n")
         
         '''
         one thermal zone for building
