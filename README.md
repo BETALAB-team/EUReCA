@@ -32,6 +32,29 @@ To simulate cities energy consumption in EUReCA, some input files must be prepar
 - The `city.json` model. See the next section for further info on the alternatives.
 
 ### The JSON city model
-...
+Currently, EUReCA can handle two typologies of JSON city models. The recommended methodology consists of importing buildings' geometries via semantic [CityJSON](https://www.cityjson.org/) files, but also 2D shapefiles, encoded in GeoJSON format, can be utilized to build up the city.
+
+The required attributes are:
+- CityJSON: 
+  ```
+  "Use": "schedule_archetype_name", 
+  "Age": "envelope_archetype_name", 
+  "H_Plant": "heating_plant_name", 
+  "C_Plant": "cooling_plant_name"
+  ```
+- GeoJSON: 
+  ```
+  "id": integer, 
+  "Name": "name", 
+  "Use": "schedule_archetype_name", 
+  "Age": "envelope_archetype_name", 
+  "Height": float, "Nfloors": integer, 
+  "ExtWallCoeff": float, 
+  "VolCoeff": float, 
+  "C_Plant": "cooling_plant_name", 
+  "H_Plant": "heating_plant_name"
+  ```
+
+Input folder provides some example for the city of Padua
 
 
