@@ -20,7 +20,7 @@ To activate the RC environment with the command :
 conda activate eureca
 ```
 
-## Run a simulation
+## Preparing and run a simulation
 ### Input files
 
 To simulate cities energy consumption in EUReCA, some input files must be prepared:
@@ -55,6 +55,52 @@ The required attributes are:
   "H_Plant": "heating_plant_name"
   ```
 
-Input folder provides some example for the city of Padua
+Input folder provides some example for the city of Padua.
+
+### Simulation
+
+After the set up of all input files, you can run the Main.py file:
+
+```
+''' IMPORTING MODULES '''
+
+import os
+import numpy as np
+from RC_classes.Simulation import Sim
 
 
+# Creation of the Sim object
+city = Sim()
+
+# Loading the input data: just uncomment one of the following lines depending on the simulation input file you filled
+city.set_input_from_text_file(os.path.join('.','Input','SimInput'))
+# city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
+
+# Loading weather data, envelopes and schedules
+city.preprocessing()
+
+# Creation of the district (geometrical processing)
+city.city_creation()
+
+# Evaluating Urban shadings between buildings
+city.urban_shading()
+
+# Calculation buildings parameters
+city.buildings_params_and_loads()
+
+# Design power of buildings and plants creation
+city.plants_design_and_creation()
+
+# Annual simulation
+city.simulation()
+
+# Output processing
+city.output()
+```
+
+### Output report
+In case you ran the command `city.output()` the folder OutputReport will be created as final step.
+
+The report consists of several `output_variable.csv` files, including many outputs, as buildings' temperature, humidity, and consumption.
+
+A `warning.txt` file is printed, as well. 
