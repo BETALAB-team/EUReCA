@@ -7,17 +7,17 @@ This research project has been developed within the [BETALAB](https://research.d
 ## Python environment set up
 The tool is distributed via the GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** bottom and downloading the zip file.
 
-An RC.yml file is also included in the repository. It provides the python packages needed to run the EUReCA simulation. 
+An eureca.yml file is also included in the repository. It provides the python packages needed to run the EUReCA simulation. 
 
 The virtual environment can be easily set up using the [Anaconda](https://www.anaconda.com/products/individual) package manager. With the command line: 
 ```
-conda -env  create -f EUReCA_PATH\RC.yml
+conda -env create -f EUReCA_PATH\eureca.yml
 ```
-Or using the Anaconda navigator application, under `Environments -> Import -> Import environment from path` and searching for  `EUReCA_PATH\RC.yml`. The environment will be set up for you by the conda package manager. 
+Or using the Anaconda navigator application, under `Environments -> Import -> Import environment from path` and searching for  `EUReCA_PATH\eureca.yml`. The environment will be set up for you by the conda package manager. 
 
 To activate the RC environment with the command :
 ```
-conda activate RC
+conda activate eureca
 ```
 
 ## Run a simulation
