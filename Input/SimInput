@@ -2,20 +2,20 @@
 
 Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw file name
                'envelopes' : 'Envelopes.xlsx',                      # STR : envelopes file name
-               'end-uses' : 'ScheduleSemp.xlsx',                    # STR : end-uses file name
+               'end-uses' : 'ScheduleComp.xlsx',                    # STR : end-uses file name
                'plants' : 'PlantsList.xlsx',                        # STR : plants file name
-               'json' : 'PaduaRestricted.json',                     # STR : json file name
+               'json' : 'PiovegoRestricted.geojson',                     # STR : json file name
                'default_input_path' : os.path.join('.','Input'),    # STR : input path file name
-               'end-uses_mod' : 'Daily',                            # STR : Daily or Yearly
-               'json_mod' : 'cityjson'                              # STR : geojson or cityjson
+               'end-uses_mod' : 'Yearly',                            # STR : Daily or Yearly
+               'json_mod' : 'geojson'                              # STR : geojson or cityjson
                }
 
 Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
              'first_day' : 7,                               # INT : first day of the year
              'tz' : 'Europe/Rome',                          # STR : Thermal zone
-             'ts' : 1,                                      # INT : Number of time-steps per hour
+             'ts' : 3,                                      # INT : Number of time-steps per hour
              'hours' : 8760,                                # INT : number of hours (actually only 8760 is implemented)
-             'model' : '2C',                                # STR : model to be used (2C, 1C)
+             'model' : '1C',                                # STR : model to be used (2C, 1C)
              'DD_boundaries' : np.array(
                              [[167,504], [4681,5017]],
                              dtype = int),                  # np.array : Heating and Cooling Design Days Periods

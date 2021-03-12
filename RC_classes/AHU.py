@@ -156,7 +156,7 @@ class AirHandlingUnit:
             raise TypeError(f'Ops... input Sens_Recovery_eff must be included in the range 0-1: Sens_Recovery_eff {Sens_Recovery_eff}')
         if (not isinstance(Lat_Recovery_eff, float)) or Lat_Recovery_eff < 0. or Lat_Recovery_eff > 1.:
             raise TypeError(f'Ops... input Lat_Recovery_eff must be included in the range 0-1: Lat_Recovery_eff {Lat_Recovery_eff}')
-        if (not isinstance(OutAirRatio, float)) or OutAirRatio < 0 or OutAirRatio > 1:
+        if (not isinstance(OutAirRatio, float)) or OutAirRatio < 0. or OutAirRatio > 1.:
             raise TypeError(f'Ops... input OutAirRatio must be included in the range 0-1: OutAirRatio {OutAirRatio}')
         if not isinstance(T_ext, float):
             raise TypeError(f'Ops... input T_ext is not an interger: T_ext {T_ext}')

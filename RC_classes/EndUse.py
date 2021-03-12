@@ -44,14 +44,14 @@ def loadArchetype(path,timeIndex,ts):
         wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
          
     try:
-        sched = pd.read_excel(path,sheet_name="Schedule",header=2,index_col=[0],index=timeIndex)
+        sched = pd.read_excel(path,sheet_name="Schedule",header=2,index_col=[0]).set_index(timeIndex)
         arch = pd.read_excel(path,sheet_name="Archetype",header=1,index_col=[0])
     except FileNotFoundError:
         raise FileNotFoundError(f'Failed to open the schedule xlsx file {path}... Insert a proper path')
 
     # Reset some indexes set the right index
     
-    sched = sched.reset_index().drop(columns=["Time","Unit"])
+    sched = sched.reset_index().drop(columns=["Time"])
     sched.index=timeIndex
     
     # Creation of the archetypes' dictionary
@@ -256,11 +256,11 @@ class Archetype:
             self.sched_df['AHUTSupp'] = sched[arch['AHUTSupp']]
             self.sched_df['AHUxSupp'] = sched[arch['AHUxSupp']]
             
-            self.scalar_data['conFrac'] = arch['ConvFrac']
-            self.scalar_data['AHUHumidistat'] = bool(arch['AHUHum'])
-            self.scalar_data['sensRec'] = arch['SensRec']
-            self.scalar_data['latRec'] = arch['LatRec']
-            self.scalar_data['outdoorAirRatio'] = arch['OutAirRatio']
+            self.scalar_data['conFrac'] = float(arch['ConvFrac'])
+            self.scalar_data['AHUHUM'] = bool(arch['AHUHum'])
+            self.scalar_data['sensRec'] = float(arch['SensRec'])
+            self.scalar_data['latRec'] = float(arch['LatRec'])
+            self.scalar_data['outdoorAirRatio'] = float(arch['OutAirRatio'])
         except KeyError:
             raise KeyError(f'Archetype object {self.name}: can not find all schedules')
         
