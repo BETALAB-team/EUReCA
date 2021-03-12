@@ -78,30 +78,30 @@ class Road(object):
         # Check input data type
         
         if not isinstance(sim_time, list) or not isinstance(sim_time[0], int) or not isinstance(sim_time[1], int):
-            raise TypeError(f'Ops... road class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
         if not isinstance(suolo, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input suolo is not a np.array: suolo {suolo}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input suolo is not a np.array: suolo {suolo}') 
         if not isinstance(strada, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input strada is not a np.array: strada {strada}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input strada is not a np.array: strada {strada}') 
         if not isinstance(temp_layer_r, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input temp_layer_r is not a np.array: temp_layer_r {temp_layer_r}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input temp_layer_r is not a np.array: temp_layer_r {temp_layer_r}') 
         if not isinstance(h_rd_sky, float):
-            raise TypeError(f'Ops... road class climate_rev_v1, input h_rd_sky is not a float: h_rd_sky {h_rd_sky}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input h_rd_sky is not a float: h_rd_sky {h_rd_sky}') 
         
         # Control input data quality
         
         if sim_time[0] > 4:
-            wrn(f"\n\nRoad class climate_rev_v1, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+            wrn(f"WARNING Road class climate_rev_v1, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {sim_time[0]}")
         if len(sim_time) > 2:
-            wrn(f"\n\nRoad class climate_rev_v1, sim_time is longer than 2, look the input comment: sim_time {sim_time}\n")
+            wrn(f"WARNING Road class climate_rev_v1, sim_time is longer than 2, look the input comment: sim_time {sim_time}")
         if not suolo.shape == (3,3):
-            wrn(f"\n\nRoad class climate_rev_v1, suolo must be a 3,3 np.array, look the input comment: suolo {suolo}\n")
+            wrn(f"WARNING Road class climate_rev_v1, suolo must be a 3,3 np.array, look the input comment: suolo {suolo}")
         if not strada.shape == (3,3):
-            wrn(f"\n\nRoad class climate_rev_v1, strada must be a 3,3 np.array, look the input comment: strada {strada}\n")
+            wrn(f"WARNING Road class climate_rev_v1, strada must be a 3,3 np.array, look the input comment: strada {strada}")
         if not temp_layer_r.shape == (4,):
-            wrn(f"\n\nRoad class climate_rev_v1, temp_layer_r must be a 4 np.array, look the input comment: temp_layer_r {temp_layer_r}\n")
+            wrn(f"WARNING Road class climate_rev_v1, temp_layer_r must be a 4 np.array, look the input comment: temp_layer_r {temp_layer_r}")
         if h_rd_sky < 2 or h_rd_sky > 20:
-            wrn(f"\n\nRoad class climate_rev_v1, are you sure about the radiative heat tranfer coeff?? h_rd_sky {h_rd_sky}\n")
+            wrn(f"WARNING Road class climate_rev_v1, are you sure about the radiative heat tranfer coeff?? h_rd_sky {h_rd_sky}")
   
         ts = sim_time[0]
         hours = sim_time[1]
@@ -153,24 +153,24 @@ class Road(object):
         # Check input data type
         
         if not isinstance(t, np.int32):
-            raise TypeError(f'Road class climate_rev_v1, t must be an integer: t {t}')
+            raise TypeError(f'ERROR Road class climate_rev_v1, t must be an integer: t {t}')
         if not isinstance(T_urb_0, float):
-            raise TypeError(f'Road class climate_rev_v1, T_urb_0 must be an float: T_urb_0 {T_urb_0}')
+            raise TypeError(f'ERROR Road class climate_rev_v1, T_urb_0 must be an float: T_urb_0 {T_urb_0}')
         if not isinstance(T_sky, float):
-            raise TypeError(f'Road class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
+            raise TypeError(f'ERROR Road class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
         if not isinstance(h_r, float):
-            raise TypeError(f'Road class climate_rev_v1, h_r must be an float: h_r {h_r}')
+            raise TypeError(f'ERROR Road class climate_rev_v1, h_r must be an float: h_r {h_r}')
         if not isinstance(S_r, float):
-            raise TypeError(f'Road class climate_rev_v1, S_r must be an float: S_r {S_r}')
+            raise TypeError(f'ERROR Road class climate_rev_v1, S_r must be an float: S_r {S_r}')
         
         # Control input data quality
         
         if T_urb_0 > 350. or T_urb_0 < 250. :
-            wrn(f"\n\nRoad class climate_rev_v1, T_urb_0 is outside the boudary limits [250,350] K: T_urb_0 {T_urb_0}\n")
+            wrn(f"WARNING Road class climate_rev_v1, T_urb_0 is outside the boudary limits [250,350] K: T_urb_0 {T_urb_0}")
         if T_sky > 350. or T_sky < 230. :
-            wrn(f"\n\nRoad class climate_rev_v1, T_sky is outside the boudary limits [230,350] K: T_sky {T_sky}\n")
+            wrn(f"WARNING Road class climate_rev_v1, T_sky is outside the boudary limits [230,350] K: T_sky {T_sky}")
         if h_r > 60.:
-            wrn(f"\n\nRoad class climate_rev_v1, h_r is outside the boudary limits (>50 W/(m2 K)): h_r {h_r}\n")
+            wrn(f"WARNING Road class climate_rev_v1, h_r is outside the boudary limits (>50 W/(m2 K)): h_r {h_r}")
         
         # Road system solution, surface temperature calculation
         self.T_layer3_r[t] = (self.T_layer3_r_0*(self.d_gravel*self.c_v_gravel)/3600 + self.C_gravel*self.T_deep)/((self.d_gravel*self.c_v_gravel/3600) + self.C_gravel) #[K]
@@ -196,7 +196,7 @@ class Road(object):
         # Check input data type
         
         if not isinstance(t, np.int32):
-            raise TypeError(f'Road class climate_rev_v1, t must be an integer: t {t}')             
+            raise TypeError(f'ERROR Road class climate_rev_v1, t must be an integer: t {t}')             
         
         self.T_r_0 = self.T_r
         self.T_layer3_r_0 = self.T_layer3_r[t]
@@ -252,30 +252,30 @@ class Soil():
         # Check input data type
         
         if not isinstance(sim_time, list) or not isinstance(sim_time[0], int) or not isinstance(sim_time[1], int):
-            raise TypeError(f'Ops... road class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
         if not isinstance(d_soil, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input suolo is not a np.array: d_soil {d_soil}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input suolo is not a np.array: d_soil {d_soil}') 
         if not isinstance(c_v_soil, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input strada is not a np.array: c_v_soil {c_v_soil}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input strada is not a np.array: c_v_soil {c_v_soil}') 
         if not isinstance(temp_layer, np.ndarray):
-            raise TypeError(f'Ops... road class climate_rev_v1, input temp_layer_r is not a np.array: temp_layer {temp_layer}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input temp_layer_r is not a np.array: temp_layer {temp_layer}') 
         if not isinstance(h_rd_sky, float):
-            raise TypeError(f'Ops... road class climate_rev_v1, input h_rd_sky is not a float: h_rd_sky {h_rd_sky}') 
+            raise TypeError(f'ERROR road class climate_rev_v1, input h_rd_sky is not a float: h_rd_sky {h_rd_sky}') 
         
         # Control input data quality
         
         if sim_time[0] > 6:
-            wrn(f"\n\nSoil class climate_rev_v1, input ts is higher than 6, this means more than 6 time steps per hours were set: sim_time {sim_time[0]}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, input ts is higher than 6, this means more than 6 time steps per hours were set: sim_time {sim_time[0]}")
         if len(sim_time) > 2:
-            wrn(f"\n\nSoil class climate_rev_v1, sim_time is longer than 2, look the input comment: sim_time {sim_time}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, sim_time is longer than 2, look the input comment: sim_time {sim_time}")
         if not d_soil.shape == (3,):
-            wrn(f"\n\nSoil class climate_rev_v1, d_soil must be a 3 np.array, look the input comment: d_soil {d_soil}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, d_soil must be a 3 np.array, look the input comment: d_soil {d_soil}")
         if not c_v_soil.shape == (3,):
-            wrn(f"\n\nSoil class climate_rev_v1, c_v_soil must be a 3 np.array, look the input comment: c_v_soil {c_v_soil}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, c_v_soil must be a 3 np.array, look the input comment: c_v_soil {c_v_soil}")
         if not temp_layer.shape == (4,):
-            wrn(f"\n\nSoil class climate_rev_v1, temp_layer must be a 4 np.array, look the input comment: temp_layer {temp_layer}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, temp_layer must be a 4 np.array, look the input comment: temp_layer {temp_layer}")
         if h_rd_sky < 2 or h_rd_sky > 20:
-            wrn(f"\n\nSoil class climate_rev_v1, are you sure about the radiative heat tranfer coeff?? h_rd_sky {h_rd_sky}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, are you sure about the radiative heat tranfer coeff?? h_rd_sky {h_rd_sky}")
   
         ts = sim_time[0]
         hours = sim_time[1]
@@ -316,26 +316,26 @@ class Soil():
         # Check input data type
         
         if not isinstance(t, np.int32):
-            raise TypeError(f'Soil class climate_rev_v1, t must be an integer: t {t}')
+            raise TypeError(f'ERROR Soil class climate_rev_v1, t must be an integer: t {t}')
         if not isinstance(T_air_rural, float):
-            raise TypeError(f'Soil class climate_rev_v1, T_air_rural must be an float: T_air_rural {T_air_rural}')
+            raise TypeError(f'ERROR Soil class climate_rev_v1, T_air_rural must be an float: T_air_rural {T_air_rural}')
         if not isinstance(T_sky, float):
-            raise TypeError(f'Soil class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
+            raise TypeError(f'ERROR Soil class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
         if not isinstance(h_conv_rsl, float):
-            raise TypeError(f'Soil class climate_rev_v1, h_conv_rsl must be a float: h_conv_rsl {h_conv_rsl}')
+            raise TypeError(f'ERROR Soil class climate_rev_v1, h_conv_rsl must be a float: h_conv_rsl {h_conv_rsl}')
         if not isinstance(Q_rad, float):
-            raise TypeError(f'Soil class climate_rev_v1, Q_rad must be a float: Q_rad {Q_rad}')
+            raise TypeError(f'ERROR Soil class climate_rev_v1, Q_rad must be a float: Q_rad {Q_rad}')
         
         # Control input data quality
         
         if T_air_rural > 350. or T_air_rural < 250. :
-            wrn(f"\n\nSoil class climate_rev_v1, T_air_rural is outside the boudary limits [250,350] K: T_air_rural {T_air_rural}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, T_air_rural is outside the boudary limits [250,350] K: T_air_rural {T_air_rural}")
         if T_sky > 350. or T_sky < 230. :
-            wrn(f"\n\nSoil class climate_rev_v1, T_sky is outside the boudary limits [230,350] K: T_sky {T_sky}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, T_sky is outside the boudary limits [230,350] K: T_sky {T_sky}")
         if h_conv_rsl > 60.:
-            wrn(f"\n\nSoil class climate_rev_v1, h_conv_rsl is outside the boudary limits (>50 W/(m2 K)): h_conv_rsl {h_conv_rsl}\n")
+            wrn(f"WARNING Soil class climate_rev_v1, h_conv_rsl is outside the boudary limits (>50 W/(m2 K)): h_conv_rsl {h_conv_rsl}")
         if Q_rad < 0. or Q_rad > 2000.:
-            wrn(f"\n\nSoil class climate_rev_v1, Q_rad is outside the boudary limits (>50 W/(m2 K)): Q_rad {Q_rad}\n")        
+            wrn(f"WARNING Soil class climate_rev_v1, Q_rad is outside the boudary limits (>50 W/(m2 K)): Q_rad {Q_rad}")        
         
         # System solution
         
@@ -466,11 +466,11 @@ class UrbanCanyon(object):
         # Check input data type
         
         if not isinstance(sim_time, list) or not isinstance(sim_time[0], int) or not isinstance(sim_time[1], int):
-            raise TypeError(f'Ops... Urban Canyon class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
+            raise TypeError(f'ERROR Urban Canyon class climate_rev_v1, sim_time is not a list of int: sim_time {sim_time}') 
         if not isinstance(data, dict):
-            raise TypeError(f'Ops... Urban Canyon class data input must be a dictionary : data {data}') 
+            raise TypeError(f'ERROR Urban Canyon class data input must be a dictionary : data {data}') 
         if not isinstance(meso_path, str):
-            raise TypeError(f'Ops... Urban Canyon class meso_path input must be a string : meso_path {meso_path}') 
+            raise TypeError(f'ERROR Urban Canyon class meso_path input must be a string : meso_path {meso_path}') 
         
         ts = sim_time[0]
         hours = sim_time[1]
@@ -529,7 +529,7 @@ class UrbanCanyon(object):
             self.z_m = self.data['z_i_m']                                                          # [m] 10 -> quando siamo in condizione di vento geostrofico, la velocità di riferimento è misurata alla stazione meteorologica a 10m
             self.z_ref = self.data['z_i_ref']                                                      # [m] 150-> altezza di riferimento nel quale il profilo di temperatura è uniforme
         except KeyError:
-            raise KeyError(f"""There's something wrong with the creation of the urban canyon. I cannot find all the necessary input data.
+            raise KeyError(f"""ERROR There's something wrong with the creation of the urban canyon. I cannot find all the necessary input data.
             See the __init__ help to look at the required variables           
             """)
         
@@ -561,7 +561,7 @@ class UrbanCanyon(object):
             week = np.hstack((np.tile(data['Hw_week'],5), np.tile(data['Hw_end'],2)))
             first_week = week[(data['first_day']-1)*24 :]
         except KeyError:
-            raise KeyError(f"""There's something wrong with the creation of the urban canyon. I cannot find all the necessary input data.
+            raise KeyError(f"""ERROR There's something wrong with the creation of the urban canyon. I cannot find all the necessary input data.
             See the __init__ help to look at the required variables           
             """)        
         
@@ -626,44 +626,44 @@ class UrbanCanyon(object):
         # Check input data type
         
         if not isinstance(t, np.int32):
-            raise TypeError(f'Urban canyon class climate_rev_v1, t must be an integer: t {t}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, t must be an integer: t {t}')
         if not isinstance(T_air_rural, float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, T_air_rural must be an float: T_air_rural {T_air_rural}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, T_air_rural must be an float: T_air_rural {T_air_rural}')
         if not isinstance(u_atm_input, float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, u_atm_input must be an float: u_atm_input {u_atm_input}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, u_atm_input must be an float: u_atm_input {u_atm_input}')
         if not isinstance(T_w, float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, T_w must be an float: T_w {T_w}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, T_w must be an float: T_w {T_w}')
         if not isinstance(T_sky, float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, T_sky must be an float: T_sky {T_sky}')
         if not isinstance(T_exf, list):
-            raise TypeError(f'Urban canyon class climate_rev_v1, T_exf must be a list: T_exf {T_exf}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, T_exf must be a list: T_exf {T_exf}')
         if not isinstance(V_exf, list):
-            raise TypeError(f'Urban canyon class climate_rev_v1, V_exf must be a list: V_exf {V_exf}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, V_exf must be a list: V_exf {V_exf}')
         if not isinstance(radiation, list) or not isinstance(radiation[0], float) or not isinstance(radiation[1], float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, radiation must be a list of floats: radiation {radiation}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, radiation must be a list of floats: radiation {radiation}')
         if not isinstance(lamda_zenith, float):
-            raise TypeError(f'Urban canyon class climate_rev_v1, lamda_zenith must be a float: lamda_zenith {lamda_zenith}')
+            raise TypeError(f'ERROR Urban canyon class climate_rev_v1, lamda_zenith must be a float: lamda_zenith {lamda_zenith}')
 
         # Check input data quality 
         
         if T_air_rural < -20. or T_air_rural > 50.:
-            wrn(f"Urban canyon class solve method, time step {t}: T_air_rural outside limit [-20.,50.]: T_air_rural, {T_air_rural}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: T_air_rural outside limit [-20.,50.]: T_air_rural, {T_air_rural}")
         if u_atm_input < 0. or u_atm_input > 15.:
-            wrn(f"Urban canyon class solve method, time step {t}: u_atm_input outside limit [0.,15.]: u_atm_input, {u_atm_input}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: u_atm_input outside limit [0.,15.]: u_atm_input, {u_atm_input}")
         if T_w < -20. or T_w > 50.:
-            wrn(f"Urban canyon class solve method, time step {t}: T_w outside limit [-20.,50.]: T_w, {T_w}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: T_w outside limit [-20.,50.]: T_w, {T_w}")
         if T_sky < -30. or T_sky > 50.:
-            wrn(f"Urban canyon class solve method, time step {t}: T_sky outside limit [-20.,50.]: T_sky, {T_sky}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: T_sky outside limit [-20.,50.]: T_sky, {T_sky}")
         if T_exf[0] < -20. or T_exf[0] > 50.:
-            wrn(f"Urban canyon class solve method, time step {t}: T_exf outside limit [-20.,50.]: T_exf, {T_exf}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: T_exf outside limit [-20.,50.]: T_exf, {T_exf}")
         if T_exf[1] < -20. or T_exf[1] > 50.:
-            wrn(f"Urban canyon class solve method, time step {t}: T_exf outside limit [-20.,50.]: T_exf, {T_exf}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: T_exf outside limit [-20.,50.]: T_exf, {T_exf}")
         if V_exf[0] < 0.:
-            wrn(f"Urban canyon class solve method, time step {t}: V_exf negative value: V_exf, {V_exf}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: V_exf negative value: V_exf, {V_exf}")
         if radiation[0] < 0. or radiation[0] > 2000.:
-            wrn(f"Urban canyon class solve method, time step {t}: radiation outside limit [0.,2000.]: radiation, {radiation}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: radiation outside limit [0.,2000.]: radiation, {radiation}")
         if radiation[1] < 0. or radiation[1] > 2000.:
-            wrn(f"Urban canyon class solve method, time step {t}: radiation outside limit [0.,2000.]: radiation, {radiation}")
+            wrn(f"WARNING Urban canyon class solve method, time step {t}: radiation outside limit [0.,2000.]: radiation, {radiation}")
 
         # Set some input parameter
 

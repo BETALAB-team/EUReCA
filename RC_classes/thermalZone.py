@@ -46,11 +46,11 @@ def impedenceParallel(R,C,T_RA = 5.):
     # Check input data type
     
     if not isinstance(R, np.ndarray):
-        raise TypeError(f'Ops... impedenceParallel function, input R is not a np.array: R {R}') 
+        raise TypeError(f'ERROR impedenceParallel function, input R is not a np.array: R {R}') 
     if not isinstance(C, np.ndarray):
-        raise TypeError(f'Ops... impedenceParallel function, input C is not a np.array: C {C}') 
+        raise TypeError(f'ERROR impedenceParallel function, input C is not a np.array: C {C}') 
     if not isinstance(T_RA, float):
-        raise TypeError(f'Ops... impedenceParallel function, input T_RA is not a float: T_RA {T_RA}') 
+        raise TypeError(f'ERROR impedenceParallel function, input T_RA is not a float: T_RA {T_RA}') 
         
     # T_RA = 5;       % Period = 5 days
     omega_RA = 2*np.pi/(86400*T_RA)
@@ -65,7 +65,7 @@ def impedenceParallel(R,C,T_RA = 5.):
     # Check output quality
     
     if R1eq < 0. or C1eq <0.:
-        wrn(f"\n\nimpedenceParallel funtion, There's something wrong with the calculation, R or C is negative.. R {R}, C {C}\n")
+        wrn(f"WARNING impedenceParallel funtion, There's something wrong with the calculation, R or C is negative.. R {R}, C {C}")
     
     return R1eq, C1eq
 
@@ -92,16 +92,16 @@ def tri2star(T1,T2,T3):
     # Check input data type
     
     if not isinstance(T1, float):
-        raise TypeError(f'Ops... tri2star function, input T1 is not a float: T1 {T1}') 
+        raise TypeError(f'ERROR tri2star function, input T1 is not a float: T1 {T1}') 
     if not isinstance(T2, float):
-        raise TypeError(f'Ops... tri2star function, input T2 is not a float: T2 {T2}') 
+        raise TypeError(f'ERROR tri2star function, input T2 is not a float: T2 {T2}') 
     if not isinstance(T3, float):
-        raise TypeError(f'Ops... tri2star function, input T3 is not a float: T3 {T3}')
+        raise TypeError(f'ERROR tri2star function, input T3 is not a float: T3 {T3}')
 
     # Check input data quality
 
     if T1 < 0. or T2 < 0. or T3 < 0.:
-        wrn(f"\n\ntri2star funtion, There's something wrong with the input, one of them is negative.. T1 {T1}, T2 {T2}, T3 {T3}\n")
+        wrn(f"WARNING tri2star funtion, There's something wrong with the input, one of them is negative.. T1 {T1}, T2 {T2}, T3 {T3}")
     
     T_sum = T1+T2+T3
     S1 = T2*T3/T_sum
@@ -134,19 +134,19 @@ def longWaveRadiation(theta_a,SSW = 1.):
     # Check input data type
 
     if not isinstance(theta_a, np.ndarray):
-        raise TypeError(f'Ops... longWaveRadiation function, input theta_a is not a np.array: theta_a {theta_a}') 
+        raise TypeError(f'ERROR longWaveRadiation function, input theta_a is not a np.array: theta_a {theta_a}') 
     if not isinstance(SSW, float):
         try:
             SSW = float(SSW)
         except ValueError:            
-            raise TypeError(f'Ops... longWaveRadiation function, input SSW is not a float: SSW {SSW}') 
+            raise TypeError(f'ERROR longWaveRadiation function, input SSW is not a float: SSW {SSW}') 
 
     # Check input data quality
     
     if not np.all(np.greater(theta_a,-50.)) or not np.all(np.less(theta_a,60.)):
-        wrn(f"\n\nlongWaveRadiation function, the theta_a input is outside range [-50,60]: theta_a {theta_a}")
+        wrn(f"WARNING longWaveRadiation function, the theta_a input is outside range [-50,60]: theta_a {theta_a}")
     if not 0. <= SSW <= 1.:
-        wrn(f"\n\nlongWaveRadiation function, the SSW input is outside range [0,1]: SSW {SSW}")
+        wrn(f"WARNING longWaveRadiation function, the SSW input is outside range [0,1]: SSW {SSW}")
 
     Ea_1 = 9.9*5.671*10**(-14)*(273.15+theta_a)**6
     
@@ -194,36 +194,36 @@ def loadHK(perc_rad, perc_rad_aw, perc_altro_irr, A_aw, A_raum):
         try:
             perc_rad = float(perc_rad)
         except ValueError:            
-            raise TypeError(f'Ops... loadHK function, input perc_rad is not a float: perc_rad {perc_rad}') 
+            raise TypeError(f'ERROR loadHK function, input perc_rad is not a float: perc_rad {perc_rad}') 
     if not isinstance(perc_rad_aw, float):
         try:
             perc_rad_aw = float(perc_rad_aw)
         except ValueError:            
-            raise TypeError(f'Ops... loadHK function, input perc_rad_aw is not a float: perc_rad_aw {perc_rad_aw}') 
+            raise TypeError(f'ERROR loadHK function, input perc_rad_aw is not a float: perc_rad_aw {perc_rad_aw}') 
     if not isinstance(perc_altro_irr, float):
         try:
             perc_altro_irr = float(perc_altro_irr)
         except ValueError:            
-            raise TypeError(f'Ops... loadHK function, input perc_altro_irr is not a float: perc_altro_irr {perc_altro_irr}') 
+            raise TypeError(f'ERROR loadHK function, input perc_altro_irr is not a float: perc_altro_irr {perc_altro_irr}') 
     if not isinstance(A_raum, float):
         try:
             A_raum = float(A_raum)
         except ValueError:            
-            raise TypeError(f'Ops... loadHK function, input A_raum is not a float: A_raum {A_raum}') 
+            raise TypeError(f'ERROR loadHK function, input A_raum is not a float: A_raum {A_raum}') 
     if not isinstance(A_aw, float):
         try:
             A_aw = float(A_aw)
         except ValueError:            
-            raise TypeError(f'Ops... loadHK function, input A_aw is not a float: A_aw {A_aw}') 
+            raise TypeError(f'ERROR loadHK function, input A_aw is not a float: A_aw {A_aw}') 
     
     # Check input data quality
     
     for p in [perc_rad,perc_rad_aw,perc_altro_irr]:
         if not 0. <= p <= 1.:
-            wrn(f"\n\nloadHK function, one of the percentage inputs is outside range [0,1]: perc_rad {perc_rad}, perc_rad_aw {perc_rad_aw}, perc_altro_irr {perc_altro_irr}")
+            wrn(f"WARNING loadHK function, one of the percentage inputs is outside range [0,1]: perc_rad {perc_rad}, perc_rad_aw {perc_rad_aw}, perc_altro_irr {perc_altro_irr}")
     for area in [A_raum,A_aw]:
         if not 0. <= area :
-            wrn(f"\n\nloadHK function, one of the area inputs is negative: A_raum {A_raum}, A_aw {A_aw}")    
+            wrn(f"WARNING loadHK function, one of the area inputs is negative: A_raum {A_raum}, A_aw {A_aw}")    
     
     # %Note: the sum of the 3 outputs must be equal to 1
     
@@ -374,34 +374,34 @@ class ThermalZone:
             try:
                 zoneNumber = int(zoneNumber)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, zoneNumber input is not an int: zoneNumber {zoneNumber}')
+                raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, zoneNumber input is not an int: zoneNumber {zoneNumber}')
         if not isinstance(l, int):
             try:
                 l = int(l)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, l input is not an int: l {l}')
+                raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, l input is not an int: l {l}')
         if not isinstance(volume, float):
             try:
                 volume = float(volume)
             except ValueError:
-                raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, volume input is not an float: volume {volume}')
+                raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, volume input is not an float: volume {volume}')
         if not isinstance(zone_area, float):
             try:
                 zone_area = float(zone_area)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, volume input is not an float: zone_area {zone_area}')
+                raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, volume input is not an float: zone_area {zone_area}')
         if not isinstance(envelope, Envelope):
-            raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, envelope input is not an Envelope object: envelope {envelope}')
+            raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, envelope input is not an Envelope object: envelope {envelope}')
         if not isinstance(sched_db, Archetype):
-            raise TypeError(f'Ops... thermal zone initialization, bd {bd_name}, envelope input is not an Archetype object: envelope {envelope}')
+            raise TypeError(f'ERROR thermal zone initialization, bd {bd_name}, envelope input is not an Archetype object: envelope {envelope}')
                  
         # Check input data quality
         
         if volume < 0.:
-            wrn(f"\n\n Thermal zone initialization, bd {bd_name}, the zone volume is negative: volume {volume}. It will be set to 1.")
+            wrn(f"WARNING  Thermal zone initialization, bd {bd_name}, the zone volume is negative: volume {volume}. It will be set to 1.")
             volume = 1.
         if zone_area < 0.:
-            wrn(f"\n\n Thermal zone initialization, bd {bd_name}, the zone area is negative: zone_area {zone_area}. It will be set to 1.")
+            wrn(f"WARNING  Thermal zone initialization, bd {bd_name}, the zone area is negative: zone_area {zone_area}. It will be set to 1.")
             zone_area = 1.
         
         # Sets some attributes of the zone
@@ -433,7 +433,7 @@ class ThermalZone:
         self.Tot_opaque_area = 0
         for surface in surfList:
             if not (isinstance(surface,Surface) or isinstance(surface,SurfaceInternalMass) or isinstance(surface,SurfaceInternalAdjacent)):
-                raise TypeError(f'Ops... thermal zone initialization, surfList should contain all Surface objects: surfList {surfList}')
+                raise TypeError(f'ERROR thermal zone initialization, surfList should contain all Surface objects: surfList {surfList}')
             i += 1
             self.surfaces[('Surface '+str(i))]=surface
             self.Araum += self.surfaces[('Surface '+str(i))].area
@@ -457,7 +457,7 @@ class ThermalZone:
         self.G_da_vent = np.zeros(l)
         self.x_int = np.zeros(l)
         self.T_sup = np.zeros(l)
-        self.ZoneAHU = AirHandlingUnit(l)
+        self.ZoneAHU = AirHandlingUnit(l, bdName = bd_name)
         self.T_wall_0_vector = np.zeros(l)
         self.R_lim_ext_wall_2C = self.Strat['ExtWall'].R_se / (self.Tot_opaque_area + self.Tot_glazed_area)
         self.H_lim_ext_wall_1C = self.Tot_opaque_area / self.Strat['ExtWall'].R_se
@@ -545,25 +545,25 @@ class ThermalZone:
         # Check input data type
         
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(weather.dT_er, float):
             try:
                 weather.dT_er = float(weather.dT_er)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, dT_er input is not an float: dT_er {weather.dT_er}')
+                raise TypeError(f'ERROR thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, dT_er input is not an float: dT_er {weather.dT_er}')
         if not isinstance(h_r, float):
             try:
                 h_r = float(h_r)
             except ValueError:
-                raise TypeError(f'Ops... thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, h_r input is not an float: h_r {h_r}')
+                raise TypeError(f'ERROR thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, h_r input is not an float: h_r {h_r}')
     
         # Check input data quality
         
         if h_r < 0.:
-            wrn(f"\n\n Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the h_r is negative: h_r {h_r}.")
+            wrn(f"WARNING  Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the h_r is negative: h_r {h_r}.")
         
         if not 0. <= weather.dT_er < 30.:
-            wrn(f"\n\n Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the dT_er is outside limits [0,30] °C: dT_er {weather.dT_er}.")
+            wrn(f"WARNING  Thermal zone calculate_zone_loads_ISO13790, bd {self.bd_name}, the dT_er is outside limits [0,30] °C: dT_er {weather.dT_er}.")
         
         # First calculation of internal heat gains 
         
@@ -631,12 +631,14 @@ class ThermalZone:
         self.phi_m = self.Am/self.Atot*(0.5*phi_int + phi_sol)
         
           
-    def Sensible1C(self, flag, Hve, T_set, T_sup_AHU, T_e, phi_load, tau, phi_HC_set = 0.):
+    def Sensible1C(self, t, flag, Hve, T_set, T_sup_AHU, T_e, phi_load, tau, phi_HC_set = 0.):
         '''
         Solves ISO 13790 network for a specific time step
                 
         Parameters
             ----------
+            t : int
+                timestep of the simulation
             flag : string
                 string 'Tset' or 'phiset'
             Hve : list of positive floats
@@ -661,58 +663,63 @@ class ThermalZone:
         ''' 
         
         # Check input data type
-        
+
+        if not isinstance(t, int):
+            try:
+                t = int(t)
+            except ValueError:
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, t input is not an int: t {t}')
         if flag != 'Tset' and flag != 'phiset':
-            raise TypeError(f"Ops... thermal zone Sensible1C, bd {self.bd_name}, flag input is not a 'Tset' or 'phiset': flag {flag}")
+            raise TypeError(f"ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, flag input is not a 'Tset' or 'phiset': flag {flag}")
         if not isinstance(Hve, list) or not isinstance(Hve[0],float) or not isinstance(Hve[1],float):
             try: 
                 Hve[0]=float(Hve[0])
                 Hve[1]=float(Hve[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone Sensible1C, bd {self.bd_name}, Hve input is not a list of floats: Hve {Hve}")
+                raise TypeError(f"ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, Hve input is not a list of floats: Hve {Hve}")
         if not isinstance(T_set, float):
             try:
                 T_set = float(T_set)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible1C, bd {self.bd_name}, T_set input is not a float: T_set {T_set}')
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, T_set input is not a float: T_set {T_set}')
         if not isinstance(T_sup_AHU, float):
             try:
                 T_sup_AHU = float(T_sup_AHU)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible1C, bd {self.bd_name}, T_sup_AHU input is not a float: T_sup_AHU {T_sup_AHU}')
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, T_sup_AHU input is not a float: T_sup_AHU {T_sup_AHU}')
         if not isinstance(T_e, float):
             try:
                 T_e = float(T_e)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible1C, bd {self.bd_name}, T_e input is not a float: T_e {T_e}')
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, T_e input is not a float: T_e {T_e}')
         if not isinstance(phi_load, list) or not isinstance(phi_load[0],float) or not isinstance(phi_load[1],float) or not isinstance(phi_load[2],float):
             try: 
                 phi_load[0]=float(phi_load[0])
                 phi_load[2]=float(phi_load[2])
                 phi_load[1]=float(phi_load[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone Sensible1C, bd {self.bd_name}, phi_load input is not a list of floats: phi_load {phi_load}")
+                raise TypeError(f"ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, phi_load input is not a list of floats: phi_load {phi_load}")
         if not isinstance(tau, int):
             try:
                 tau = int(tau)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible1C, bd {self.bd_name}, tau input is not a float: tau {tau}')
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, tau input is not a float: tau {tau}')
         if not isinstance(phi_HC_set, float):
             try:
                 phi_HC_set = float(phi_HC_set)
             except ValueError: 
-                raise TypeError(f'Ops... thermal zone Sensible1C, bd {self.bd_name}, phi_HC_set input is not a float: phi_HC_set {phi_HC_set}')
+                raise TypeError(f'ERROR thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, phi_HC_set input is not a float: phi_HC_set {phi_HC_set}')
                 
         # Check input data quality
         
         if Hve[0] < 0. or Hve[1] < 0.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the Hve is negative: Hve {Hve}.")
+            wrn(f"WARNING  Thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, the Hve is negative: Hve {Hve}.")
         if not -50. <= T_set < 50.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the T_set is outside limits [-50,50] °C: T_set {T_set}.")
+            wrn(f"WARNING  Thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, the T_set is outside limits [-50,50] °C: T_set {T_set}.")
         if not -50. <= T_sup_AHU < 50.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the T_sup_AHU is outside limits [-50,50] °C: T_sup_AHU {T_sup_AHU}.")
+            wrn(f"WARNING  Thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, the T_sup_AHU is outside limits [-50,50] °C: T_sup_AHU {T_sup_AHU}.")
         if not -50. <= T_e < 60.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
+            wrn(f"WARNING  Thermal zone Sensible1C, bd {self.bd_name}, timestep {t}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         
         # Set some data and build up the system   
         
@@ -885,7 +892,7 @@ class ThermalZone:
         # Check input data type
         
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, bd {self.bd_name}, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
         # Check input data quality
                 
@@ -968,7 +975,7 @@ class ThermalZone:
                 
         self.sigma = loadHK(self.sigma_fhk, self.sigma_fhk_aw, self.sigma_hk_str, self.Aaw, self.Araum)                                                          
     
-    def Sensible2C(self, flag, phi, H_ve, theta_bound, theta_sup, tau, theta_set = 20., Q_hk = 0.):
+    def Sensible2C(self, t, flag, phi, H_ve, theta_bound, theta_sup, tau, theta_set = 20., Q_hk = 0.):
         """
         function x = buildingLS_2C_Tset(phi, theta_bound, params, anteil, theta_set, theta_m0, tau)
         buildingLS_2C_Tset solves the linear system (Y*x = q) of VDI6007 at each
@@ -977,6 +984,8 @@ class ThermalZone:
         
         Parameters
             ----------
+            t : int
+                timestep of the simulation
             flag : string
                 string 'Tset' or 'phiset' 
             phi : list of floats
@@ -1007,60 +1016,65 @@ class ThermalZone:
         
         # Check input data type
         
+        if not isinstance(t, int):
+            try:
+                t = int(t)
+            except ValueError:
+                raise TypeError(f'ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, t input is not an int: t {t}')
         if flag != 'Tset' and flag != 'phiset':
-            raise TypeError(f"Ops... thermal zone Sensible2C, bd {self.bd_name}, flag input is not a 'Tset' or 'phiset': flag {flag}")
+            raise TypeError(f"ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, flag input is not a 'Tset' or 'phiset': flag {flag}")
         if not isinstance(phi, list) or not isinstance(phi[0],float) or not isinstance(phi[1],float) or not isinstance(phi[2],float):
             try: 
                 phi[0]=float(phi[0])
                 phi[2]=float(phi[2])
                 phi[1]=float(phi[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone Sensible2C, bd {self.bd_name}, phi input is not a list of floats: phi {phi}")
+                raise TypeError(f"ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, phi input is not a list of floats: phi {phi}")
         if not isinstance(H_ve, list) or not isinstance(H_ve[0],float) or not isinstance(H_ve[1],float):
             try: 
                 H_ve[0]=float(H_ve[0])
                 H_ve[1]=float(H_ve[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone Sensible2C, bd {self.bd_name}, H_ve input is not a list of floats: H_ve {H_ve}")
+                raise TypeError(f"ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, H_ve input is not a list of floats: H_ve {H_ve}")
         if not isinstance(theta_bound, list) or not isinstance(theta_bound[0],float) or not isinstance(theta_bound[1],float):
             try: 
                 theta_bound[0]=float(theta_bound[0])
                 theta_bound[1]=float(theta_bound[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone Sensible2C, bd {self.bd_name}, theta_bound input is not a list of floats: theta_bound {theta_bound}")
+                raise TypeError(f"ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, theta_bound input is not a list of floats: theta_bound {theta_bound}")
         if not isinstance(theta_sup, float):
             try:
                 theta_sup = float(theta_sup)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible2C, bd {self.bd_name}, theta_sup input is not a float: theta_sup {theta_sup}')
+                raise TypeError(f'ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, theta_sup input is not a float: theta_sup {theta_sup}')
         if not isinstance(tau, int):
             try:
                 tau = int(tau)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible2C, bd {self.bd_name}, tau input is not a float: tau {tau}')
+                raise TypeError(f'ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, tau input is not a float: tau {tau}')
         if not isinstance(theta_set, float):
             try:
                 theta_set = float(theta_set)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible2C, bd {self.bd_name}, theta_set input is not a float: theta_set {theta_set}')
+                raise TypeError(f'ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, theta_set input is not a float: theta_set {theta_set}')
         if not isinstance(Q_hk, float):
             try:
                 Q_hk = float(Q_hk)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone Sensible2C, bd {self.bd_name}, Q_hk input is not a float: Q_hk {Q_hk}')
+                raise TypeError(f'ERROR thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, Q_hk input is not a float: Q_hk {Q_hk}')
                 
         # Check input data quality
         
         if H_ve[0] < 0. or H_ve[1] < 0.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the H_ve is negative: H_ve {H_ve}.")
+            wrn(f"WARNING  Thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, the H_ve is negative: H_ve {H_ve}.")
         if not -50. <= theta_bound[0] < 60.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the theta_bound[0] is outside limits [-50,50] °C: theta_bound[0] {theta_bound[0]}.")
+            wrn(f"WARNING  Thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, the theta_bound[0] is outside limits [-50,50] °C: theta_bound[0] {theta_bound[0]}.")
         if not -50. <= theta_bound[1] < 60.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the theta_bound[1] is outside limits [-50,50] °C: theta_bound[1] {theta_bound[1]}.")
+            wrn(f"WARNING  Thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, the theta_bound[1] is outside limits [-50,50] °C: theta_bound[1] {theta_bound[1]}.")
         if not -50. <= theta_sup < 50.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the theta_sup is outside limits [-50,50] °C: theta_sup {theta_sup}.")
+            wrn(f"WARNING  Thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, the theta_sup is outside limits [-50,50] °C: theta_sup {theta_sup}.")
         if not -50. <= theta_set < 50.:
-            wrn(f"\n\n Thermal zone Sensible1C, bd {self.bd_name}, the theta_set is outside limits [-50,50] °C: theta_set {theta_set}.")       
+            wrn(f"WARNING  Thermal zone Sensible2C, bd {self.bd_name}, timestep {t}, the theta_set is outside limits [-50,50] °C: theta_set {theta_set}.")       
         
         # % INPUT
         
@@ -1246,45 +1260,45 @@ class ThermalZone:
         # Check input data type
         
         if mode != '1C' and mode != '2C':
-            raise TypeError(f"Ops... thermal zone solveTZ, bd {self.bd_name}, mode input is not a '1C' or '2C': mode {mode}")
+            raise TypeError(f"ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, mode input is not a '1C' or '2C': mode {mode}")
         if not isinstance(P_DD, list) or not isinstance(P_DD[0],float) or not isinstance(P_DD[1],float):
             try: 
                 P_DD[0]=float(P_DD[0])
                 P_DD[1]=float(P_DD[1])
             except ValueError:
-                raise TypeError(f"Ops... thermal zone solveTZ, bd {self.bd_name}, P_DD input is not a list of floats: P_DD {P_DD}")
+                raise TypeError(f"ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, P_DD input is not a list of floats: P_DD {P_DD}")
         if not isinstance(t, int):
             try:
                 t = int(t)
             except ValueError:
-                raise TypeError(f'Ops... thermal zone solveTZ, bd {self.bd_name}, t input is not an int: t {t}')
+                raise TypeError(f'ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, t input is not an int: t {t}')
         if not isinstance(T_e, float):
             try:
                 T_e = float(T_e)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone solveTZ, bd {self.bd_name}, T_e input is not a float: T_e {T_e}')
+                raise TypeError(f'ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, T_e input is not a float: T_e {T_e}')
         if not isinstance(RH_e, float):
             try:
                 RH_e = float(RH_e)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone solveTZ, bd {self.bd_name}, RH_e input is not a float: RH_e {RH_e}')
+                raise TypeError(f'ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, RH_e input is not a float: RH_e {RH_e}')
         if not isinstance(p_extsat, float):
             try:
                 p_extsat = float(p_extsat)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone solveTZ, bd {self.bd_name}, p_extsat input is not a float: p_extsat {p_extsat}')
+                raise TypeError(f'ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, p_extsat input is not a float: p_extsat {p_extsat}')
         if not isinstance(tau, int):
             try:
                 tau = int(tau)
             except ValueError:  
-                raise TypeError(f'Ops... thermal zone solveTZ, bd {self.bd_name}, tau input is not a float: tau {tau}')
+                raise TypeError(f'ERROR thermal zone solveTZ, bd {self.bd_name}, time step {t}, tau input is not a float: tau {tau}')
         
         # Check input data quality
         
         if not -50. <= T_e < 50.:
-            wrn(f"\n\n Thermal zone solveTZ, bd {self.bd_name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
+            wrn(f"WARNING  Thermal zone solveTZ, bd {self.bd_name}, time step {t}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         if not .0 <= RH_e <= 1.:
-            wrn(f"\n\n Thermal zone solveTZ, bd {self.bd_name}, the RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
+            wrn(f"WARNING  Thermal zone solveTZ, bd {self.bd_name}, time step {t}, the RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
         
         flag_AHU = True
         P_max = P_DD[0]
@@ -1342,9 +1356,9 @@ class ThermalZone:
             if self.schedules.plantOnOffSens[t] == 1:
                 
                 if mode == '1C':
-                    pot, Ta, Ts, Tm = self.Sensible1C('Tset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau)
+                    pot, Ta, Ts, Tm = self.Sensible1C(t, 'Tset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau)
                 elif mode == '2C':
-                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C('Tset',phi_load, Hve, theta_bound, self.T_sup[t], tau, theta_set = T_set_inv)
+                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C(t, 'Tset',phi_load, Hve, theta_bound, self.T_sup[t], tau, theta_set = T_set_inv)
                 
                 if pot>0 and pot<P_max*1000:
                     self.heatFlow[t] = pot
@@ -1360,9 +1374,9 @@ class ThermalZone:
                         phi_set = 0
                     
                     if mode == '1C':
-                        pot, Ta, Ts, Tm = self.Sensible1C('phiset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau, phi_HC_set = phi_set)
+                        pot, Ta, Ts, Tm = self.Sensible1C(t, 'phiset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau, phi_HC_set = phi_set)
                     elif mode == '2C':
-                        Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C('phiset',phi_load, Hve, theta_bound, self.T_sup[t],  tau, Q_hk = phi_set)
+                        Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C(t, 'phiset',phi_load, Hve, theta_bound, self.T_sup[t],  tau, Q_hk = phi_set)
                     self.heatFlow[t] = pot
                     self.Air_temp[t] = Ta
                     if mode == '1C':
@@ -1375,9 +1389,9 @@ class ThermalZone:
             if self.schedules.plantOnOffSens[t] == -1:
                 
                 if mode == '1C':
-                    pot, Ta, Ts, Tm = self.Sensible1C('Tset',Hve,T_set_est, self.T_sup[t], T_e , phi_load,tau)
+                    pot, Ta, Ts, Tm = self.Sensible1C(t, 'Tset',Hve,T_set_est, self.T_sup[t], T_e , phi_load,tau)
                 elif mode == '2C':
-                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C('Tset',phi_load, Hve, theta_bound,self.T_sup[t],  tau, theta_set = T_set_est)
+                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C(t, 'Tset',phi_load, Hve, theta_bound,self.T_sup[t],  tau, theta_set = T_set_est)
                 
                 if pot<0 and pot>P_min*1000:
                     self.heatFlow[t] = pot
@@ -1392,9 +1406,9 @@ class ThermalZone:
                     else:
                         phi_set = 0
                     if mode == '1C':
-                        pot, Ta, Ts, Tm = self.Sensible1C('phiset',Hve,T_set_est, self.T_sup[t], T_e , phi_load,tau, phi_HC_set = phi_set)
+                        pot, Ta, Ts, Tm = self.Sensible1C(t, 'phiset',Hve,T_set_est, self.T_sup[t], T_e , phi_load,tau, phi_HC_set = phi_set)
                     elif mode == '2C':
-                        Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C('phiset',phi_load, Hve, theta_bound,self.T_sup[t],  tau, Q_hk = phi_set)
+                        Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C(t, 'phiset',phi_load, Hve, theta_bound,self.T_sup[t],  tau, Q_hk = phi_set)
                     self.heatFlow[t] = pot
                     self.Air_temp[t] = Ta
                     if mode == '1C':
@@ -1407,9 +1421,9 @@ class ThermalZone:
             if self.schedules.plantOnOffSens[t] == 0:
                 
                 if mode == '1C':
-                    pot, Ta, Ts, Tm = self.Sensible1C('phiset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau)
+                    pot, Ta, Ts, Tm = self.Sensible1C(t, 'phiset',Hve,T_set_inv, self.T_sup[t], T_e , phi_load,tau)
                 elif mode == '2C':
-                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C('phiset',phi_load, Hve, theta_bound,self.T_sup[t],tau)
+                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.Sensible2C(t, 'phiset',phi_load, Hve, theta_bound,self.T_sup[t],tau)
                 self.heatFlow[t] = pot
                 self.Air_temp[t] = Ta
                 if mode == '1C':
@@ -1629,47 +1643,47 @@ class Building:
             try:
                 buildingName = str(buildingName)
             except ValueError:
-                raise TypeError(f'Ops... Building class, input buildingName is not a string: buildingName {buildingName}')        
+                raise TypeError(f'ERROR Building class, input buildingName is not a string: buildingName {buildingName}')        
         if not isinstance(surfList, list) and not isinstance(surfList, tuple) :
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input surfList is not a list: surfList {surfList}')        
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input surfList is not a list: surfList {surfList}')        
         if not isinstance(end_use, str):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input end_use is not a string: end_use {end_use}')    
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input end_use is not a string: end_use {end_use}')    
         if not isinstance(mode, str):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input mode is not a string: mode {mode}')                   
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input mode is not a string: mode {mode}')                   
         if not isinstance(n_Floors, int):
             try:
                 n_Floors = int(n_Floors)
             except:
-                raise TypeError(f'Ops... Building class, bd {buildingName}, n_Floors is not a int: n_Floors {n_Floors}') 
+                raise TypeError(f'ERROR Building class, bd {buildingName}, n_Floors is not a int: n_Floors {n_Floors}') 
         if not isinstance(envelopes, dict):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
+            raise TypeError(f'ERROR Building class, bd {buildingName}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
         if not isinstance(archId, str):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input archId is not a string: archId {archId}')  
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input archId is not a string: archId {archId}')  
         if not isinstance(rh_gross, float):
             try:
                 rh_gross = float(rh_gross)
             except ValueError:
-                raise TypeError(f'Ops... Building class, bd {buildingName}, rh_gross is not a float: rh_gross {rh_gross}') 
+                raise TypeError(f'ERROR Building class, bd {buildingName}, rh_gross is not a float: rh_gross {rh_gross}') 
         if not isinstance(rh_net, float):
             try:
                 rh_net = float(rh_net)
             except ValueError:
-                raise TypeError(f'Ops... Building class, bd {buildingName}, rh_net is not a float: rh_net {rh_net}') 
+                raise TypeError(f'ERROR Building class, bd {buildingName}, rh_net is not a float: rh_net {rh_net}') 
         if not isinstance(heating_plant, str):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input heating_plant is not a string: heating_plant {heating_plant}')  
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input heating_plant is not a string: heating_plant {heating_plant}')  
         if not isinstance(cooling_plant, str):
-            raise TypeError(f'Ops... Building class, bd {buildingName}, input cooling_plant is not a string: cooling_plant {cooling_plant}')  
+            raise TypeError(f'ERROR Building class, bd {buildingName}, input cooling_plant is not a string: cooling_plant {cooling_plant}')  
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
 
         # check input data quality
         
         if mode != 'cityjson' and mode != 'geojson':
-            raise ValueError(f'Ops... Building class, bd {buildingName}, input mode must be "cityjson" or "geojson": mode {mode}')   
+            raise ValueError(f'ERROR Building class, bd {buildingName}, input mode must be "cityjson" or "geojson": mode {mode}')   
         if rh_gross < 0.5 or rh_gross > 1.5:
-            wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}\n")
+            wrn(f"WARNING Building class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}")
         if rh_net < 0.5 or rh_net > 1.5:
-            wrn(f"\n\nBuilding class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_net {rh_net}\n")
+            wrn(f"WARNING Building class, init, bd {buildingName}, are you sure about the external walls multiplication coeff?? rh_net {rh_net}")
         
         '''
         one thermal zone for building
@@ -1726,7 +1740,7 @@ class Building:
                 self.buildingSurfaces['Building Surface '+str(i)]=surface
                 self.ii = i
         except KeyError:
-            raise KeyError(f"\n\n Building class: bd {self.name}, the envelope archetype not found. key {archId}\nList of possible archetypes: \n {envelopes.keys()}")
+            raise KeyError(f"WARNING  Building class: bd {self.name}, the envelope archetype not found. key {archId}\nList of possible archetypes: \n {envelopes.keys()}")
         
         # check if some surface is coincident
         
@@ -1806,20 +1820,20 @@ class Building:
         # Check input data type
  
         if not isinstance(model, str):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, input model is not a string: model {model}')         
+            raise TypeError(f'ERROR Building class, BDParamsandLoads, bd {self.name}, input model is not a string: model {model}')         
         if not isinstance(envelopes, dict):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
+            raise TypeError(f'ERROR Building class, BDParamsandLoads, bd {self.name}, envelopes is not a dictionary: envelopes {envelopes}... print help for more info') 
         if not isinstance(sched_db, dict):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, sched_db is not a dictionary: sched_db {sched_db}... print help for more info') 
+            raise TypeError(f'ERROR Building class, BDParamsandLoads, bd {self.name}, sched_db is not a dictionary: sched_db {sched_db}... print help for more info') 
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(splitInZone, bool):
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, splitInZone is not a boolean: splitInZone {splitInZone}')
+            raise TypeError(f'ERROR Building class, BDParamsandLoads, bd {self.name}, splitInZone is not a boolean: splitInZone {splitInZone}')
         
         # Check input data quality
         
         if splitInZone:
-            raise TypeError(f'Ops... Building class, BDParamsandLoads, bd {self.name}, splitInZone must be False: splitInZone {splitInZone}. MultiZone building not implemented yet')
+            raise TypeError(f'ERROR Building class, BDParamsandLoads, bd {self.name}, splitInZone must be False: splitInZone {splitInZone}. MultiZone building not implemented yet')
         
         # Creates thermal zone and calculates the params
         
@@ -1835,7 +1849,7 @@ class Building:
                                                  self.footprint*self.nFloors,
                                                  self.l)
             except KeyError:
-                raise KeyError(f"\n\n Building class, BDParamsandLoads: bd {self.name}, the end use archetype not found. key {self.end_use}\nList of possible archetypes: \n {sched_db.keys()}")
+                raise KeyError(f"WARNING  Building class, BDParamsandLoads: bd {self.name}, the end use archetype not found. key {self.end_use}\nList of possible archetypes: \n {sched_db.keys()}")
         
             if model == '1C':
                 self.zones['Zone'].zoneParameter13790()
@@ -1872,7 +1886,7 @@ class Building:
         # Check input data type
         
         if not isinstance(Plant_calc, bool):
-            raise TypeError(f'Ops... Building class, BDdesigndays_Heating, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
+            raise TypeError(f'ERROR Building class, BDdesigndays_Heating, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         for z in self.zones.values():
             z.solveDD_Heating()
@@ -1914,41 +1928,41 @@ class Building:
         # Check input data type
         
         if model != '1C' and model != '2C':
-            raise TypeError(f"Ops... Building class, BDdesigndays_Cooling, bd {self.name}, model input is not a '1C' or '2C': model {model}")
+            raise TypeError(f"ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, model input is not a '1C' or '2C': model {model}")
         if not isinstance(t, int):
             try:
                 t = int(t)
             except ValueError:
-                raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, t input is not an int: t {t}')
+                raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, t input is not an int: t {t}')
         if not isinstance(T_e, float):
             try:
                 T_e = float(T_e)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, T_e input is not a float: T_e {T_e}')
+                raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, T_e input is not a float: T_e {T_e}')
         if not isinstance(RH_e, float):
             try:
                 RH_e = float(RH_e)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, RH_e input is not a float: RH_e {RH_e}')
+                raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, RH_e input is not a float: RH_e {RH_e}')
         if not isinstance(p_extsat, float):
             try:
                 p_extsat = float(p_extsat)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, p_extsat input is not a float: p_extsat {p_extsat}')
+                raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, p_extsat input is not a float: p_extsat {p_extsat}')
         if not isinstance(tau, int):
             try:
                 tau = int(tau)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, tau input is not a float: tau {tau}')
+                raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, tau input is not a float: tau {tau}')
         if not isinstance(Plant_calc, bool):
-            raise TypeError(f'Ops... Building class, BDdesigndays_Cooling, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
+            raise TypeError(f'ERROR Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         # Check input data quality
         
         if not -50. <= T_e < 50.:
-            wrn(f"\n\n Building class, BDdesigndays_Cooling, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
+            wrn(f"WARNING  Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         if not .0 <= RH_e <= 1.:
-            wrn(f"\n\n Building class, BDdesigndays_Cooling, bd {self.name}, RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
+            wrn(f"WARNING  Building class, BDdesigndays_Cooling, timestep {t}, bd {self.name}, RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
         
         # Simulation for the summer design period
         
@@ -1982,9 +1996,9 @@ class Building:
         # Check input data type
         
         if not isinstance(Plants_list, dict):
-            raise TypeError(f' Building class, BDplants, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')
+            raise TypeError(f'ERROR Building class, BDplants, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
     
         # Set building plants
         
@@ -2026,43 +2040,43 @@ class Building:
         # Check input data type
         
         if model != '1C' and model != '2C':
-            raise TypeError(f"Ops... Building class, solve, bd {self.name}, model input is not a '1C' or '2C': model {model}")
+            raise TypeError(f"ERROR Building class, solve, timestep {t}, bd {self.name}, model input is not a '1C' or '2C': model {model}")
         if not isinstance(Plants_list, dict):
-            raise TypeError(f'Building class, solve, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')        
+            raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')        
         if not isinstance(t, int):
             try:
                 t = int(t)
             except ValueError:
-                raise TypeError(f'Ops... Building class, solve, bd {self.name}, t input is not an int: t {t}')
+                raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, t input is not an int: t {t}')
         if not isinstance(T_e, float):
             try:
                 T_e = float(T_e)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, solve, bd {self.name}, T_e input is not a float: T_e {T_e}')
+                raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, T_e input is not a float: T_e {T_e}')
         if not isinstance(RH_e, float):
             try:
                 RH_e = float(RH_e)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, solve, bd {self.name}, RH_e input is not a float: RH_e {RH_e}')
+                raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, RH_e input is not a float: RH_e {RH_e}')
         if not isinstance(p_extsat, float):
             try:
                 p_extsat = float(p_extsat)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, solve, bd {self.name}, p_extsat input is not a float: p_extsat {p_extsat}')
+                raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, p_extsat input is not a float: p_extsat {p_extsat}')
         if not isinstance(tau, int):
             try:
                 tau = int(tau)
             except ValueError:  
-                raise TypeError(f'Ops... Building class, solve, bd {self.name}, tau input is not a float: tau {tau}')
+                raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, tau input is not a float: tau {tau}')
         if not isinstance(Plant_calc, bool):
-            raise TypeError(f'Ops... Building class, solve, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
+            raise TypeError(f'ERROR Building class, solve, timestep {t}, bd {self.name}, input Plant_calc is not a bool: Plant_calc {Plant_calc}')         
         
         # Check input data quality
         
         if not -50. <= T_e < 50.:
-            wrn(f"\n\n Building class, solve, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
+            wrn(f"WARNING  Building class, solve, timestep {t}, bd {self.name}, the T_e is outside limits [-50,50] °C: T_e {T_e}.")
         if not .0 <= RH_e <= 1.:
-            wrn(f"\n\n Building class, solve, bd {self.name}, RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
+            wrn(f"WARNING  Building class, solve, timestep {t}, bd {self.name}, RH_e is outside limits [-50,50] °C: RH_e {RH_e}.")
         
         # Thermal zone simulation
         
@@ -2283,7 +2297,7 @@ class Complex:
             try:
                 Complexname = str(Complexname)
             except ValueError:
-                raise TypeError(f'Ops... Complex class, input Complexname is not a string: Complexname {Complexname}')    
+                raise TypeError(f'ERROR Complex class, input Complexname is not a string: Complexname {Complexname}')    
         
         # Vectors inizialization 
         

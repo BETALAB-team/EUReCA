@@ -38,7 +38,7 @@ def cityobj(p):
     # Check input data type
     
     if not isinstance(p, str):
-        raise TypeError(f'Ops... cityobj function, p is not a str: p {p}')
+        raise TypeError(f'ERROR cityobj function, p is not a str: p {p}')
 
     # CityJSON object creation
     try:
@@ -46,7 +46,7 @@ def cityobj(p):
             c = cityjson.CityJSON(file=f)
             return c
     except FileNotFoundError:
-        raise FileNotFoundError(f'Ops...Cityjson object not found: {p}. Give a proper path')
+        raise FileNotFoundError(f'ERROR Cityjson object not found: {p}. Give a proper path')
         
 
 
@@ -81,35 +81,35 @@ def createBuilding(name,bd,vertList,mode,n_Floors,envelopes,weather):
     # Check input data type
 
     if not isinstance(name, str):
-        raise TypeError(f'Ops... createBuilding function, name is not a str: name {name}')
+        raise TypeError(f'ERROR createBuilding function, name is not a str: name {name}')
     if not isinstance(bd, dict):
-        raise TypeError(f'Ops... createBuilding function, bd is not a dict: bd {bd}')
+        raise TypeError(f'ERROR createBuilding function, bd is not a dict: bd {bd}')
     if not isinstance(vertList, list):
-        raise TypeError(f'Ops... createBuilding function, vertList is not a list: vertList {vertList}')
+        raise TypeError(f'ERROR createBuilding function, vertList is not a list: vertList {vertList}')
     if not isinstance(mode, str):
-        raise TypeError(f'Ops... createBuilding function, mode is not a str: mode {mode}')
+        raise TypeError(f'ERROR createBuilding function, mode is not a str: mode {mode}')
     if not isinstance(n_Floors, int):
-        raise TypeError(f'Ops... createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
+        raise TypeError(f'ERROR createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
     if not isinstance(envelopes, dict):
-        raise TypeError(f'Ops... createBuilding function, envelopes is not a dict: envelopes {envelopes}')
+        raise TypeError(f'ERROR createBuilding function, envelopes is not a dict: envelopes {envelopes}')
     if not isinstance(weather, Weather):
-        raise TypeError(f'Ops... createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+        raise TypeError(f'ERROR createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
             
     # Check input data quality
 
     for vtx in vertList:
         if not isinstance(vtx, list):
-            raise TypeError(f'Ops... createBuilding function, an input is not a list: input {vtx}')
+            raise TypeError(f'ERROR  createBuilding function, an input is not a list: input {vtx}')
         if len(vtx) != 3:
-            raise TypeError(f'Ops... createBuilding function, a vertex is not a list of 3 components: input {vtx}')
+            raise TypeError(f'ERROR createBuilding function, a vertex is not a list of 3 components: input {vtx}')
         try:
             vtx[0] = float(vtx[0])
             vtx[1] = float(vtx[1])
             vtx[2] = float(vtx[2])
         except ValueError:
-            raise ValueError(f'Ops... createBuilding function, a coordinate is not a float: input {vtx}')     
+            raise ValueError(f'ERROR createBuilding function, a coordinate is not a float: input {vtx}')     
     if not bool(envelopes):
-        wrn(f"\n\createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}\n")
+        wrn(f"WARNING createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}")
     
     
     # Setting the attributes of the building
@@ -195,22 +195,22 @@ class City():
         # Check input data type
     
         if not isinstance(json_path, str):
-            raise TypeError(f'Ops... JsonCity class, json_path is not a str: json_path {json_path}')
+            raise TypeError(f'ERROR JsonCity class, json_path is not a str: json_path {json_path}')
         if not isinstance(model, str):
-            raise TypeError(f'Ops... JsonCity class, model is not a str: model {model}')
+            raise TypeError(f'ERROR JsonCity class, model is not a str: model {model}')
         if not isinstance(envelopes, dict):
-            raise TypeError(f'Ops... JsonCity class, envelopes is not a dict: envelopes {envelopes}')
+            raise TypeError(f'ERROR JsonCity class, envelopes is not a dict: envelopes {envelopes}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
-            raise TypeError(f'Ops... JsonCity class, mode is not a str: mode {mode}')
+            raise TypeError(f'ERROR JsonCity class, mode is not a str: mode {mode}')
 
         # Check input data quality
         
         if model != '1C' and  model != '2C':
-            wrn(f"\n\JsonCity class, the model doesn't exist..... model {model}\n")
+            wrn(f"WARNING JsonCity class, the model doesn't exist..... model {model}\n")
         if not bool(envelopes):
-            wrn(f"\n\JsonCity class, the envelopes dictionary is empty..... envelopes {envelopes}\n")
+            wrn(f"WARNING JsonCity class, the envelopes dictionary is empty..... envelopes {envelopes}")
 
         # Creation of the city
         self.model = model
@@ -335,16 +335,16 @@ class City():
         # Check input data type
         
         if not isinstance(sim_time, list):
-            raise TypeError(f'Ops... JsonCity class - create_urban_canyon, sim_time is not a list: sim_time {sim_time}')
+            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, sim_time is not a list: sim_time {sim_time}')
         if not isinstance(calc, bool):
-            raise TypeError(f'Ops... JsonCity class - create_urban_canyon, calc is not a bool: calc {calc}')
+            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, calc is not a bool: calc {calc}')
         if not isinstance(data, dict):
-            raise TypeError(f'Ops... JsonCity class - create_urban_canyon, data is not a dict: data {data}')
+            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, data is not a dict: data {data}')
         
         # Check input data quality
         
         if sim_time[0] > 6:
-            wrn(f"\n\JsonCity class - create_urban_canyon, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}\n")
+            wrn(f"WARNING JsonCity class - create_urban_canyon, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}")
         
         # Urban Heat Island evaluation
         if calc:
@@ -417,30 +417,30 @@ class City():
         # Check input data type
         
         if not isinstance(mode, str):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, mode is not a str: mode {mode}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, mode is not a str: mode {mode}')
         if not isinstance(toll_az, float):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, toll_az is not a float: toll_az {toll_az}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_az is not a float: toll_az {toll_az}')
         if not isinstance(toll_dist, float):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, toll_dist is not a float: toll_dist {toll_dist}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_dist is not a float: toll_dist {toll_dist}')
         if not isinstance(toll_theta, float):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, toll_theta is not a float: toll_theta {toll_theta}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_theta is not a float: toll_theta {toll_theta}')
         if not isinstance(Solar_position, SolarPosition):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
         if not isinstance(R_f, float):
-            raise TypeError(f'Ops... JsonCity class - shading_effect, R_f is not a float: R_f {R_f}')
+            raise TypeError(f'ERROR JsonCity class - shading_effect, R_f is not a float: R_f {R_f}')
         
         # Check input data quality
         
         if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"\n\JsonCity class - shading_effect, the mode doesn't exist..... mode {mode}\n")
+            wrn(f"WARNING JsonCity class - shading_effect, the mode doesn't exist..... mode {mode}")
         if toll_az < 0.0 or toll_az > 90.0:
-            wrn(f"\n\JsonCity class - shading_effect, toll_az is out of range [0-90]..... toll_az {toll_az}\n")
+            wrn(f"WARNING JsonCity class - shading_effect, toll_az is out of range [0-90]..... toll_az {toll_az}")
         if toll_dist < 0.0 or toll_dist > 200.0:
-            wrn(f"\n\JsonCity class - shading_effect, toll_dist is out of range [0-200]..... toll_dist {toll_dist}\n")
+            wrn(f"WARNING JsonCity class - shading_effect, toll_dist is out of range [0-200]..... toll_dist {toll_dist}")
         if toll_theta < 0.0 or toll_theta > 90.0:
-            wrn(f"\n\JsonCity class - shading_effect, toll_theta is out of range [0-90]..... toll_theta {toll_theta}\n")
+            wrn(f"WARNING JsonCity class - shading_effect, toll_theta is out of range [0-90]..... toll_theta {toll_theta}")
         if R_f < 0.0 or R_f > 1.0:
-            wrn(f"\n\JsonCity class - shading_effect, R_f is out of range [0-1]..... R_f {R_f}\n")
+            wrn(f"WARNING JsonCity class - shading_effect, R_f is out of range [0-1]..... R_f {R_f}")
             
 
         # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
@@ -629,22 +629,22 @@ class City():
         # Check input data type
         
         if not isinstance(envelopes, dict):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
         if not isinstance(sched_db, dict):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
-            raise TypeError(f'Ops... JsonCity class - paramsandloads, mode is not a str: mode {mode}')
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
         
         # Check input data quality
         
         if not bool(envelopes):
-            wrn(f"\n\JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}\n")
+            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
         if not bool(sched_db):
-            wrn(f"\n\JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}\n")
+            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
         if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"\n\JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}\n")
+            wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
 
         # Parameters and thermal loads calculation 
         if mode == 'cityjson':
@@ -683,13 +683,13 @@ class City():
         # Check input data type
         
         if not isinstance(Plant_calc, bool):
-            raise TypeError(f'Ops... JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}')
+            raise TypeError(f'ERROR JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}')
         if not isinstance(Time_to_regime, int):
-            raise TypeError(f'Ops... JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
+            raise TypeError(f'ERROR JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
         if not isinstance(design_days, list):
-            raise TypeError(f'Ops... JsonCity class - designdays, design_days is not a list: design_days {design_days}')
+            raise TypeError(f'ERROR JsonCity class - designdays, design_days is not a list: design_days {design_days}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
        
         # Calculation in Heating and Cooling seasons
@@ -751,9 +751,9 @@ class City():
         # Check input data type
 
         if not isinstance(Plants_list, dict):
-            raise TypeError(f'Ops... JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}')
+            raise TypeError(f'ERROR JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
 
         # Setting plant
         for bd in self.buildings.values():
@@ -785,19 +785,19 @@ class City():
         # Check input data type
         
         if not isinstance(time, np.ndarray):
-            raise TypeError(f'Ops... JsonCity class - citysim, time is not a np.ndarray: time {time}')
+            raise TypeError(f'ERROR JsonCity class - citysim, time is not a np.ndarray: time {time}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(Plant_calc, bool):
-            raise TypeError(f'Ops... JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}')
+            raise TypeError(f'ERROR JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}')
         if not isinstance(Plants_list, dict):
-            raise TypeError(f'Ops... JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
+            raise TypeError(f'ERROR JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
 
         # Check input data quality
         
         for t in time:
             if not isinstance(time[t], np.int32):
-                wrn(f"\n\nJsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}\n")
+                wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}")
        
         # Energy simulation of the city
         for t in time:

@@ -29,7 +29,7 @@ def loadEnvelopes(path):
     # Check input data type
     
     if not isinstance(path, str):
-        raise TypeError(f'Ops... input path is not a string: path {path}') 
+        raise TypeError(f'ERROR input path is not a string: path {path}') 
     
     # Tries to import the 4 excel sheet with: meterial, windows, stratigraphies, envelopes
     # Creates 4 dataframes with this tables
@@ -40,7 +40,7 @@ def loadEnvelopes(path):
         stratigraphies = pd.read_excel(path,sheet_name="Constructions",header=[0],index_col=[0])
         envelopes = pd.read_excel(path,sheet_name="Envelopes",header=[0],index_col=[0])
     except FileNotFoundError:
-        raise FileNotFoundError(f'Failed to open the archetype xlsx file {path}... Insert a proper path')
+        raise FileNotFoundError(f'ERROR Failed to open the archetype xlsx file {path}... Insert a proper path')
     
     # MATERIALS:    the list of materials is cycled and for each of them a material object is created
     #               the materials objects are stored in a dictionary materialsDict
@@ -118,11 +118,11 @@ class Envelope(object):
         # Check input data type
         
         if not isinstance(envelopeList, pd.core.series.Series):
-            raise TypeError(f'Ops... input envelopeList is not a pandas series: envelopeList {envelopeList}') 
+            raise TypeError(f'ERROR input envelopeList is not a pandas series: envelopeList {envelopeList}') 
         if not isinstance(stratigraphiesDict, dict):
-            raise TypeError(f'Ops... input stratigraphiesDict is not a dictionary: stratigraphiesDict {stratigraphiesDict}') 
+            raise TypeError(f'ERROR input stratigraphiesDict is not a dictionary: stratigraphiesDict {stratigraphiesDict}') 
         if not isinstance(windowsDict, dict):
-            raise TypeError(f'Ops... input windowsDict is not a dictionary: windowsDict {windowsDict}') 
+            raise TypeError(f'ERROR input windowsDict is not a dictionary: windowsDict {windowsDict}') 
     
         try:
             self.id = envelopeList.index
@@ -135,7 +135,7 @@ class Envelope(object):
             self.IntFloor = stratigraphiesDict[np.flip(envelopeList["IntCeiling"])]                                                                    
             self.Window = windowsDict[envelopeList["Window"]]
         except KeyError:
-            raise KeyError(f"There's something wrong with the Envelopes creation, check the envelopes sheet in Buildings_Envelopes.xlsx")
+            raise KeyError(f"ERROR There's something wrong with the Envelopes creation, check the envelopes sheet in Buildings_Envelopes.xlsx")
 
 #%%--------------------------------------------------------------------------------------------------- 
 #%% OpaqueMaterial class
@@ -170,7 +170,7 @@ class OpaqueMaterial(object):
         # Check input data type
         
         if not isinstance(PropList, pd.core.series.Series):
-            raise TypeError(f'Ops... input PropList is not a pandas series: PropList {PropList}') 
+            raise TypeError(f'ERROR input PropList is not a pandas series: PropList {PropList}') 
                
         try:
             self.name = PropList['name']
@@ -181,20 +181,20 @@ class OpaqueMaterial(object):
             self.c = PropList['specific_heat']
             self.a = PropList['thermal absorptance']                               # Shortwave for vdi-6007
         except KeyError:
-            raise KeyError(f"There's something wrong with the Materials creation, check the materials sheet in Buildings_Envelopes.xlsx")
+            raise KeyError(f"ERROR There's something wrong with the Materials creation, check the materials sheet in Buildings_Envelopes.xlsx")
         
         # Check materials properties
         
         if self.s < 0.001 or self.s > 1.:
-            wrn(f"\n\nMaterial {self.name}. Are you sure about the material thickness?? thickness {self.s} m\n")
+            wrn(f"WARNING Material {self.name}. Are you sure about the material thickness?? thickness {self.s} m")
         if self.l < 0.01 or self.l > 10.:
-            wrn(f"\n\nMaterial {self.name}. Are you sure about the material conductivity?? conductivity {self.l} W/(m K)\n")
+            wrn(f"WARNING Material {self.name}. Are you sure about the material conductivity?? conductivity {self.l} W/(m K)")
         if self.d < 1. or self.d > 10000.:
-            wrn(f"\n\nMaterial {self.name}. Are you sure about the material density?? density {self.d} kg/m3")
+            wrn(f"WARNING Material {self.name}. Are you sure about the material density?? density {self.d} kg/m3")
         if self.c < 500. or self.c > 2000.:
-            wrn(f"\n\nMaterial {self.name}. Are you sure about the material specific heat?? specific heat {self.c} J/(kg K)\n")
+            wrn(f"WARNING Material {self.name}. Are you sure about the material specific heat?? specific heat {self.c} J/(kg K)")
         if self.a < 0. or self.a > 1.:
-            wrn(f"\n\nMaterial {self.name}. Are you sure about the material absorption coefficient?? absorption coefficient {self.a}\nThe coefficient is set to 0.5\n")
+            wrn(f"WARNING Material {self.name}. Are you sure about the material absorption coefficient?? absorption coefficient {self.a}\nThe coefficient is set to 0.5")
             self.a = 0.5
                
         self.massless = 0
@@ -206,7 +206,7 @@ class OpaqueMaterial(object):
             self.r = self.s/self.l
             
         if self.r > 5.:
-            wrn(f"\n\nMaterial {self.name}. The thermal resistance is pretty high.. thermal resistance {self.r} (m2 K)/W\n")
+            wrn(f"WARNING Material {self.name}. The thermal resistance is pretty high.. thermal resistance {self.r} (m2 K)/W")
                    
 
 #%%--------------------------------------------------------------------------------------------------- 
@@ -267,9 +267,9 @@ class OpaqueStratigraphy(object):
         # Check input data type
         
         if not isinstance(stratigraphy, pd.core.series.Series):
-            raise TypeError(f'Ops... input stratigraphy is not a pandas series: stratigraphy {stratigraphy}') 
+            raise TypeError(f'ERROR input stratigraphy is not a pandas series: stratigraphy {stratigraphy}') 
         if not isinstance(materialsDict, dict):
-            raise TypeError(f'Ops... input materialsDict is not a dictionary: materialsDict {materialsDict}') 
+            raise TypeError(f'ERROR input materialsDict is not a dictionary: materialsDict {materialsDict}') 
                
         try:        
             self.name = stratigraphy['name']
@@ -278,7 +278,7 @@ class OpaqueStratigraphy(object):
             self.listmaterials = [x for x in stratigraphy if str(x) != 'nan']
             self.listmaterials = self.listmaterials[4:]
         except KeyError:
-            raise KeyError(f"There's something wrong with the Stratigraphies creation, check the stratigraphies sheet in Buildings_Envelopes.xlsx")
+            raise KeyError(f"ERROR There's something wrong with the Stratigraphies creation, check the stratigraphies sheet in Buildings_Envelopes.xlsx")
         
         # Set outside and inside convective and radiant heat transfer coefficients
                 
@@ -293,7 +293,7 @@ class OpaqueStratigraphy(object):
             for i in range(len(self.listmaterials)):
                 self.listmaterials[i] = materialsDict[self.listmaterials[i]]              
         except KeyError:
-            raise KeyError(f"There's something wrong with the {self.name} Stratigraphy creation, I can not find all materials.  Check the stratigraphies and materials sheets in Buildings_Envelopes.xlsx")
+            raise KeyError(f"ERROR There's something wrong with the {self.name} Stratigraphy creation, I can not find all materials.  Check the stratigraphies and materials sheets in Buildings_Envelopes.xlsx")
         
         # Creates a matrix with the properties of the layers
         
@@ -547,9 +547,9 @@ class OpaqueStratigraphy(object):
         # Check input data type
         
         if not isinstance(sup, float):
-            raise TypeError(f'Ops... surface {self.name} input sup is not a float: sup {sup}') 
+            raise TypeError(f'ERROR surface {self.name} input sup is not a float: sup {sup}') 
         if not isinstance(asim, bool):
-            raise TypeError(f'Ops... surface {self.name} input asim is not a boolean: asim {asim}') 
+            raise TypeError(f'ERROR surface {self.name} input asim is not a boolean: asim {asim}') 
 
         # Procudeure Section 6.4
         
@@ -643,7 +643,7 @@ class Window(object):
         # Check input data type
         
         if not isinstance(propList, pd.core.series.Series):
-            raise TypeError(f'Ops... input PropList is not a pandas series: PropList {PropList}') 
+            raise TypeError(f'ERROR input PropList is not a pandas series: PropList {propList}') 
                 
         try:
             self.id = propList.index
@@ -657,30 +657,30 @@ class Window(object):
             self.F_w = float(propList["F_w"])  
             self.wwr = [float(propList["wwr_N"]),float(propList["wwr_E"]),float(propList["wwr_S"]),float(propList["wwr_W"])]
         except KeyError:
-            raise KeyError(f"There's something wrong with the Window creation, check the windows sheet in Buildings_Envelopes.xlsx")
+            raise KeyError(f"ERROR There's something wrong with the Window creation, check the windows sheet in Buildings_Envelopes.xlsx")
         
         # Check properties quality
         
         if self.U < 1. or self.U > 7.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's U-value?? U-value {self.U} W/(m2 K)\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's U-value?? U-value {self.U} W/(m2 K)")
         if self.SHGC < 0.01 or self.SHGC > 1.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's SHGC?? SHGC {self.SHGC}, SHGC is set to 0.7\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's SHGC?? SHGC {self.SHGC}, SHGC is set to 0.7")
             self.SHGC = 0.7
         if self.Tv < 0.01 or self.Tv > 1.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's visible transmittance?? Tv {self.Tv}, Tv is set to 0.7\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's visible transmittance?? Tv {self.Tv}, Tv is set to 0.7")
             self.Tv = 0.7
         if self.F_f < 0.0 or self.F_f > 1.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's frame fraction?? F_f {self.F_f}, F_f is set to 0.7\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's frame fraction?? F_f {self.F_f}, F_f is set to 0.7")
             self.F_f = 0.7
         if self.F_sh < 0.0 or self.F_sh > 1.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's shading coefficient?? F_sh {self.F_sh}, F_sh is set to 0.7\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's shading coefficient?? F_sh {self.F_sh}, F_sh is set to 0.7")
             self.F_sh = 0.7
         if self.F_so < 0.0 or self.F_so > 1.:
-            wrn(f"\n\nWindow {self.name}. Are you sure about the window's F_so?? F_so {self.F_so}, F_so is set to 0.7\n")
+            wrn(f"WARNING Window {self.name}. Are you sure about the window's F_so?? F_so {self.F_so}, F_so is set to 0.7")
             self.F_so = 0.7
         for w_w_r in self.wwr:
             if w_w_r > 1.:
-                wrn(f"\n\nWindow {self.name}. Are you sure about the window's window to wall ratio?? w_w_r {self.w_w_r}\n")
+                wrn(f"WARNING Window {self.name}. Are you sure about the window's window to wall ratio?? w_w_r {self.w_w_r}")
             
         # Runs the simpleGlazingModel    
             

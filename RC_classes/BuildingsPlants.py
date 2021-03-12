@@ -25,12 +25,12 @@ def loadPlants(path):
     # Check input data type
     
     if not isinstance(path, str):
-        raise TypeError(f'Ops... input path is not a string: path {path}') 
+        raise TypeError(f'ERROR input path is not a string: path {path}') 
     
     try:
         Plant_list = pd.read_excel(path,sheet_name="List",header=0,index_col=[0])
     except FileNotFoundError:
-        raise FileNotFoundError(f'Failed to open the plants xlsx file {path}... Insert a proper path')
+        raise FileNotFoundError(f'ERROR Failed to open the plants xlsx file {path}... Insert a proper path')
         
     Typologies = dict()
     for i in Plant_list.index:
@@ -78,13 +78,13 @@ class Plants():
         # Check input data type
         
         if not isinstance(H_plant_type, str):
-            raise TypeError(f'Plant inizialization, H_plant_type must be a string: H_plant_type {H_plant_type}')
+            raise TypeError(f'ERROR Plant inizialization, H_plant_type must be a string: H_plant_type {H_plant_type}')
         if not isinstance(C_plant_type, str):
-            raise TypeError(f'Plant inizialization, C_plant_type must be a string: C_plant_type {C_plant_type}')
+            raise TypeError(f'ERROR Plant inizialization, C_plant_type must be a string: C_plant_type {C_plant_type}')
         if not isinstance(l, int):
-            raise TypeError(f'Plant inizialization, l must be an integer: l {l}')
+            raise TypeError(f'ERROR Plant inizialization, l must be an integer: l {l}')
         if not isinstance(ts, int):
-            raise TypeError(f'Plant inizialization, input ts is not an integer: ts {ts}') 
+            raise TypeError(f'ERROR Plant inizialization, input ts is not an integer: ts {ts}') 
     
         # Output vectors initialization 
         
@@ -107,7 +107,7 @@ class Plants():
             elif H_plant_type == 'IdealLoad':
                 self.heating_Plant = IdealLoad(H_plant_type,l)
         except KeyError:
-            raise KeyError(f"Heating plant type not found: H_plant_type {H_plant_type}. Set a proper one")
+            raise KeyError(f"ERROR Heating plant type not found: H_plant_type {H_plant_type}. Set a proper one")
             
         # Cooling plant 
         
@@ -121,7 +121,7 @@ class Plants():
             elif C_plant_type == 'SplitAirConditioner':
                 self.cooling_Plant = SplitAirConditioner(C_plant_type,l)
         except KeyError:
-            raise KeyError(f"Cooling plant type not found: C_plant_type {C_plant_type}. Set a proper one")
+            raise KeyError(f"ERROR Cooling plant type not found: C_plant_type {C_plant_type}. Set a proper one")
     
     def setPlant(self,Typologies,weather,Pnom_H = 1E10,Pnom_C = -1E10):
         '''
@@ -147,18 +147,18 @@ class Plants():
         # Check input data type
 
         if not isinstance(Typologies, dict):
-            raise TypeError(f'Plant setPlant, Typologies must be a dictionary: Typologies {Typologies}')
+            raise TypeError(f'ERROR Plant setPlant, Typologies must be a dictionary: Typologies {Typologies}')
         if not isinstance(Pnom_H, float):
-            raise TypeError(f'Plant setPlant, Pnom_H must be a float: Pnom_H {Pnom_H}')
+            raise TypeError(f'ERROR Plant setPlant, Pnom_H must be a float: Pnom_H {Pnom_H}')
         if not isinstance(Pnom_C, float):
-            raise TypeError(f'Plant setPlant, Pnom_C must be a float: Pnom_C {Pnom_C}')
+            raise TypeError(f'ERROR Plant setPlant, Pnom_C must be a float: Pnom_C {Pnom_C}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR Plant setPlant, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
         # Check data quality
         
         if Pnom_H > 1E9 or Pnom_C < -1E9:
-            wrn(f"There' a building plant with a design power outside limits [-1E9:1E9]: P_non_H {Pnom_H}, P_nom_C {Pnom_C}")
+            wrn(f"WARNING There' a building plant with a design power outside limits [-1E9:1E9]: P_non_H {Pnom_H}, P_nom_C {Pnom_C}")
         
         # Heating plant 
         
@@ -208,17 +208,17 @@ class Plants():
         # Check input data type
         
         if not isinstance(Typologies, dict):
-            raise TypeError(f'Plant solvePlant, Typologies must be a dictionary: Typologies {Typologies}')
+            raise TypeError(f'ERROR Plant solvePlant, Typologies must be a dictionary: Typologies {Typologies}')
         if not isinstance(t, int):            
-            raise TypeError(f'Plant solvePlant, t must be an integer: t {t}')
+            raise TypeError(f'ERROR Plant solvePlant, t must be an integer: t {t}')
         if not isinstance(heatFlow, float):
-            raise TypeError(f'Plant solvePlant, time step {t}, heatFlow must be a float: heatFlow {heatFlow}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, heatFlow must be a float: heatFlow {heatFlow}')
         if not isinstance(T_ext, float):
-            raise TypeError(f'Plant solvePlant, time step {t}, T_ext must be a float: T_ext {T_ext}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, T_ext must be a float: T_ext {T_ext}')
         if not isinstance(T_int, float):
-            raise TypeError(f'Plant solvePlant, time step {t}, T_int must be a float: T_int {T_int}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, T_int must be a float: T_int {T_int}')
         if not isinstance(RH_i, float):
-            raise TypeError(f'Plant solvePlant, time step {t}, RH_i must be a float: RH_i {RH_i}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, RH_i must be a float: RH_i {RH_i}')
                
         # Heating plant 
         

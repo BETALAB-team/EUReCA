@@ -32,22 +32,22 @@ def loadArchetype(path,timeIndex,ts):
     # Check input data type  
 
     if not isinstance(path, str):
-        raise TypeError(f'Ops... input path is not a string: path {path}') 
+        raise TypeError(f'ERROR input path is not a string: path {path}') 
     if not isinstance(timeIndex, np.ndarray):
-        raise TypeError(f'Ops... input timeIndex is not a np.array: timeIndex {timeIndex}') 
+        raise TypeError(f'ERROR input timeIndex is not a np.array: timeIndex {timeIndex}') 
     if not isinstance(ts, int):
-        raise TypeError(f'Ops... input ts is not an integer: ts {ts}')         
+        raise TypeError(f'ERROR input ts is not an integer: ts {ts}')         
     
     # Control input data quality
     
     if ts > 4:
-        wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+        wrn(f"WARNING loadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}")
          
     try:
         sched = pd.read_excel(path,sheet_name="Schedule",header=2,index_col=[0]).set_index(timeIndex)
         arch = pd.read_excel(path,sheet_name="Archetype",header=1,index_col=[0])
     except FileNotFoundError:
-        raise FileNotFoundError(f'Failed to open the schedule xlsx file {path}... Insert a proper path')
+        raise FileNotFoundError(f'ERROR Failed to open the schedule xlsx file {path}... Insert a proper path')
 
     # Reset some indexes set the right index
     
@@ -98,29 +98,29 @@ def loadSimpleArchetype(path,timeIndex,first_day = 1,ts = 1, PlantDays = [2520,3
     # Check input data type  
     
     if not isinstance(path, str):
-        raise TypeError(f'Ops... input path is not a string: path {path}') 
+        raise TypeError(f'ERROR input path is not a string: path {path}') 
     if not isinstance(timeIndex, np.ndarray):
-        raise TypeError(f'Ops... input timeIndex is not a np.array: timeIndex {timeIndex}') 
+        raise TypeError(f'ERROR input timeIndex is not a np.array: timeIndex {timeIndex}') 
     if not isinstance(first_day, int):
-        raise TypeError(f'Ops... input first_day is not an integer: first_day {first_day}')   
+        raise TypeError(f'ERROR input first_day is not an integer: first_day {first_day}')   
     if not isinstance(ts, int):
-        raise TypeError(f'Ops... input ts is not an integer: ts {ts}')
+        raise TypeError(f'ERROR input ts is not an integer: ts {ts}')
     if not isinstance(PlantDays, list):
-        raise TypeError(f'Ops... input PlantDays is not a list: PlantDays {PlantDays}\nThis parameter must be a list of integers (default [2520,3984,6192,6912])')
+        raise TypeError(f'ERROR input PlantDays is not a list: PlantDays {PlantDays}\nThis parameter must be a list of integers (default [2520,3984,6192,6912])')
     if not isinstance(PlantDays[0], int) or not isinstance(PlantDays[1], int) or not isinstance(PlantDays[2], int) or not isinstance(PlantDays[3], int):
-        raise TypeError(f'Ops... input PlantDays in not a list of integers: PlantDays {PlantDays}')   
+        raise TypeError(f'ERROR input PlantDays in not a list of integers: PlantDays {PlantDays}')   
     
     # Control input data quality
     
     if first_day > 7 or first_day < 1:
-            wrn(f"\n\nloadSimpleArchetype function, input fisrt_day should be in the range [0,7]: first_day {first_day}\n")
+            wrn(f"WARNING loadSimpleArchetype function, input fisrt_day should be in the range [0,7]: first_day {first_day}")
     if ts > 4:
-            wrn(f"\n\nloadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+            wrn(f"WARNING loadSimpleArchetype function, input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}")
         
     try:
         ex = pd.ExcelFile(path)
     except FileNotFoundError:
-        raise FileNotFoundError(f'Failed to open the schedule xlsx file {path}... Insert a proper path')
+        raise FileNotFoundError(f'ERROR Failed to open the schedule xlsx file {path}... Insert a proper path')
     
     # Creation of the archetypes' dictionary
     
@@ -202,7 +202,7 @@ class Archetype:
         # Check input data type
         
         if not isinstance(name, str):
-            raise TypeError(f'Archetype initialization, name must be a string: name {name}')
+            raise TypeError(f'ERROR Archetype initialization, name must be a string: name {name}')
         
         # Inizialization
         
@@ -261,7 +261,7 @@ class Archetype:
             self.scalar_data['latRec'] = float(arch['LatRec'])
             self.scalar_data['outdoorAirRatio'] = float(arch['OutAirRatio'])
         except KeyError:
-            raise KeyError(f'Archetype object {self.name}: can not find all schedules')
+            raise KeyError(f'ERROR Archetype object {self.name}: can not find all schedules')
         
     def loadSchedSemp(self,year_df,supplementary_data):
         '''
@@ -299,7 +299,7 @@ class Archetype:
             self.sched_df['plantOnOffLat'] = year_df['Plant Availability','[-]']
             self.sched_df['AHUOnOff'] = year_df['Plant Availability','[-]']
         except KeyError:
-            raise KeyError(f'Archetype object {self.name}: can not find all schedules')
+            raise KeyError(f'ERROR Archetype object {self.name}: can not find all schedules')
         
         # Following parameters are not set in the Excel file
         
@@ -314,9 +314,10 @@ class Archetype:
             self.scalar_data['latRec']= float(supplementary_data.loc['LatRec'])
             self.scalar_data['outdoorAirRatio'] = float(supplementary_data.loc['OutAirRatio'])
         except KeyError:
-            raise KeyError(f"Loading end use {self.name}. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio")
+            raise KeyError(f"ERROR Loading end use {self.name}. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio")
         except ValueError:
-            raise ValueError(f"""Loading end use {self.name}. GeneralData
+            raise ValueError(f"""ERROR 
+                             Loading end use {self.name}. GeneralData
                              I'm not able to parse the General data. 
                                  ConvFrac should be a float {supplementary_data['ConvFrac']}
                                  AHUHum should be a boolean {supplementary_data['AHUHum']}
@@ -327,13 +328,13 @@ class Archetype:
         
         # Check the quality of input data
         if not 0. <= self.scalar_data['conFrac'] <= 1.:
-            wrn(f"Loading end use {self.name}. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac {self.scalar_data['conFrac']}")
+            wrn(f"WARNING Loading end use {self.name}. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac {self.scalar_data['conFrac']}")
         if not 0. <= self.scalar_data['sensRec'] <= 1.:
-            wrn(f"Loading end use {self.name}. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['sensRec']}")
+            wrn(f"WARNING Loading end use {self.name}. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['sensRec']}")
         if not 0. <= self.scalar_data['latRec'] <= 1.:
-            wrn(f"Loading end use {self.name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['latRec']}")
+            wrn(f"WARNING Loading end use {self.name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['latRec']}")
         if not 0. <= self.scalar_data['outdoorAirRatio'] <= 1.:
-            wrn(f"Loading end use {self.name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {self.scalar_data['outdoorAirRatio']}")
+            wrn(f"WARNING Loading end use {self.name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {self.scalar_data['outdoorAirRatio']}")
         
     def rescale_df(self,ts):
         '''
@@ -352,7 +353,7 @@ class Archetype:
         # Check input data type
         
         if not isinstance(ts, int):
-            raise TypeError(f'Ops... input ts is not an integer: ts {ts}')         
+            raise TypeError(f'ERROR input ts is not an integer: ts {ts}')         
     
         # Rescale 
         

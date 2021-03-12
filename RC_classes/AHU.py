@@ -31,15 +31,15 @@ def checkSatCond(T,x,p):
     # Check input data type
     
     if not isinstance(T, float):
-            raise TypeError(f'Ops... input T is not an interger: T {T}')    
+        raise TypeError(f'ERROR input T is not an interger: T {T}')    
     if not isinstance(x, float):
-        raise TypeError(f'Ops... input x is not an interger: x {x}')
+        raise TypeError(f'ERROR input x is not an interger: x {x}')
     
     # Control input data quality
     if T < -15 or T > 60:
-        wrn(f"\n\nCheckSatCond function, input temperature outside limit boundary [-15,60]: T {T}\n")
+        wrn(f"WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {T}")
     if x < 0.0005 or x > 0.040:
-        wrn(f"\n\nCheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}\n")
+        wrn(f"WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}")
         
     # Is or not outide the saturation condition? True/False
     pp = p*x/(0.622+x)
@@ -89,7 +89,7 @@ class AirHandlingUnit:
     cpv = 1.875         # [kJ/(kg K)]
     T_out = 15          # [°C]                            
     
-    def __init__(self,l):
+    def __init__(self,l, bdName = 'None'):
         
         '''
         Initializes the vectors of the AHU
@@ -98,7 +98,8 @@ class AirHandlingUnit:
             ----------
             l : int
                 number of simulation time steps [-]
-                
+            bdName : string 
+                name of the building.. just to print the warnings 
         Returns
         -------
         None.
@@ -108,7 +109,9 @@ class AirHandlingUnit:
         # Check input data type
         
         if not isinstance(l, int):
-            raise TypeError(f'AHU inizialization, l must be an integer: l {l}')
+            raise TypeError(f'ERROR AHU inizialization, l must be an integer: l {l}')
+        if not isinstance(bdName, str):
+            raise TypeError(f'ERROR AHU inizialization, bdName must be an string: bdName {bdName}')
         
         # Inizialization
         
@@ -116,6 +119,7 @@ class AirHandlingUnit:
         self.AHUDemand_sens = np.zeros(l)
         self.AHUDemand_lat = np.zeros(l)
         self.T_supAHU = np.zeros(l)
+        self.bd_name = bdName
         
     
     def AHUCalc(self,t,G_da_vent,AHUOnOff,AHUHUM,Sens_Recovery_eff,Lat_Recovery_eff,OutAirRatio,T_ext,x_ext,T_int,x_int,T_sup,x_sup):
@@ -145,46 +149,46 @@ class AirHandlingUnit:
         # Check input data type 
         
         if not isinstance(t, int):
-            raise TypeError(f'Ops... input t is not an interger: t {t}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input t is not an interger: t {t}')
         if (not isinstance(G_da_vent, float)) or G_da_vent < 0:
-            raise TypeError(f'Ops... input G_da_vent is not a positive float: G_da_vent {G_da_vent}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input G_da_vent is not a positive float: G_da_vent {G_da_vent}')
         if not AHUOnOff in [0,1,-1]:
-            raise TypeError(f'Ops... input AHUOnOff must be 0,1,-1: AHUOnOff {AHUOnOff}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input AHUOnOff must be 0,1,-1: AHUOnOff {AHUOnOff}')
         if not isinstance(AHUHUM, bool):
-            raise TypeError(f'Ops... input AHUHUM is not a boolean: AHUHUM {AHUHUM}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input AHUHUM is not a boolean: AHUHUM {AHUHUM}')
         if (not isinstance(Sens_Recovery_eff, float)) or Sens_Recovery_eff < 0. or Sens_Recovery_eff > 1.:
-            raise TypeError(f'Ops... input Sens_Recovery_eff must be included in the range 0-1: Sens_Recovery_eff {Sens_Recovery_eff}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input Sens_Recovery_eff must be included in the range 0-1: Sens_Recovery_eff {Sens_Recovery_eff}')
         if (not isinstance(Lat_Recovery_eff, float)) or Lat_Recovery_eff < 0. or Lat_Recovery_eff > 1.:
-            raise TypeError(f'Ops... input Lat_Recovery_eff must be included in the range 0-1: Lat_Recovery_eff {Lat_Recovery_eff}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input Lat_Recovery_eff must be included in the range 0-1: Lat_Recovery_eff {Lat_Recovery_eff}')
         if (not isinstance(OutAirRatio, float)) or OutAirRatio < 0. or OutAirRatio > 1.:
-            raise TypeError(f'Ops... input OutAirRatio must be included in the range 0-1: OutAirRatio {OutAirRatio}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input OutAirRatio must be included in the range 0-1: OutAirRatio {OutAirRatio}')
         if not isinstance(T_ext, float):
-            raise TypeError(f'Ops... input T_ext is not an interger: T_ext {T_ext}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input T_ext is not an interger: T_ext {T_ext}')
         if not isinstance(T_int, float):
-            raise TypeError(f'Ops... input T_int is not an interger: T_int {T_int}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input T_int is not an interger: T_int {T_int}')
         if not isinstance(T_sup, float):
-            raise TypeError(f'Ops... input T_sup is not an interger: T_sup {T_sup}')    
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input T_sup is not an interger: T_sup {T_sup}')    
         if not isinstance(x_ext, float):
-            raise TypeError(f'Ops... input x_ext is not an interger: x_ext {x_ext}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input x_ext is not an interger: x_ext {x_ext}')
         if not isinstance(x_int, float):
-            raise TypeError(f'Ops... input x_int is not an interger: x_int {x_int}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input x_int is not an interger: x_int {x_int}')
         if not isinstance(x_sup, float):
-            raise TypeError(f'Ops... input x_sup is not an interger: x_sup {x_sup}')
+            raise TypeError(f'ERROR AHUCalc, bd {self.bd_name}, time step {t}, input x_sup is not an interger: x_sup {x_sup}')
         
         # Control input data quality
         
         if T_ext < -15 or T_ext > 60:
-            wrn(f"\n\nAHU class, AHUCalc method, input temperature outside limit boundary [-15,60]: T_ext {T_ext}\n")
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input temperature outside limit boundary [-15,60]: T_ext {T_ext}")
         if T_int < -15 or T_int > 60:
-            wrn(f"\n\nAHU class, AHUCalc method, input temperature outside limit boundary [-15,60]: T_int {T_int}\n")
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input temperature outside limit boundary [-15,60]: T_int {T_int}")
         if T_sup < -15 or T_sup > 60:
-            wrn(f"\n\nAHU class, AHUCalc method, input temperature outside limit boundary [-15,60]: T_sup {T_sup}\n")
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input temperature outside limit boundary [-15,60]: T_sup {T_sup}")
         if x_ext < 0.0005 or x_ext > 0.040:
-            wrn(f"\n\nAHU class, AHUCalc method, input humidity outside limit boundary [0.0005,0.04]: x_ext {x_ext}\n")
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input humidity outside limit boundary [0.0005,0.04]: x_ext {x_ext}")
         if x_int < 0.0005 or x_int > 0.040:
-            wrn(f"\n\nAHU class, AHUCalc method, input humidity outside limit boundary [0.0005,0.04]: x_int {x_int}\n")
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input humidity outside limit boundary [0.0005,0.04]: x_int {x_int}")
         if x_sup < 0.0005 or x_sup > 0.040:
-            wrn(f"\n\nAHU class, AHUCalc method, input humidity outside limit boundary [0.0005,0.04]: x_sup {x_sup}\n")       
+            wrn(f"WARNING AHU class, AHUCalc method, bd {self.bd_name}, time step {t}, input humidity outside limit boundary [0.0005,0.04]: x_sup {x_sup}")       
             
         # Set some input variables
         
@@ -200,10 +204,10 @@ class AirHandlingUnit:
                 self.x_sup = x_ext
         SatCond, psat = checkSatCond(T_int,x_int,self.p_atm)
         if SatCond == False:
-            wrn('\n\nERROR: Zone conditions outside saturation limit\n')
+            wrn('ERROR  AHUCalc method, bd {self.bd_name}, time step {t}, Zone conditions outside saturation limit')
         SatCond, psat = checkSatCond(self.T_supAHU[t],self.x_sup,self.p_atm)
         if SatCond == False:
-            wrn('\n\nERROR: Supply conditions outside saturation limit\n')
+            wrn('ERROR:  AHUCalc method, bd {self.bd_name}, time step {t}, Supply conditions outside saturation limit')
         
         
         # Pre-processing on Heat Recovery and Mixer

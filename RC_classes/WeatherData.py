@@ -34,13 +34,13 @@ def TskyCalc(T_ext,T_dp,P_,n_opaque):
     # Check input data type
     
     if not isinstance(T_ext, pd.core.series.Series):
-        raise TypeError(f'Ops... input T_ext is not a pandas series: T_ext {T_ext}')    
+        raise TypeError(f'ERROR input T_ext is not a pandas series: T_ext {T_ext}')    
     if not isinstance(T_dp, pd.core.series.Series):
-        raise TypeError(f'Ops... input T_dp is not a pandas series: T_dp {T_dp}')    
+        raise TypeError(f'ERROR input T_dp is not a pandas series: T_dp {T_dp}')    
     if not isinstance(P_, pd.core.series.Series):
-        raise TypeError(f'Ops... input P_ is not a pandas series: P_ {P_}')    
+        raise TypeError(f'ERROR input P_ is not a pandas series: P_ {P_}')    
     if not isinstance(n_opaque, pd.core.series.Series):
-        raise TypeError(f'Ops... input n_opaque is not a pandas series: n_opaque {n_opaque}')    
+        raise TypeError(f'ERROR input n_opaque is not a pandas series: n_opaque {n_opaque}')    
     
     # Calculation Martin Berdhal model used by TRNSYS 
         
@@ -105,24 +105,24 @@ def rescale_weather(ts,w,T_ext,RH_ext,T_dp,P_,n_opaque):
     # Check input data type
     
     if not isinstance(ts, int):
-        raise TypeError(f'Ops... input ts is not an integer: ts {ts}') 
+        raise TypeError(f'ERROR input ts is not an integer: ts {ts}') 
     if not isinstance(w, pd.core.series.Series):
-        raise TypeError(f'Ops... input w is not a pandas series: w {w}')  
+        raise TypeError(f'ERROR input w is not a pandas series: w {w}')  
     if not isinstance(T_ext, pd.core.series.Series):
-        raise TypeError(f'Ops... input T_ext is not a pandas series: T_ext {T_ext}')  
+        raise TypeError(f'ERROR input T_ext is not a pandas series: T_ext {T_ext}')  
     if not isinstance(RH_ext, pd.core.series.Series):
-        raise TypeError(f'Ops... input RH_ext is not a pandas series: RH_ext {RH_ext}')     
+        raise TypeError(f'ERROR input RH_ext is not a pandas series: RH_ext {RH_ext}')     
     if not isinstance(T_dp, pd.core.series.Series):
-        raise TypeError(f'Ops... input T_dp is not a pandas series: T_dp {T_dp}')    
+        raise TypeError(f'ERROR input T_dp is not a pandas series: T_dp {T_dp}')    
     if not isinstance(P_, pd.core.series.Series):
-        raise TypeError(f'Ops... input P_ is not a pandas series: P_ {P_}')    
+        raise TypeError(f'ERROR input P_ is not a pandas series: P_ {P_}')    
     if not isinstance(n_opaque, pd.core.series.Series):
-        raise TypeError(f'Ops... input n_opaque is not a pandas series: n_opaque {n_opaque}')     
+        raise TypeError(f'ERROR input n_opaque is not a pandas series: n_opaque {n_opaque}')     
     
     # Check input data quality
     
     if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-        wrn(f"\n\nrescale_weather function, input w is out of plausible range: w {w}\n")
+        wrn(f"WARNING rescale_weather function, input w is out of plausible range: w {w}")
     
     # Rescale the data with pandas rescale
     
@@ -152,9 +152,9 @@ def rescale_sol_gain(ts,df):
     # Check input data type
     
     if not isinstance(ts, int):
-        raise TypeError(f'Ops... input ts is not an integer: ts {ts}') 
+        raise TypeError(f'ERROR input ts is not an integer: ts {ts}') 
     if not isinstance(df, pd.core.frame.DataFrame):
-        raise TypeError(f'Ops... input df is not a pandas dataframe: df {df}') 
+        raise TypeError(f'ERROR input df is not a pandas dataframe: df {df}') 
 
     # Rescale the data with pandas rescale
         
@@ -194,33 +194,33 @@ def get_irradiance(site,time,solar_position, surf_tilt, surf_az,irradiance,year)
     # Check input data type
         
     if not isinstance(site, pvlib.location.Location):
-        raise TypeError(f'Ops... input site is not a pvlib location object: site {site}') 
+        raise TypeError(f'ERROR input site is not a pvlib location object: site {site}') 
     if not isinstance(time, pd.core.indexes.datetimes.DatetimeIndex):
-        raise TypeError(f'Ops... input time is not a pandas series: time {time}') 
+        raise TypeError(f'ERROR input time is not a pandas series: time {time}') 
     if not isinstance(solar_position, pd.core.frame.DataFrame):
-        raise TypeError(f'Ops... input solar_position is not a pandas dataframe: solar_position {solar_position}') 
+        raise TypeError(f'ERROR input solar_position is not a pandas dataframe: solar_position {solar_position}') 
     if not isinstance(surf_tilt, float):
         try:
             surf_tilt = float(surf_tilt)
         except:
-            raise TypeError(f'Ops... input surf_tilt is not a float: surf_tilt {surf_tilt}') 
+            raise TypeError(f'ERROR input surf_tilt is not a float: surf_tilt {surf_tilt}') 
     if not isinstance(surf_az, float):
         try:
             surf_az = float(surf_az)
         except:
-            raise TypeError(f'Ops... input surf_az is not a float: surf_az {surf_az}') 
+            raise TypeError(f'ERROR input surf_az is not a float: surf_az {surf_az}') 
     if not isinstance(irradiance, pd.core.frame.DataFrame):
-        raise TypeError(f'Ops... input irradiance is not a pandas dataframe: irradiance {irradiance}') 
+        raise TypeError(f'ERROR input irradiance is not a pandas dataframe: irradiance {irradiance}') 
     if not isinstance(year, int):
         try:
             year = int(year)
         except:
-            raise TypeError(f'Ops... input year is not an integer: year {year}') 
+            raise TypeError(f'ERROR input year is not an integer: year {year}') 
     
     # Control input data quality
     
     if surf_tilt < 0 or surf_tilt > 90 or  surf_az < -180 or surf_az > 180:
-        wrn(f"\n\nget_irradiance funtion, are you sure that the surface orientation is correct?? surf_tilt {surf_tilt}, surf_az {surf_az}\n")
+        wrn(f"WARNING get_irradiance funtion, are you sure that the surface orientation is correct?? surf_tilt {surf_tilt}, surf_az {surf_az}")
 
     # Use pvlib function to calculate the irradiance on the surface
     
@@ -285,9 +285,9 @@ class SolarPosition():
         # Check input data type
         
         if not isinstance(ts, int):
-            raise TypeError(f'Ops... input ts is not an integer: ts {ts}') 
+            raise TypeError(f'ERROR input ts is not an integer: ts {ts}') 
         if not isinstance(sp, pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... input sp is not a pandas dataframe: sp {sp}') 
+            raise TypeError(f'ERROR input sp is not a pandas dataframe: sp {sp}') 
             
         # Rescale the data with pandas rescale    
     
@@ -349,24 +349,24 @@ class PlanesIrradiances:
         # Check input data type
         
         if not isinstance(site, pvlib.location.Location):
-            raise TypeError(f'Ops... input site is not a pvlib location object: site {site}') 
+            raise TypeError(f'ERROR input site is not a pvlib location object: site {site}') 
         if not isinstance(epw, tuple):
-            raise TypeError(f'Ops... input epw is not a tuple: epw {epw}') 
+            raise TypeError(f'ERROR input epw is not a tuple: epw {epw}') 
         if not isinstance(epw[0], pd.core.frame.DataFrame):
-            raise TypeError(f'Ops... input epw[0] is not a pandas dataframe: epw[0] {epw[0]}') 
+            raise TypeError(f'ERROR input epw[0] is not a pandas dataframe: epw[0] {epw[0]}') 
         if not isinstance(epw[1], dict):
-            raise TypeError(f'Ops... input epw[1] is not a dictionary: epw[1] {epw[1]}') 
+            raise TypeError(f'ERROR input epw[1] is not a dictionary: epw[1] {epw[1]}') 
         if not isinstance(year, int):
-            raise TypeError(f'Ops... input year is not an integer: year {year}') 
+            raise TypeError(f'ERROR input year is not an integer: year {year}') 
         if not isinstance(azSubdiv, int):
-            raise TypeError(f'Ops... input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
+            raise TypeError(f'ERROR input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
         if not isinstance(hSubdiv, int):
-            raise TypeError(f'Ops... input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
+            raise TypeError(f'ERROR input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
         
         # Control input data quality
     
         if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\nPlanesIrradiances class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+            wrn(f"WARNING PlanesIrradiances class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}")
      
         # Creates the dataframe with global beam and Angle of Incidence for many directions
         
@@ -450,57 +450,57 @@ class Weather():
         # Check input data type
         
         if not isinstance(epw_name, str):
-            raise TypeError(f'Weather object, init, input epw_file is not a string: epw_file {epw_file}') 
+            raise TypeError(f'ERROR Weather object, init, input epw_file is not a string: epw_file {epw_name}') 
         if not isinstance(input_path, str):
-            raise TypeError(f'Weather object, init, input input_path is not a string: input_path {input_path}') 
+            raise TypeError(f'ERROR Weather object, init, input input_path is not a string: input_path {input_path}') 
         if not isinstance(tz, str):
-            raise TypeError(f'Weather object, init, input tz is not a string: tz {tz}') 
+            raise TypeError(f'ERROR Weather object, init, input tz is not a string: tz {tz}') 
         if not isinstance(year, int):
             try:
                 year = int(year)
             except:
-                raise TypeError(f'Weather object, init, input year is not an int: year {year}') 
+                raise TypeError(f'ERROR Weather object, init, input year is not an int: year {year}') 
         if not isinstance(ts, int):
             try:
                 ts = int(ts)
             except:
-                raise TypeError(f'Weather object, init, input ts is not an int: ts {ts}') 
+                raise TypeError(f'ERROR Weather object, init, input ts is not an int: ts {ts}') 
         if not isinstance(hours, int):
             try:
                 hours = int(hours)
             except:
-                raise TypeError(f'Weather object, init, input hours is not an int: hours {hours}') 
+                raise TypeError(f'ERROR Weather object, init, input hours is not an int: hours {hours}') 
         if not isinstance(n_years, int):
             try:
                 n_years = int(n_years)
             except:
-                raise TypeError(f'Weather object, init, input n_years is not an int: n_years {n_years}') 
+                raise TypeError(f'ERROR Weather object, init, input n_years is not an int: n_years {n_years}') 
         if not isinstance(azSubdiv, int):
-            raise TypeError(f'Weather object, init, input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
+            raise TypeError(f'ERROR Weather object, init, input azSubdiv is not an integer: azSubdiv {azSubdiv}') 
         if not isinstance(hSubdiv, int):
-            raise TypeError(f'Weather object, init, input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
+            raise TypeError(f'ERROR Weather object, init, input hSubdiv is not an integer: hSubdiv {hSubdiv}') 
         if not isinstance(shad_tol,list):
-            raise TypeError(f'Weather object, init, input shad_tol is not list: shad_tol {shad_tol}')
+            raise TypeError(f'ERROR Weather object, init, input shad_tol is not list: shad_tol {shad_tol}')
         if not isinstance(shad_tol[0],float) or not isinstance(shad_tol[1],float) or not isinstance(shad_tol[2],float):
             try:
                 shad_tol[0] = float(shad_tol[0])
                 shad_tol[1] = float(shad_tol[1])
                 shad_tol[2] = float(shad_tol[2])
             except:
-                raise TypeError(f'Weather object, init, input shad_tol is not a list of floats: shad_tol {shad_tol}') 
+                raise TypeError(f'ERROR Weather object, init, input shad_tol is not a list of floats: shad_tol {shad_tol}') 
             
         # Check input data quality
         
         if ts > 4:
-            wrn(f"\n\nWeather object, init,  input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}\n")
+            wrn(f"WARNING Weather object, init,  input ts is higher than 4, this means more than 4 time steps per hours were set: ts {ts}")
         if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\nWeather object, init,  solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+            wrn(f"WARNING Weather object, init,  solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}")
         if shad_tol[0] < 0.0 or shad_tol[0] > 90.0:
-            wrn(f"\n\Weather object, init,  toll_az is out of range [0-90]..... toll_az {shad_tol[0]}\n")
+            wrn(f"WARNING Weather object, init,  toll_az is out of range [0-90]..... toll_az {shad_tol[0]}")
         if shad_tol[1] < 0.0 or shad_tol[1] > 200.0:
-            wrn(f"\n\Weather object, init,  toll_dist is out of range [0-200]..... toll_dist {shad_tol[1]}\n")
+            wrn(f"WARNING Weather object, init,  toll_dist is out of range [0-200]..... toll_dist {shad_tol[1]}")
         if shad_tol[2] < 0.0 or shad_tol[2] > 90.0:
-            wrn(f"\n\Weather object, init,  toll_theta is out of range [0-90]..... toll_theta {shad_tol[2]}\n")
+            wrn(f"WARNING Weather object, init,  toll_theta is out of range [0-90]..... toll_theta {shad_tol[2]}")
                     
         epw_file = os.path.join(input_path,epw_name)
      
@@ -508,7 +508,7 @@ class Weather():
         try:
             epw = pvlib.iotools.read_epw(epw_file, coerce_year = year)                       # Reading the epw via pvlib 
         except FileNotFoundError:
-            raise FileNotFoundError(f"Weather epw file not found in the Input folder: epw name {epw_name}, input folder {input_path}")
+            raise FileNotFoundError(f"ERROR Weather epw file not found in the Input folder: epw name {epw_name}, input folder {input_path}")
         
         epw_res = epw[0].reset_index(drop=True)                                        # Exporting the hourly values
         lat, lon = epw[1]['latitude'], epw[1]['longitude']                             # Extracting latitude and longitude from the epw
@@ -541,11 +541,11 @@ class Weather():
         
         # Check some weather data values
         if not np.all(np.greater(T_ext,-50.)) or not np.all(np.less(T_ext,60.)):
-            wrn(f"\n\nWeather class, input T_ext is out of plausible range: T_ext {T_ext}\n")
+            wrn(f"WARNING Weather class, input T_ext is out of plausible range: T_ext {T_ext}")
         if not np.all(np.greater(w,-0.001)) or not np.all(np.less(w,25.001)):
-            wrn(f"\n\nWeather class, input w is out of plausible range: w {w}\n")       
+            wrn(f"WARNING Weather class, input w is out of plausible range: w {w}")       
         if not np.all(np.greater(RH_ext,-0.0001)) or not np.all(np.less(RH_ext,1.)):
-            wrn(f"\n\nWeather class, input w is out of plausible range: w {w}\n")       
+            wrn(f"WARNING Weather class, input w is out of plausible range: w {w}")       
         
         # Memorizing the attributes needed for the sim        
         self.ts = ts                    # number of timesteps in an hour

@@ -172,7 +172,7 @@ class Sim():
             self.end_uses_mode = str(Input_files['end-uses_mod'])  
             
         except KeyError:
-            raise KeyError(f"""
+            raise KeyError(f"""ERROR 
                            Input files dictionary is incomplete, you must insert: 
                                default_input_path
                                epw
@@ -186,7 +186,7 @@ class Sim():
                             The actual dictionary keys are: {Input_files.keys()} 
                            """)
         except ValueError:
-            raise ValueError(f"""
+            raise ValueError(f"""ERROR 
                            There is a wrong data type in the Input_files dictionary, you must insert: 
                                default_input_path : str
                                epw : str
@@ -228,7 +228,7 @@ class Sim():
             self.R_f = float(Sim_input['R_f'])
             
         except KeyError:
-            raise KeyError(f"""
+            raise KeyError(f"""ERROR 
                            Sim Input dictionary is incomplete, you must insert: 
                                year
                                first_day
@@ -256,7 +256,7 @@ class Sim():
                             The actual dictionary keys are: {Input_files.keys()} 
                            """)
         except ValueError:
-            raise ValueError(f"""
+            raise ValueError(f"""ERROR 
                            There is a wrong data type in the Sim_input dictionary, you must insert: 
                                year : int 
                                first_day : int 
@@ -284,7 +284,7 @@ class Sim():
         try:
             self.UWGCalc =  bool(UWG_data['UWG_calc'])
         except:
-            raise ValueError(f"UWG_data dictionary should include a UWG_calc key with a boolean attribute")
+            raise ValueError(f"ERROR UWG_data dictionary should include a UWG_calc key with a boolean attribute")
             
         # This dictionary is not checked because it is already checked in the Climate file and urban canyon class  
         self.UWG_data = UWG_data
@@ -318,7 +318,8 @@ class Sim():
             self.json_mode = str(self.excel_input.loc[7])   
             self.end_uses_mode = str(self.excel_input.loc[6])  
         except ValueError:
-            raise ValueError(f"""There's something wrong in the data types of the excel input file (input files).
+            raise ValueError(f"""ERROR 
+                             There's something wrong in the data types of the excel input file (input files).
                              
                                default_input_path : str
                                epw : str
@@ -360,7 +361,8 @@ class Sim():
             self.R_f = float(self.excel_input.loc[21])
             
         except ValueError:
-            raise ValueError(f"""There's something wrong in the data types of the excel input file (Sim input).
+            raise ValueError(f"""ERROR 
+                             There's something wrong in the data types of the excel input file (Sim input).
                              
                                year : int 
                                first_day : int 
@@ -436,7 +438,7 @@ class Sim():
                             'Hw_end': np.array([1.7,1.2,1.,1.7,2.6,3.3,4.2,5,5.8,6.2,6.7,6.7,6.7,6.7,6.3,5.8,5,4.6,4.2,3.7,3.3,2.9,2.5,2.1])/100    
                             }
         except ValueError:
-            raise ValueError(f"""There's something wrong in the data types of the excel input file (UWG data).""")
+            raise ValueError(f"""ERROR There's something wrong in the data types of the excel input file (UWG data).""")
         
     def preprocessing(self):
         '''
@@ -478,7 +480,7 @@ class Sim():
             self.sched = loadArchetype(os.path.join(self.input_folder,self.end_uses_name),
                                                      np.arange(8760),self.ts)
         else:
-            raise ValueError('Set a proper schedule inporting methodology (Daily or Yearly): SchedMethod {self.end_uses_mode}')
+            raise ValueError('ERROR Set a proper schedule inporting methodology (Daily or Yearly): SchedMethod {self.end_uses_mode}')
         
         # Plants List 
         
@@ -512,7 +514,7 @@ class Sim():
         
         self.times['city creation'] = end - start
         
-        print('City:             ', end - start)
+        print('City:                 ', end - start)
         
     
     
@@ -580,7 +582,7 @@ class Sim():
         
         if not self.DoDDcalc and self.DoPlantCalc:
             print('------------------------------------------------------------------------------'+
-                  '\nWARNING: To do plant calculation Design Days calculation must be done!!\nSimulation will run doing the calculation of the design days\n'+
+                  'WARNING: To do plant calculation Design Days calculation must be done!!\nSimulation will run doing the calculation of the design days\n'+
                   '------------------------------------------------------------------------------')
             self.DoDDcalc = True
             

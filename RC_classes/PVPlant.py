@@ -48,38 +48,38 @@ def PVGIS_production(tilt,GR,BR,DR,RR,Ta,W,P_nom,i):
     # Check input data type
     
     if not isinstance(tilt, float):
-        raise TypeError(f'Ops... PVGIS_production function, tilt is not a float: tilt {tilt}')
+        raise TypeError(f'ERROR PVGIS_production function, tilt is not a float: tilt {tilt}')
     if not isinstance(GR, float):
-        raise TypeError(f'Ops... PVGIS_production function, GR is not a float: GR {GR}')
+        raise TypeError(f'ERROR PVGIS_production function, GR is not a float: GR {GR}')
     if not isinstance(BR, float):
-        raise TypeError(f'Ops... PVGIS_production function, BR is not a float: BR {BR}')
+        raise TypeError(f'ERROR PVGIS_production function, BR is not a float: BR {BR}')
     if not isinstance(DR, float):
-        raise TypeError(f'Ops... PVGIS_production function, DR is not a float: DR {DR}')
+        raise TypeError(f'ERROR PVGIS_production function, DR is not a float: DR {DR}')
     if not isinstance(RR, float):
-        raise TypeError(f'Ops... PVGIS_production function, RR is not a float: RR {RR}')
+        raise TypeError(f'ERROR PVGIS_production function, RR is not a float: RR {RR}')
     if not isinstance(Ta, float):
-        raise TypeError(f'Ops... PVGIS_production function, Ta is not a float: Ta {Ta}')
+        raise TypeError(f'ERROR PVGIS_production function, Ta is not a float: Ta {Ta}')
     if not isinstance(W, float):
-        raise TypeError(f'Ops... PVGIS_production function, W is not a float: W {W}')
+        raise TypeError(f'ERROR PVGIS_production function, W is not a float: W {W}')
     if not isinstance(P_nom, float):
-        raise TypeError(f'Ops... PVGIS_production function, P_nom is not a float: P_nom {P_nom}')
+        raise TypeError(f'ERROR PVGIS_production function, P_nom is not a float: P_nom {P_nom}')
     if not isinstance(i, float):
-        raise TypeError(f'Ops... PVGIS_production function, i is not a float: i {i}')
+        raise TypeError(f'ERROR PVGIS_production function, i is not a float: i {i}')
     
     # Check input data quality
     
     if not 0 <= GR <= 3000:
-        wrn(f"\n\nPVGIS_production function, input GR is out of plausible range: GR {GR}\n")
+        wrn(f"WARNING PVGIS_production function, input GR is out of plausible range: GR {GR}")
     if not 0 <= BR <= 3000:
-        wrn(f"\n\nPVGIS_production function, input BR is out of plausible range: BR {BR}\n")
+        wrn(f"WARNING PVGIS_production function, input BR is out of plausible range: BR {BR}")
     if not 0 <= DR <= 3000:
-        wrn(f"\n\nPVGIS_production function, input DR is out of plausible range: DR {DR}\n")
+        wrn(f"WARNING PVGIS_production function, input DR is out of plausible range: DR {DR}")
     if not 0 <= RR <= 3000:
-        wrn(f"\n\nPVGIS_production function, input RR is out of plausible range: RR {RR}\n")
+        wrn(f"WARNING PVGIS_production function, input RR is out of plausible range: RR {RR}")
     if not -50 <= Ta <= 60:
-        wrn(f"\n\nPVGIS_production function, input Ta is out of plausible range: Ta {Ta}\n")
+        wrn(f"WARNING PVGIS_production function, input Ta is out of plausible range: Ta {Ta}")
     if not 0 <= W <= 25:
-        wrn(f"\n\nPVGIS_production function, input W is out of plausible range: W {W}\n")
+        wrn(f"WARNING PVGIS_production function, input W is out of plausible range: W {W}")
 
     # Degree to radians conversion
     i = np.radians(i)
@@ -160,16 +160,16 @@ class DistrictPVGIS:
         # Check input data 
         
         if not isinstance(ExtRoofArea, float):
-            raise TypeError(f'Ops... DistrictPVGIS class, ExtRoofArea is not a float: ExtRoofArea {ExtRoofArea}')
+            raise TypeError(f'ERROR DistrictPVGIS class, ExtRoofArea is not a float: ExtRoofArea {ExtRoofArea}')
         if not isinstance(l, int):
-            raise TypeError(f'Ops... DistrictPVGIS class, l is not a int: l {l}')
+            raise TypeError(f'ERROR DistrictPVGIS class, l is not a int: l {l}')
         
         # Check input data quality
         
         if ExtRoofArea < 0:
-            wrn(f"\n\nDistrictPVGIS class, input ExtRoofArea must be positive: ExtRoofArea {ExtRoofArea}\n")
+            wrn(f"WARNING DistrictPVGIS class, input ExtRoofArea must be positive: ExtRoofArea {ExtRoofArea}")
         if l < 0:
-            wrn(f"\n\nDistrictPVGIS class, input l must be positive: l {l}\n")
+            wrn(f"WARNING DistrictPVGIS class, input l must be positive: l {l}")
         
         # Total area and nominal power evaluation
         self.A_all = ExtRoofArea*self.area                                     # Total plant area [m2]
@@ -200,7 +200,7 @@ class DistrictPVGIS:
         # Check input data 
         
         if not isinstance(weather, Weather):
-            raise TypeError(f'Ops... JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         
         # Irradiance on the tilted surface
         Tilt_rad = np.radians(self.Tilt)                                             # Degree to radians conversion

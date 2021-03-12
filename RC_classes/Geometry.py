@@ -33,16 +33,16 @@ def unit_normal(a, b, c):
     
     for ipt in (a,b,c):
         if not isinstance(ipt, list) and not isinstance(ipt, tuple):
-            raise TypeError(f'Ops... unit_normal function, an input is not a list: input {ipt}')
+            raise TypeError(f'ERROR unit_normal function, an input is not a list: input {ipt}')
         if len(ipt) != 3:
-            raise TypeError(f'Ops... unit_normal function, a vertex is not a list of 3 components: input {ipt}')
+            raise TypeError(f'ERROR unit_normal function, a vertex is not a list of 3 components: input {ipt}')
         try:
             ipt = list(ipt)
             ipt[0] = float(ipt[0])
             ipt[1] = float(ipt[1])
             ipt[2] = float(ipt[2])
         except ValueError:
-            raise ValueError(f'Ops... unit_normal function, a coordinate is not a float: input {ipt}')
+            raise ValueError(f'ERROR unit_normal function, a coordinate is not a float: input {ipt}')
     
     # unit normal vector of plane defined by points a, b, and c
     x = np.linalg.det([[1,a[1],a[2]],
@@ -78,25 +78,25 @@ def poly_area(poly):
     # Check input data type
     
     if not isinstance(poly, list):
-        raise TypeError(f'Ops... poly_area function, the input is not a list: input {poly}')
+        raise TypeError(f'ERROR poly_area function, the input is not a list: input {poly}')
     for vtx in poly:
         if not isinstance(vtx, list) and not isinstance(vtx, tuple):
             print(type(vtx))
-            raise TypeError(f'Ops... poly_area function, an input is not a list: input {vtx}')
+            raise TypeError(f'ERROR poly_area function, an input is not a list: input {vtx}')
         if len(vtx) != 3:
-            raise TypeError(f'Ops... poly_area function, a vertex is not a list of 3 components: input {vtx}')
+            raise TypeError(f'ERROR poly_area function, a vertex is not a list of 3 components: input {vtx}')
         try:
             vtx = list(vtx)
             vtx[0] = float(vtx[0])
             vtx[1] = float(vtx[1])
             vtx[2] = float(vtx[2])
         except ValueError:
-            raise ValueError(f'Ops... unit_normal function, a coordinate is not a float: input {vtx}')
+            raise ValueError(f'ERROR unit_normal function, a coordinate is not a float: input {vtx}')
 
     # area of polygon poly
     
     if len(poly) < 3:                                                          # Not a plane - no area
-        wrn('number of vertices lower than 3, the area will be zero')
+        wrn('WARNING number of vertices lower than 3, the area will be zero')
         return 0
     total = [0, 0, 0]
     N = len(poly)
@@ -132,23 +132,23 @@ def check_complanarity(vertListTot,precision=1):
     # Check input data type
     
     if not isinstance(vertListTot, list):
-        raise TypeError(f'Ops... check_complanarity function, the input is not a list: input {vertListTot}')
+        raise TypeError(f'ERROR check_complanarity function, the input is not a list: input {vertListTot}')
     for vtx in vertListTot:
         if not isinstance(vtx, list):
-            raise TypeError(f'Ops... check_complanarity function, an input is not a list: input {vtx}')
+            raise TypeError(f'ERROR check_complanarity function, an input is not a list: input {vtx}')
         if len(vtx) != 3:
-            raise TypeError(f'Ops... check_complanarity function, a vertex is not a list of 3 components: input {vtx}')
+            raise TypeError(f'ERROR check_complanarity function, a vertex is not a list of 3 components: input {vtx}')
         try:
             vtx[0] = float(vtx[0])
             vtx[1] = float(vtx[1])
             vtx[2] = float(vtx[2])
         except ValueError:
-            raise ValueError(f'Ops... check_complanarity function, a coordinate is not a float: input {vtx}')    
+            raise ValueError(f'ERROR check_complanarity function, a coordinate is not a float: input {vtx}')    
     
     try:
         precision = float(precision)
     except ValueError:
-            raise ValueError(f'Ops... check_complanarity function, precision is not a float: precision {precision}')    
+            raise ValueError(f'ERROR check_complanarity function, precision is not a float: precision {precision}')    
     
     # Look if they are coplanar
     
@@ -195,18 +195,18 @@ def centroid(vertList):
     # Check input data type
     
     if not isinstance(vertList, list):
-        raise TypeError(f'Ops... centroid function, the input is not a list: input {vertList}')
+        raise TypeError(f'ERROR centroid function, the input is not a list: input {vertList}')
     for vtx in vertList:
         if not isinstance(vtx, list):
-            raise TypeError(f'Ops... centroid function, an input is not a list: input {vtx}')
+            raise TypeError(f'ERROR centroid function, an input is not a list: input {vtx}')
         if len(vtx) != 3:
-            raise TypeError(f'Ops... centroid function, a vertex is not a list of 3 components: input {vtx}')
+            raise TypeError(f'ERROR centroid function, a vertex is not a list of 3 components: input {vtx}')
         try:
             vtx[0] = float(vtx[0])
             vtx[1] = float(vtx[1])
             vtx[2] = float(vtx[2])
         except ValueError:
-            raise ValueError(f'Ops... centroid function, a coordinate is not a float: input {vtx}')    
+            raise ValueError(f'ERROR centroid function, a coordinate is not a float: input {vtx}')    
       
       
     # Centroid calculation
@@ -237,21 +237,21 @@ def normalAlternative(vertList):
     # Check input data type
     
     if not isinstance(vertList, list):
-        raise TypeError(f'Ops... normalAlternative function, the input is not a list: input {normalAlternative}')
+        raise TypeError(f'ERROR normalAlternative function, the input is not a list: input {normalAlternative}')
     # if len(vertList) > 3:
         # wrn(f"normalAlternative function, there vertlist should be 3 components long: vertList {vertList}")
         
     for vtx in vertList:
         if not isinstance(vtx, list):
-            raise TypeError(f'Ops... normalAlternative function, an input is not a list: input {vtx}')
+            raise TypeError(f'ERROR normalAlternative function, an input is not a list: input {vtx}')
         if len(vtx) != 3:
-            raise TypeError(f'Ops... normalAlternative function, a vertex is not a list of 3 components: input {vtx}')
+            raise TypeError(f'ERROR normalAlternative function, a vertex is not a list of 3 components: input {vtx}')
         try:
             vtx[0] = float(vtx[0])
             vtx[1] = float(vtx[1])
             vtx[2] = float(vtx[2])
         except ValueError:
-            raise ValueError(f'Ops... normalAlternative function, a coordinate is not a float: input {vtx}')    
+            raise ValueError(f'ERROR normalAlternative function, a coordinate is not a float: input {vtx}')    
       
       
     c = centroid(vertList)
@@ -370,41 +370,41 @@ class Surface:
         # Check input data type
         
         if not isinstance(name, str):
-            raise TypeError(f'Ops... Surface class geometry, name is not a string: name {name}') 
+            raise TypeError(f'ERROR Surface class geometry, name is not a string: name {name}') 
         if not isinstance(azSubdiv, int):
-            raise TypeError(f'Ops... Surface class geometry, azSubdiv is not a int: azSubdiv {azSubdiv}') 
+            raise TypeError(f'ERROR Surface class geometry, azSubdiv is not a int: azSubdiv {azSubdiv}') 
         if not isinstance(hSubdiv, int):
-            raise TypeError(f'Ops... Surface class geometry, azSubdiv is not a int: azSubdiv {hSubdiv}') 
+            raise TypeError(f'ERROR Surface class geometry, azSubdiv is not a int: azSubdiv {hSubdiv}') 
         if not isinstance(wwr, list) or not isinstance(wwr[0], float) or not isinstance(wwr[1], float) or not isinstance(wwr[2], float) or not isinstance(wwr[3], float):
-            raise TypeError(f'Ops... Surface class geometry, wwr is not a list of floats: wwr {wwr}') 
+            raise TypeError(f'ERROR Surface class geometry, wwr is not a list of floats: wwr {wwr}') 
         if not isinstance(rh_gross, float):
-            raise TypeError(f'Ops... Surface class geometry, rh_gross is not a float: rh_gross {rh_gross}') 
+            raise TypeError(f'ERROR Surface class geometry, rh_gross is not a float: rh_gross {rh_gross}') 
         if not surfType in ['ExtWall' , 'GroundFloor' , 'Roof' ]:
-            raise TypeError(f'Ops... Surface class geometry, surfType is not a correct string: surfType {surfType}')
+            raise TypeError(f'ERROR Surface class geometry, surfType is not a correct string: surfType {surfType}')
             
         if not isinstance(vertList, list):
-            raise TypeError(f'Ops... Surface class geometry , the input is not a list: input {vertList}')
+            raise TypeError(f'ERROR Surface class geometry , the input is not a list: input {vertList}')
         for vtx in vertList:
             if not isinstance(vtx, list):
-                raise TypeError(f'Ops... Surface class geometry, an input is not a list: input {vtx}')
+                raise TypeError(f'ERROR Surface class geometry, an input is not a list: input {vtx}')
             if len(vtx) != 3:
-                raise TypeError(f'Ops... Surface class geometry, a vertex is not a list of 3 components: input {vtx}')
+                raise TypeError(f'ERROR Surface class geometry, a vertex is not a list of 3 components: input {vtx}')
             try:
                 vtx[0] = float(vtx[0])
                 vtx[1] = float(vtx[1])
                 vtx[2] = float(vtx[2])
             except ValueError:
-                raise ValueError(f'Ops... Surface class geometry, a coordinate is not a float: input {vtx}')          
+                raise ValueError(f'ERROR Surface class geometry, a coordinate is not a float: input {vtx}')          
 
         # Check input data quality
         
         if azSubdiv > 10 or hSubdiv > 5:
-            wrn(f"\n\Surface class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}\n")
+            wrn(f"WARNING Surface class, init, solar calculation could be long..... azSubdiv {azSubdiv}, hSubdiv {hSubdiv}")
         for wwr_ in wwr:
             if wwr_ < 0. or wwr_ > 0.9:
-                wrn(f"\n\Surface class, init, are you sure about the window to wall ratio ? wwr {wwr}\n")
+                wrn(f"WARNING Surface class, init, are you sure about the window to wall ratio ? wwr {wwr}")
         if rh_gross < 0.5 or rh_gross > 1.5:
-            wrn(f"\n\Surface class, init, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}\n")
+            wrn(f"WARNING Surface class, init, are you sure about the external walls multiplication coeff?? rh_gross {rh_gross}")
            
         self.name = name
 
@@ -585,7 +585,7 @@ class Surface:
         # Check Input data type
         
         if not isinstance(otherSurface,Surface):
-            raise ValueError(f"Surface class, surface {self.name}, checkSurfaceCoincidence. otherSurface is not a Surface object: otherSurface {otherSurface}")
+            raise ValueError(f"ERROR Surface class, surface {self.name}, checkSurfaceCoincidence. otherSurface is not a Surface object: otherSurface {otherSurface}")
         
         # Check the coincidence of two surface looking firstly at the coplanarity 
         # of the points and then the direction of the normals vectors
@@ -623,7 +623,7 @@ class Surface:
         # Check Input data type
         
         if not isinstance(otherSurface,Surface):
-            raise ValueError(f"Surface class, surface {self.name}, calculateIntersectionArea. otherSurface is not a Surface object: otherSurface {otherSurface}")
+            raise ValueError(f"ERROR Surface class, surface {self.name}, calculateIntersectionArea. otherSurface is not a Surface object: otherSurface {otherSurface}")
         
         # Check the coincidence of two surface looking firstly at the coplanarity 
         # of the points and then the direction of the normals vectors
@@ -665,7 +665,7 @@ class Surface:
             try:
                 AreaToReduce = float(AreaToReduce)
             except ValueError:    
-                raise ValueError(f"Surface class, surface {self.name}, reduceArea. The area is not a positive float: AreaToReduce {AreaToReduce}")
+                raise ValueError(f"ERROR Surface class, surface {self.name}, reduceArea. The area is not a positive float: AreaToReduce {AreaToReduce}")
         
         # Area reduction
         
@@ -744,11 +744,11 @@ class SurfaceInternalMass():
         # Check input data type
         
         if not isinstance(name, str):
-            raise TypeError(f'Ops... SurfaceInternalMass class geometry, name is not a string: name {name}') 
+            raise TypeError(f'ERROR SurfaceInternalMass class geometry, name is not a string: name {name}') 
         if not isinstance(area, float) or area < 0.:
-            raise TypeError(f'Ops... SurfaceInternalMass class geometry, area is not a positive float: rh_gross {rh_gross}') 
+            raise TypeError(f'ERROR SurfaceInternalMass class geometry, area is not a positive float: rh_gross {rh_gross}') 
         if not surfType in ['IntWall' , 'IntCeiling' ,'IntFloor']:
-            raise TypeError(f'Ops... SurfaceInternalMass class geometry, surfType is not a correct string: surfType {surfType}')
+            raise TypeError(f'ERROR SurfaceInternalMass class geometry, surfType is not a correct string: surfType {surfType}')
 
         # Sets some attributes
         
