@@ -208,9 +208,9 @@ class Plants():
         # Check input data type
         
         if not isinstance(Typologies, dict):
-            raise TypeError(f'ERROR Plant solvePlant, Typologies must be a dictionary: Typologies {Typologies}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, Typologies must be a dictionary: Typologies {Typologies}')
         if not isinstance(t, int):            
-            raise TypeError(f'ERROR Plant solvePlant, t must be an integer: t {t}')
+            raise TypeError(f'ERROR Plant solvePlant, time step {t}, t must be an integer: t {t}')
         if not isinstance(heatFlow, float):
             raise TypeError(f'ERROR Plant solvePlant, time step {t}, heatFlow must be a float: heatFlow {heatFlow}')
         if not isinstance(T_ext, float):

@@ -1998,7 +1998,7 @@ class Building:
         if not isinstance(Plants_list, dict):
             raise TypeError(f'ERROR Building class, BDplants, bd {self.name}, Plants_list must be a dictionary: Plants_list {Plants_list}')
         if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+            raise TypeError(f'ERROR Building class, BDplants, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
     
         # Set building plants
         

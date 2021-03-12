@@ -35,5 +35,5 @@ def wrn(message):
          f.close()
          
     with open(os.path.join(output_path,'warnings.txt'),"a") as f:
-        f.write(message + ' ')
+        f.write(message + '\n')
     warn(message)
