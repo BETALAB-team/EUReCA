@@ -550,7 +550,7 @@ class City():
                     if self.all_Vertsurf[x][1][y][0] == 0:
                         sol_h_lim = 90.
                     else:
-                        sol_h_lim = np.degrees(np.arctan((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].surfHeight - self.all_Vertsurf[x][0].centroid_coord[2])/self.all_Vertsurf[x][1][y][0]))
+                        sol_h_lim = np.degrees(np.arctan((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][2] - self.all_Vertsurf[x][0].centroid_coord[2])/self.all_Vertsurf[x][1][y][0]))
                     self.all_Vertsurf[x][1][y].append(sol_h_lim)
                     
                     # Calculation of the solar azimuth limits
