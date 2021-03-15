@@ -1766,7 +1766,6 @@ class Building:
         for surf in self.buildingSurfaces.values():
             if surf.type == 'ExtWall':
                 self.extWallArea += surf.area
-                surf.surfHeight = self.buildingHeight
                 self.Vertsurf.append([surf,[]])
         
         # Number of floor calc
