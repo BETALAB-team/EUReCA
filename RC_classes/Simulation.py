@@ -508,8 +508,6 @@ class Sim():
         self.city = City(os.path.join(self.input_folder,self.json_name),
                                       self.envelopes, self.weather, model = self.model,mode = self.json_mode)
         
-        self.city.create_urban_canyon([self.weather.ts,self.weather.hours],self.UWGCalc,self.UWG_data)
-        
         end = tm.time()
         
         self.times['city creation'] = end - start
@@ -518,9 +516,9 @@ class Sim():
         
     
     
-    def urban_shading(self):
+    def urban_shading_and_canopy(self):
         '''
-        Urban shading calculation
+        Urban shading calculation, creation of Urban Canyon if required
 
         Returns
         -------
@@ -538,6 +536,8 @@ class Sim():
                                  toll_dist = self.weather.Dist_toll,
                                  toll_theta = self.weather.Theta_toll,
                                  R_f = self.R_f)
+            
+        self.city.create_urban_canyon([self.weather.ts,self.weather.hours],self.UWGCalc,self.UWG_data)
     
         end = tm.time()
                 

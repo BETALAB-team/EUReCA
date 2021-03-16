@@ -19,7 +19,7 @@ city.preprocessing()
 city.city_creation()
 
 # Evaluating Urban shadings between buildings
-city.urban_shading()
+city.urban_shading_and_canopy()
 
 # Calculation buildings parameters
 city.buildings_params_and_loads()
