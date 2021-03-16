@@ -517,7 +517,7 @@ class Sim():
         
     
     
-    def urban_shading(self):
+    def surfaces_and_shading(self):
         '''
         Urban shading calculation
 
@@ -530,19 +530,21 @@ class Sim():
         # Mutual shading effect evaluation
         
         start = tm.time()
-        if self.ShadingCalc:
-            self.city.shading_effect(self.weather.SolarPosition,
-                                 mode = self.json_mode,
-                                 toll_az = self.weather.Az_toll,
-                                 toll_dist = self.weather.Dist_toll,
-                                 toll_theta = self.weather.Theta_toll,
-                                 R_f = self.R_f)
+        
+        self.city.surfaces_coincidence_and_shading_effect(self.weather.SolarPosition,
+                             shading_calc = self.ShadingCalc,                            
+                             mode = self.json_mode,
+                             toll_az = self.weather.Az_toll,
+                             toll_dist = self.weather.Dist_toll,
+                             toll_theta = self.weather.Theta_toll,
+                             R_f = self.R_f
+                             )
             
         end = tm.time()
                 
-        self.times['urban shading'] = end - start
+        self.times['Surfaces correction and urban shading'] = end - start
         
-        print('Shading effect TOT:   ', end - start)
+        print('Surfaces correction and Shading effect TOT:   ', end - start)
         
         
     def buildings_params_and_loads(self):

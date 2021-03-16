@@ -310,6 +310,298 @@ class City():
         
         for i in self.buildings.values():
             i.printBuildingInfo()
+    
+    def surfaces_coincidence_and_shading_effect(self,Solar_position,
+                       shading_calc = False,
+                       mode = 'cityjson',
+                       toll_az = 80.,
+                       toll_dist = 100. ,
+                       toll_theta = 80.,
+                       R_f = 0.):
+        
+        '''
+        This method firstly reduces the area of coincidence surfaces. This first part must be done to get consistent results
+        This method takes into account the shading effect between buildings surfaces
+        
+        Parameters
+        ----------
+        Solar_position : WeatherData.SolarPosition
+            Object containing information about the position of the sun over the time of simulation
+        shading_calc : Boolean
+            whether or not to do the shading calculation 
+        mode : str
+            cityjson or geojson mode calculation
+        toll_az : float
+            semi-tollerance on azimuth of shading surface [°]
+        toll_dist : float
+            tollerance on distance of shading surface [m]
+        toll_theta : float
+            semi-tollerance on position of the shading surfaces [°]
+        R_f : float
+            Reduction factor of the direct solar radiation due to the shading effect [0-1]
+        
+        Returns
+        -------
+        None
+        
+        '''
+        
+        # Check input data type
+        
+        if not isinstance(mode, str):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, mode is not a str: mode {mode}')
+        if not isinstance(toll_az, float):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_az is not a float: toll_az {toll_az}')
+        if not isinstance(toll_dist, float):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_dist is not a float: toll_dist {toll_dist}')
+        if not isinstance(toll_theta, float):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_theta is not a float: toll_theta {toll_theta}')
+        if not isinstance(Solar_position, SolarPosition):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
+        if not isinstance(R_f, float):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, R_f is not a float: R_f {R_f}')
+        if not isinstance(shading_calc, bool):
+            raise TypeError(f'ERROR JsonCity class - shading_effect, shading_calc is not a boolean: shading_calc {shading_calc}')
+        
+        # Check input data quality
+        
+        if mode != 'geojson' and  mode != 'cityjson':
+            wrn(f"WARNING JsonCity class - shading_effect, the mode doesn't exist..... mode {mode}")
+        if toll_az < 0.0 or toll_az > 90.0:
+            wrn(f"WARNING JsonCity class - shading_effect, toll_az is out of range [0-90]..... toll_az {toll_az}")
+        if toll_dist < 0.0 or toll_dist > 200.0:
+            wrn(f"WARNING JsonCity class - shading_effect, toll_dist is out of range [0-200]..... toll_dist {toll_dist}")
+        if toll_theta < 0.0 or toll_theta > 90.0:
+            wrn(f"WARNING JsonCity class - shading_effect, toll_theta is out of range [0-90]..... toll_theta {toll_theta}")
+        if R_f < 0.0 or R_f > 1.0:
+            wrn(f"WARNING JsonCity class - shading_effect, R_f is out of range [0-1]..... R_f {R_f}")
+            
+
+        # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
+        self.all_Vertsurf = []
+        
+        if mode == 'cityjson':
+            for bd in self.buildings.keys():
+                self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
+        if mode == 'geojson':
+            for i in self.city.index:
+                self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
+       
+        # Each surface is compared with all the others
+        for x in range(len(self.all_Vertsurf)):
+            for y in range(len(self.all_Vertsurf)):
+                if y > x:
+                    
+                    # Reducing the area of the coincidence surfaces
+                    if self.all_Vertsurf[x][0].checkSurfaceCoincidence(self.all_Vertsurf[y][0]):
+                            intersectionArea = self.all_Vertsurf[x][0].calculateIntersectionArea(self.all_Vertsurf[y][0])
+                            self.all_Vertsurf[y][0].reduceArea(intersectionArea)
+                            self.all_Vertsurf[x][0].reduceArea(intersectionArea)
+                    
+                    if shading_calc:        
+                        # Calculation of the distance between the centroids of the two surfaces under examination
+                        dist = math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0]-self.all_Vertsurf[y][0].centroid_coord[0])**2+(self.all_Vertsurf[x][0].centroid_coord[1]-self.all_Vertsurf[y][0].centroid_coord[1])**2)
+                        if dist == 0.0:
+                            pass
+                        else:
+                            
+                            # Calculation of the vector direction between the centroids of the two surfaces under examination
+                            theta_xy = np.degrees(np.arccos((self.all_Vertsurf[y][0].centroid_coord[0]-self.all_Vertsurf[x][0].centroid_coord[0])/dist))
+                            theta = -(theta_xy + 90)
+                            if self.all_Vertsurf[y][0].centroid_coord[1] < self.all_Vertsurf[x][0].centroid_coord[1]:
+                                theta = theta + 2*theta_xy
+                            if theta < -180:
+                                theta = theta + 360
+                            if theta > 180:
+                                theta = theta - 360
+                        
+                        # Conditions:
+                        #    1. the distance between surfaces must be less than toll_dist
+                        #    2. the theta angle between surfaces must be within the range
+                        #    3. the azimuth angle of the second surface must be within the range
+                        
+                        if dist < toll_dist:
+                            if self.all_Vertsurf[x][0].azimuth < 0:
+                                azimuth_opp = self.all_Vertsurf[x][0].azimuth + 180
+                                azimuth_opp_max = azimuth_opp + toll_az
+                                azimuth_opp_min = azimuth_opp - toll_az
+                                theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
+                                theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
+                                if theta_min < -180:
+                                    theta_min = theta_min + 360
+                                    if theta_min < theta < 180 or -180 < theta < theta_max:
+                                        if azimuth_opp_max > 180:
+                                            azimuth_opp_max = azimuth_opp_max - 360
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                        else:
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                else:
+                                    if theta_min < theta < theta_max:
+                                        if azimuth_opp_max > 180:
+                                            azimuth_opp_max = azimuth_opp_max - 360
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                        else:
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                            else:
+                                azimuth_opp = self.all_Vertsurf[x][0].azimuth - 180
+                                azimuth_opp_max = azimuth_opp + toll_az
+                                azimuth_opp_min = azimuth_opp - toll_az
+                                theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
+                                theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
+                                if theta_max > 180:
+                                    theta_max = theta_max - 360
+                                    if theta_min < theta < 180 or -180 <= theta < theta_max:
+                                        if azimuth_opp_min < -180:
+                                            azimuth_opp_min = azimuth_opp_min + 360
+                                            if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                        else:
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                else:
+                                    if theta_min < theta < theta_max:
+                                        if azimuth_opp_min < -180:
+                                            azimuth_opp_min = azimuth_opp_min + 360
+                                            if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                        else:
+                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
+                                                self.all_Vertsurf[x][1].extend([[dist,y]])
+                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+        
+        if shading_calc:
+            # SECTION 2: Calculation of the shading effect
+            for x in range(len(self.all_Vertsurf)):
+                if self.all_Vertsurf[x][1] != []:
+                    self.all_Vertsurf[x][0].OnOff_shading = 'On'
+                    shading = [0]*len(self.all_Vertsurf[x][1])
+                    for y in range(len(self.all_Vertsurf[x][1])):
+                        
+                        # Calculation of the solar height limit
+                        if self.all_Vertsurf[x][1][y][0] == 0:
+                            sol_h_lim = 90.
+                        else:
+                            sol_h_lim = np.degrees(np.arctan((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][2] - self.all_Vertsurf[x][0].centroid_coord[2])/self.all_Vertsurf[x][1][y][0]))
+                        self.all_Vertsurf[x][1][y].append(sol_h_lim)
+                        
+                        # Calculation of the solar azimuth limits
+                        sol_az_lim1_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1])**2)))
+                        sol_az_lim2_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1])**2)))
+                        sol_az_lim1 = -(sol_az_lim1_xy + 90)
+                        sol_az_lim2 = -(sol_az_lim2_xy + 90)
+                        if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
+                            sol_az_lim1 = sol_az_lim1 + 2*sol_az_lim1_xy
+                        if sol_az_lim1 < -180:
+                            sol_az_lim1 = sol_az_lim1 + 360
+                        if sol_az_lim1 > 180:
+                            sol_az_lim1 = sol_az_lim1 - 360
+                        if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
+                            sol_az_lim2 = sol_az_lim2 + 2*sol_az_lim2_xy
+                        if sol_az_lim2 < -180:
+                            sol_az_lim2 = sol_az_lim2 + 360
+                        if sol_az_lim2 > 180:
+                            sol_az_lim2 = sol_az_lim2 - 360
+                        
+                        # Necessary conditions:
+                        #    1. solar height less than the solar height limit
+                        #    2. solar azimuth between the solar azimuth limits
+                        
+                        shading_sol_h = np.less(Solar_position.elevation,self.all_Vertsurf[x][1][y][2])
+                        sol_az_lim_inf = min(sol_az_lim1,sol_az_lim2)
+                        sol_az_lim_sup = max(sol_az_lim1,sol_az_lim2)
+                        if abs(sol_az_lim_inf - sol_az_lim_sup) < 180:
+                            self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
+                            shading_sol_az = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
+                            shading_tot = shading_sol_h & shading_sol_az[0] & shading_sol_az[1]
+                        else:
+                            sol_az_lim_inf = max(sol_az_lim1,sol_az_lim2)
+                            sol_az_lim_sup = min(sol_az_lim1,sol_az_lim2)
+                            self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
+                            shading_sol_az1 = [np.less_equal(Solar_position.azimuth,180),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
+                            shading_sol_az2 = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater_equal(Solar_position.azimuth,-180)]
+                            shading_az1 = shading_sol_az1[0] & shading_sol_az1[1]
+                            shading_az2 = shading_sol_az2[0] & shading_sol_az2[1]
+                            shading_az = shading_az1 | shading_az2
+                            shading_tot = shading_sol_h & shading_az
+                        shading[y] = shading_tot
+                    for y in range(len(self.all_Vertsurf[x][1])):
+                        if y == 0:
+                            shading_eff = shading[y]
+                        else:
+                            shading_eff = shading_eff | shading[y]
+                    shading_eff_01 = (1 - np.where(shading_eff==True,1,shading_eff))
+                    shading_eff_01 = np.where(shading_eff_01==0,R_f,shading_eff_01)
+                    self.all_Vertsurf[x][0].shading_effect = shading_eff_01
+
+    
+    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson'):
+        
+        '''
+        This method permits firstly to conclude the geometrical 
+        processing after surfaces_coincidence_and_shading_effect
+        
+        then to calculate the equivalent electrical network
+        parameters and thermal loads
+        
+        Parameters
+        ----------
+        envelopes : dict
+            envelope information for each age class category   
+        sched_db : dict
+            dictionary containing the operational schedules for each end-use category
+        weather : RC_classes.WeatherData.Weather obj
+            object of the class weather WeatherData module
+        mode : str
+            cityjson or geojson mode calculation
+        
+        Returns
+        -------
+        None
+        
+        '''
+        
+        # Check input data type
+        
+        if not isinstance(envelopes, dict):
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
+        if not isinstance(sched_db, dict):
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
+        if not isinstance(weather, Weather):
+            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+        if not isinstance(mode, str):
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
+        
+        # Check input data quality
+        
+        if not bool(envelopes):
+            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
+        if not bool(sched_db):
+            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
+        if mode != 'geojson' and  mode != 'cityjson':
+            wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
+
+        # Parameters and thermal loads calculation 
+        if mode == 'cityjson':
+            for bd in self.buildings.values():
+                self.archId = 1
+                bd.geometrical_processing()
+                bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
+        
+        elif mode == 'geojson':
+            for i in self.city.index:
+                self.buildings[self.city.loc[i]['id']].geometrical_processing()
+                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
 
 
     def create_urban_canyon(self,sim_time,calc,data):
@@ -383,281 +675,6 @@ class City():
             self.urban_canyon_calc = calc
             self.urban_canyon_data = None 
    
-    
-    def shading_effect(self,Solar_position,mode = 'cityjson',
-                       toll_az = 80.,
-                       toll_dist = 100. ,
-                       toll_theta = 80.,
-                       R_f = 0.):
-        
-        '''
-        This method takes into account the shading effect between buildings surfaces
-        
-        Parameters
-        ----------
-        Solar_position : WeatherData.SolarPosition
-            Object containing information about the position of the sun over the time of simulation
-        mode : str
-            cityjson or geojson mode calculation
-        toll_az : float
-            semi-tollerance on azimuth of shading surface [°]
-        toll_dist : float
-            tollerance on distance of shading surface [m]
-        toll_theta : float
-            semi-tollerance on position of the shading surfaces [°]
-        R_f : float
-            Reduction factor of the direct solar radiation due to the shading effect [0-1]
-        
-        Returns
-        -------
-        None
-        
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(mode, str):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, mode is not a str: mode {mode}')
-        if not isinstance(toll_az, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_az is not a float: toll_az {toll_az}')
-        if not isinstance(toll_dist, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_dist is not a float: toll_dist {toll_dist}')
-        if not isinstance(toll_theta, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_theta is not a float: toll_theta {toll_theta}')
-        if not isinstance(Solar_position, SolarPosition):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
-        if not isinstance(R_f, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, R_f is not a float: R_f {R_f}')
-        
-        # Check input data quality
-        
-        if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"WARNING JsonCity class - shading_effect, the mode doesn't exist..... mode {mode}")
-        if toll_az < 0.0 or toll_az > 90.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_az is out of range [0-90]..... toll_az {toll_az}")
-        if toll_dist < 0.0 or toll_dist > 200.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_dist is out of range [0-200]..... toll_dist {toll_dist}")
-        if toll_theta < 0.0 or toll_theta > 90.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_theta is out of range [0-90]..... toll_theta {toll_theta}")
-        if R_f < 0.0 or R_f > 1.0:
-            wrn(f"WARNING JsonCity class - shading_effect, R_f is out of range [0-1]..... R_f {R_f}")
-            
-
-        # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
-        self.all_Vertsurf = []
-        
-        if mode == 'cityjson':
-            for bd in self.buildings.keys():
-                self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
-        if mode == 'geojson':
-            for i in self.city.index:
-                self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
-       
-        # Each surface is compared with all the others
-        for x in range(len(self.all_Vertsurf)):
-            for y in range(len(self.all_Vertsurf)):
-                if y > x:
-                    
-                    # Calculation of the distance between the centroids of the two surfaces under examination
-                    dist = math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0]-self.all_Vertsurf[y][0].centroid_coord[0])**2+(self.all_Vertsurf[x][0].centroid_coord[1]-self.all_Vertsurf[y][0].centroid_coord[1])**2)
-                    if dist == 0.0:
-                        pass
-                    else:
-                        
-                        # Calculation of the vector direction between the centroids of the two surfaces under examination
-                        theta_xy = np.degrees(np.arccos((self.all_Vertsurf[y][0].centroid_coord[0]-self.all_Vertsurf[x][0].centroid_coord[0])/dist))
-                        theta = -(theta_xy + 90)
-                        if self.all_Vertsurf[y][0].centroid_coord[1] < self.all_Vertsurf[x][0].centroid_coord[1]:
-                            theta = theta + 2*theta_xy
-                        if theta < -180:
-                            theta = theta + 360
-                        if theta > 180:
-                            theta = theta - 360
-                    
-                    # Conditions:
-                    #    1. the distance between surfaces must be less than toll_dist
-                    #    2. the theta angle between surfaces must be within the range
-                    #    3. the azimuth angle of the second surface must be within the range
-                    
-                    if dist < toll_dist:
-                        if self.all_Vertsurf[x][0].azimuth < 0:
-                            azimuth_opp = self.all_Vertsurf[x][0].azimuth + 180
-                            azimuth_opp_max = azimuth_opp + toll_az
-                            azimuth_opp_min = azimuth_opp - toll_az
-                            theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
-                            theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
-                            if theta_min < -180:
-                                theta_min = theta_min + 360
-                                if theta_min < theta < 180 or -180 < theta < theta_max:
-                                    if azimuth_opp_max > 180:
-                                        azimuth_opp_max = azimuth_opp_max - 360
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                                    else:
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                            else:
-                                if theta_min < theta < theta_max:
-                                    if azimuth_opp_max > 180:
-                                        azimuth_opp_max = azimuth_opp_max - 360
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                                    else:
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                        else:
-                            azimuth_opp = self.all_Vertsurf[x][0].azimuth - 180
-                            azimuth_opp_max = azimuth_opp + toll_az
-                            azimuth_opp_min = azimuth_opp - toll_az
-                            theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
-                            theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
-                            if theta_max > 180:
-                                theta_max = theta_max - 360
-                                if theta_min < theta < 180 or -180 <= theta < theta_max:
-                                    if azimuth_opp_min < -180:
-                                        azimuth_opp_min = azimuth_opp_min + 360
-                                        if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                                    else:
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                            else:
-                                if theta_min < theta < theta_max:
-                                    if azimuth_opp_min < -180:
-                                        azimuth_opp_min = azimuth_opp_min + 360
-                                        if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-                                    else:
-                                        if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                            self.all_Vertsurf[x][1].extend([[dist,y]])
-                                            self.all_Vertsurf[y][1].extend([[dist,x]])
-
-        # SECTION 2: Calculation of the shading effect
-        for x in range(len(self.all_Vertsurf)):
-            if self.all_Vertsurf[x][1] != []:
-                self.all_Vertsurf[x][0].OnOff_shading = 'On'
-                shading = [0]*len(self.all_Vertsurf[x][1])
-                for y in range(len(self.all_Vertsurf[x][1])):
-                    
-                    # Calculation of the solar height limit
-                    if self.all_Vertsurf[x][1][y][0] == 0:
-                        sol_h_lim = 90.
-                    else:
-                        sol_h_lim = np.degrees(np.arctan((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][2] - self.all_Vertsurf[x][0].centroid_coord[2])/self.all_Vertsurf[x][1][y][0]))
-                    self.all_Vertsurf[x][1][y].append(sol_h_lim)
-                    
-                    # Calculation of the solar azimuth limits
-                    sol_az_lim1_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1])**2)))
-                    sol_az_lim2_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1])**2)))
-                    sol_az_lim1 = -(sol_az_lim1_xy + 90)
-                    sol_az_lim2 = -(sol_az_lim2_xy + 90)
-                    if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
-                        sol_az_lim1 = sol_az_lim1 + 2*sol_az_lim1_xy
-                    if sol_az_lim1 < -180:
-                        sol_az_lim1 = sol_az_lim1 + 360
-                    if sol_az_lim1 > 180:
-                        sol_az_lim1 = sol_az_lim1 - 360
-                    if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
-                        sol_az_lim2 = sol_az_lim2 + 2*sol_az_lim2_xy
-                    if sol_az_lim2 < -180:
-                        sol_az_lim2 = sol_az_lim2 + 360
-                    if sol_az_lim2 > 180:
-                        sol_az_lim2 = sol_az_lim2 - 360
-                    
-                    # Necessary conditions:
-                    #    1. solar height less than the solar height limit
-                    #    2. solar azimuth between the solar azimuth limits
-                    
-                    shading_sol_h = np.less(Solar_position.elevation,self.all_Vertsurf[x][1][y][2])
-                    sol_az_lim_inf = min(sol_az_lim1,sol_az_lim2)
-                    sol_az_lim_sup = max(sol_az_lim1,sol_az_lim2)
-                    if abs(sol_az_lim_inf - sol_az_lim_sup) < 180:
-                        self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
-                        shading_sol_az = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
-                        shading_tot = shading_sol_h & shading_sol_az[0] & shading_sol_az[1]
-                    else:
-                        sol_az_lim_inf = max(sol_az_lim1,sol_az_lim2)
-                        sol_az_lim_sup = min(sol_az_lim1,sol_az_lim2)
-                        self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
-                        shading_sol_az1 = [np.less_equal(Solar_position.azimuth,180),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
-                        shading_sol_az2 = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater_equal(Solar_position.azimuth,-180)]
-                        shading_az1 = shading_sol_az1[0] & shading_sol_az1[1]
-                        shading_az2 = shading_sol_az2[0] & shading_sol_az2[1]
-                        shading_az = shading_az1 | shading_az2
-                        shading_tot = shading_sol_h & shading_az
-                    shading[y] = shading_tot
-                for y in range(len(self.all_Vertsurf[x][1])):
-                    if y == 0:
-                        shading_eff = shading[y]
-                    else:
-                        shading_eff = shading_eff | shading[y]
-                shading_eff_01 = (1 - np.where(shading_eff==True,1,shading_eff))
-                shading_eff_01 = np.where(shading_eff_01==0,R_f,shading_eff_01)
-                self.all_Vertsurf[x][0].shading_effect = shading_eff_01
-
-    
-    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson'):
-        
-        '''
-        This method permits to calculate the equivalent electrical network
-        parameters and thermal loads
-        
-        Parameters
-        ----------
-        envelopes : dict
-            envelope information for each age class category   
-        sched_db : dict
-            dictionary containing the operational schedules for each end-use category
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-        mode : str
-            cityjson or geojson mode calculation
-        
-        Returns
-        -------
-        None
-        
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(envelopes, dict):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
-        if not isinstance(sched_db, dict):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        if not isinstance(mode, str):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
-        
-        # Check input data quality
-        
-        if not bool(envelopes):
-            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
-        if not bool(sched_db):
-            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
-        if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
-
-        # Parameters and thermal loads calculation 
-        if mode == 'cityjson':
-            for bd in self.buildings.values():
-                self.archId = 1
-                bd.geometrical_processing()
-                bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
-        
-        elif mode == 'geojson':
-            for i in self.city.index:
-                self.buildings[self.city.loc[i]['id']].geometrical_processing()
-                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
-    
     
     '''Design Power calculation during design days'''
     def designdays(self,Plant_calc,Time_to_regime,design_days,weather):
