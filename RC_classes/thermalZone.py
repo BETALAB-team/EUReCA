@@ -1742,6 +1742,34 @@ class Building:
         except KeyError:
             raise KeyError(f"WARNING  Building class: bd {self.name}, the envelope archetype not found. key {archId}\nList of possible archetypes: \n {envelopes.keys()}")
         
+        self.mode = mode
+        self.rh_net = rh_net
+        self.n_Floors = n_Floors
+        
+        # Set plants data
+        
+        self.H_plant_type = heating_plant
+        self.C_plant_type = cooling_plant
+        self.BDPlant = Plants(self.H_plant_type,self.C_plant_type,self.l,ts)
+        self.Pnom_H_BD = 1e20
+        self.Pnom_C_BD = -1e20
+        
+        
+    def geometrical_processing(self):
+        '''
+        This method allows to calculate Some additional geometrical data of the building
+        
+        Parameters
+            ----------
+            None
+        
+        Returns
+        -------
+        None.             
+        '''
+        
+        
+        
         # check if some surface is coincident
         
         self.checkExtWallsMod2()    
@@ -1770,8 +1798,8 @@ class Building:
         
         # Number of floor calc
         
-        if mode == 'geojson':
-            self.nFloors = n_Floors
+        if self.mode == 'geojson':
+            self.nFloors = self.n_Floors
         else:
             self.nFloors = round(self.buildingHeight/self.oneFloorHeight)
         
@@ -1780,18 +1808,10 @@ class Building:
         if self.footprint == 0:
             self.footprint = 1.
         self.total_area = (self.nFloors)*self.footprint
-        self.Volume = rh_net*(self.oneFloorHeight*self.footprint*self.nFloors)
+        self.Volume = self.rh_net*(self.oneFloorHeight*self.footprint*self.nFloors)
         if self.Volume == 0:
             self.Volume = 0.0001
         
-        # Set plants data
-        
-        self.H_plant_type = heating_plant
-        self.C_plant_type = cooling_plant
-        self.BDPlant = Plants(self.H_plant_type,self.C_plant_type,self.l,ts)
-        self.Pnom_H_BD = 1e20
-        self.Pnom_C_BD = -1e20
-
         
     def BDParamsandLoads(self,model,envelopes,sched_db,weather,splitInZone=False):
         '''
