@@ -650,10 +650,12 @@ class City():
         if mode == 'cityjson':
             for bd in self.buildings.values():
                 self.archId = 1
+                bd.geometrical_processing()
                 bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
         
         elif mode == 'geojson':
             for i in self.city.index:
+                self.buildings[self.city.loc[i]['id']].geometrical_processing()
                 self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
     
     

@@ -1756,6 +1756,7 @@ class Building:
         
         
     def geometrical_processing(self):
+        
         '''
         This method allows to calculate Some additional geometrical data of the building
         
@@ -1766,9 +1767,7 @@ class Building:
         Returns
         -------
         None.             
-        '''
-        
-        
+        '''       
         
         # check if some surface is coincident
         

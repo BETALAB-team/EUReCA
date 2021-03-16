@@ -516,9 +516,9 @@ class Sim():
         
     
     
-    def urban_shading_and_canopy(self):
+    def urban_shading(self):
         '''
-        Urban shading calculation, creation of Urban Canyon if required
+        Urban shading calculation
 
         Returns
         -------
@@ -537,8 +537,6 @@ class Sim():
                                  toll_theta = self.weather.Theta_toll,
                                  R_f = self.R_f)
             
-        self.city.create_urban_canyon([self.weather.ts,self.weather.hours],self.UWGCalc,self.UWG_data)
-    
         end = tm.time()
                 
         self.times['urban shading'] = end - start
@@ -568,6 +566,28 @@ class Sim():
         
         print('Paramscalc:           ', end - start)
         
+    def urban_canopy(self):
+        '''
+        Urban canopy creation
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        # Mutual shading effect evaluation
+        
+        start = tm.time()
+
+        self.city.create_urban_canyon([self.weather.ts,self.weather.hours],self.UWGCalc,self.UWG_data)
+    
+        end = tm.time()
+                
+        self.times['urban canopy'] = end - start
+        
+        print('Canopy creation:   ', end - start)
+   
     def plants_design_and_creation(self):
         '''
         Design power calculation of the buildings and plants size definition
