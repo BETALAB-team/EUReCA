@@ -27,6 +27,7 @@ class Sim():
         city_creation
         urban_shading
         buildings_params_and_loads
+        urban_canyon
         plants_design_and_creation
         simulation
         output

@@ -1566,6 +1566,7 @@ class Building:
     Methods:
         init
         BDParamsandLoads
+        geometrical_processing
         BDdesigndays_Heating
         BDdesigndays_Cooling
         BDplants
