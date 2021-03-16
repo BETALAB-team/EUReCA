@@ -1566,6 +1566,7 @@ class Building:
     Methods:
         init
         BDParamsandLoads
+        geometrical_processing
         BDdesigndays_Heating
         BDdesigndays_Cooling
         BDplants
@@ -1732,19 +1733,53 @@ class Building:
         
         # Calculation of wwr and surfaces init
         
+        self.Vertsurf = []
+        
         try:
             for surf in surfList:
                 self.wwr = envelopes[archId].Window.wwr
                 i += 1
                 surface = Surface('Building Surface '+str(i),weather.azSubdiv,weather.hSubdiv,self.wwr,rh_gross,surf)
+                if surface.type == 'ExtWall':
+                    self.Vertsurf.append([surface,[]])
                 self.buildingSurfaces['Building Surface '+str(i)]=surface
                 self.ii = i
+                
         except KeyError:
             raise KeyError(f"WARNING  Building class: bd {self.name}, the envelope archetype not found. key {archId}\nList of possible archetypes: \n {envelopes.keys()}")
         
-        # check if some surface is coincident
+        self.mode = mode
+        self.rh_net = rh_net
+        self.n_Floors = n_Floors
         
-        self.checkExtWallsMod2()    
+        # Set plants data
+        
+        self.H_plant_type = heating_plant
+        self.C_plant_type = cooling_plant
+        self.BDPlant = Plants(self.H_plant_type,self.C_plant_type,self.l,ts)
+        self.Pnom_H_BD = 1e20
+        self.Pnom_C_BD = -1e20
+        
+        
+    def geometrical_processing(self):
+        
+        '''
+        This method allows to calculate Some additional geometrical data of the building
+        
+        Parameters
+            ----------
+            None
+        
+        Returns
+        -------
+        None.             
+        '''       
+        
+        # check if some surface is coincident
+        # This part is now moved in the city.shading_effect method, 
+        # considering all surfaces of the city, not only building
+        
+        # self.checkExtWallsMod2()    
         
         # Calculation of external wall area and other geometrical params
         
@@ -1756,22 +1791,18 @@ class Building:
                 self.extWallOpaqueArea += surface.opaqueArea
                 self.hmax.append(surface.maxHeight())
                 self.hmin.append(surface.minHeight())
+                self.extWallArea += surface.area
             if surface.type == 'Roof':
                 self.extRoofArea += surface.area            
         
         self.hmax = np.mean(self.hmax)
         self.hmin = np.mean(self.hmin)
         self.buildingHeight = self.hmax - self.hmin
-        self.Vertsurf = []
-        for surf in self.buildingSurfaces.values():
-            if surf.type == 'ExtWall':
-                self.extWallArea += surf.area
-                self.Vertsurf.append([surf,[]])
         
         # Number of floor calc
         
-        if mode == 'geojson':
-            self.nFloors = n_Floors
+        if self.mode == 'geojson':
+            self.nFloors = self.n_Floors
         else:
             self.nFloors = round(self.buildingHeight/self.oneFloorHeight)
         
@@ -1780,18 +1811,10 @@ class Building:
         if self.footprint == 0:
             self.footprint = 1.
         self.total_area = (self.nFloors)*self.footprint
-        self.Volume = rh_net*(self.oneFloorHeight*self.footprint*self.nFloors)
+        self.Volume = self.rh_net*(self.oneFloorHeight*self.footprint*self.nFloors)
         if self.Volume == 0:
             self.Volume = 0.0001
         
-        # Set plants data
-        
-        self.H_plant_type = heating_plant
-        self.C_plant_type = cooling_plant
-        self.BDPlant = Plants(self.H_plant_type,self.C_plant_type,self.l,ts)
-        self.Pnom_H_BD = 1e20
-        self.Pnom_C_BD = -1e20
-
         
     def BDParamsandLoads(self,model,envelopes,sched_db,weather,splitInZone=False):
         '''
@@ -2264,7 +2287,9 @@ class Building:
               '\nfootprint: '+str(self.footprint)+
               '\nN_floors: '+str(self.nFloors)+
               '\nheight: '+str(self.buildingHeight)+
-              '\nexternal wall area: '+str(self.extWallArea)
+              '\nexternal wall area: '+str(self.extWallArea)+
+              '\nexternal opaque wall area: '+str(self.extWallOpaqueArea)+
+              '\nexternal window wall area: '+str(self.extWallWinArea)
               +'\n')
     
 #%% ---------------------------------------------------------------------------------------------------

@@ -19,17 +19,20 @@ city.preprocessing()
 city.city_creation()
 
 # Evaluating Urban shadings between buildings
-city.urban_shading_and_canopy()
+city.surfaces_and_shading()
 
 # Calculation buildings parameters
 city.buildings_params_and_loads()
 
-# Design power of buildings and plants creation
+# Evaluating Urban shadings between buildings
+city.urban_canopy()
+
+# # Design power of buildings and plants creation
 city.plants_design_and_creation()
 
-# Annual simulation
+# # Annual simulation
 city.simulation()
 
-# Output processing
+# # Output processing
 city.output()
 

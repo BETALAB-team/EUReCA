@@ -746,7 +746,7 @@ class SurfaceInternalMass():
         if not isinstance(name, str):
             raise TypeError(f'ERROR SurfaceInternalMass class geometry, name is not a string: name {name}') 
         if not isinstance(area, float) or area < 0.:
-            raise TypeError(f'ERROR SurfaceInternalMass class geometry, area is not a positive float: rh_gross {rh_gross}') 
+            raise TypeError(f'ERROR SurfaceInternalMass class geometry, area is not a positive float: area {area}') 
         if not surfType in ['IntWall' , 'IntCeiling' ,'IntFloor']:
             raise TypeError(f'ERROR SurfaceInternalMass class geometry, surfType is not a correct string: surfType {surfType}')
 
