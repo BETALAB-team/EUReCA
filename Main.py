@@ -27,12 +27,12 @@ city.buildings_params_and_loads()
 # Evaluating Urban shadings between buildings
 city.urban_canopy()
 
-# # # Design power of buildings and plants creation
-# city.plants_design_and_creation()
+# Design power of buildings and plants creation
+city.plants_design_and_creation()
 
-# # # Annual simulation
-# city.simulation()
+# Annual simulation
+city.simulation()
 
-# # # Output processing
-# city.output()
+# Output processing
+city.output()
 
