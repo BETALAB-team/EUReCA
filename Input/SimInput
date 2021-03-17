@@ -4,10 +4,10 @@ Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw 
                'envelopes' : 'Envelopes.xlsx',                      # STR : envelopes file name
                'end-uses' : 'ScheduleSemp.xlsx',                    # STR : end-uses file name
                'plants' : 'PlantsList.xlsx',                        # STR : plants file name
-               'json' : 'PiovegoRestricted.geojson',                     # STR : json file name
+               'json' : 'Belzoni_508_h_c_plant_no_ed_grandi.json',                     # STR : json file name
                'default_input_path' : os.path.join('.','Input'),    # STR : input path file name
                'end-uses_mod' : 'Daily',                            # STR : Daily or Yearly
-               'json_mod' : 'geojson'                              # STR : geojson or cityjson
+               'json_mod' : 'cityjson'                              # STR : geojson or cityjson
                }
 
 Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless

@@ -391,16 +391,17 @@ class City():
         for x in range(len(self.all_Vertsurf)):
             for y in range(len(self.all_Vertsurf)):
                 if y > x:
-                    
+                    # Calculation of the distance between the centroids of the two surfaces under examination
+                    dist = math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0]-self.all_Vertsurf[y][0].centroid_coord[0])**2+(self.all_Vertsurf[x][0].centroid_coord[1]-self.all_Vertsurf[y][0].centroid_coord[1])**2)
+                        
                     # Reducing the area of the coincidence surfaces
-                    if self.all_Vertsurf[x][0].checkSurfaceCoincidence(self.all_Vertsurf[y][0]):
+                    if dist < 15.:
+                        if self.all_Vertsurf[x][0].checkSurfaceCoincidence(self.all_Vertsurf[y][0]):
                             intersectionArea = self.all_Vertsurf[x][0].calculateIntersectionArea(self.all_Vertsurf[y][0])
                             self.all_Vertsurf[y][0].reduceArea(intersectionArea)
                             self.all_Vertsurf[x][0].reduceArea(intersectionArea)
                     
                     if shading_calc:        
-                        # Calculation of the distance between the centroids of the two surfaces under examination
-                        dist = math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0]-self.all_Vertsurf[y][0].centroid_coord[0])**2+(self.all_Vertsurf[x][0].centroid_coord[1]-self.all_Vertsurf[y][0].centroid_coord[1])**2)
                         if dist == 0.0:
                             pass
                         else:
