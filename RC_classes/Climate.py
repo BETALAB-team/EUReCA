@@ -152,7 +152,7 @@ class Road(object):
         
         # Check input data type
         
-        if not isinstance(t, np.int32):
+        if not isinstance(t, np.int64) and not isinstance(t, np.int32) and not isinstance(t,int):
             raise TypeError(f'ERROR Road class climate_rev_v1, time step {t}, t must be an integer: t {t}')
         if not isinstance(T_urb_0, float):
             raise TypeError(f'ERROR Road class climate_rev_v1, time step {t}, T_urb_0 must be an float: T_urb_0 {T_urb_0}')
@@ -195,7 +195,7 @@ class Road(object):
         
         # Check input data type
         
-        if not isinstance(t, np.int32):
+        if not isinstance(t, np.int64) and not isinstance(t, np.int32) and not isinstance(t,int):
             raise TypeError(f'ERROR Road class climate_rev_v1, t must be an integer: t {t}')             
         
         self.T_r_0 = self.T_r
@@ -315,7 +315,7 @@ class Soil():
         
         # Check input data type
         
-        if not isinstance(t, np.int32):
+        if not isinstance(t, np.int64) and not isinstance(t, np.int32) and not isinstance(t,int):
             raise TypeError(f'ERROR Soil class climate_rev_v1, time step {t}, t must be an integer: t {t}')
         if not isinstance(T_air_rural, float):
             raise TypeError(f'ERROR Soil class climate_rev_v1, time step {t}, T_air_rural must be an float: T_air_rural {T_air_rural}')
@@ -625,7 +625,8 @@ class UrbanCanyon(object):
         
         # Check input data type
         
-        if not isinstance(t, np.int32):
+        if not isinstance(t, np.int64) and not isinstance(t, np.int32) and not isinstance(t,int):
+            print(type(t))
             raise TypeError(f'ERROR Urban canyon class climate_rev_v1, time step {t}, t must be an integer: t {t}')
         if not isinstance(T_air_rural, float):
             raise TypeError(f'ERROR Urban canyon class climate_rev_v1, time step {t}, T_air_rural must be an float: T_air_rural {T_air_rural}')
