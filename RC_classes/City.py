@@ -814,10 +814,9 @@ class City():
             raise TypeError(f'ERROR JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
 
         # Check input data quality
-        
-        for t in time:
-            if not isinstance(time[t], np.int32):
-                wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}")
+        print(time.dtype)
+        if not time.dtype == np.dtype('int64') and not time.dtype == np.dtype('int32'):
+            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}")
        
         # Energy simulation of the city
         for t in time:

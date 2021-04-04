@@ -204,10 +204,10 @@ class AirHandlingUnit:
                 self.x_sup = x_ext
         SatCond, psat = checkSatCond(T_int,x_int,self.p_atm)
         if SatCond == False:
-            wrn('ERROR  AHUCalc method, bd {self.bd_name}, time step {t}, Zone conditions outside saturation limit')
+            wrn(f'ERROR  AHUCalc method, bd {self.bd_name}, time step {t}, Zone conditions outside saturation limit')
         SatCond, psat = checkSatCond(self.T_supAHU[t],self.x_sup,self.p_atm)
         if SatCond == False:
-            wrn('ERROR:  AHUCalc method, bd {self.bd_name}, time step {t}, Supply conditions outside saturation limit')
+            wrn(f'ERROR:  AHUCalc method, bd {self.bd_name}, time step {t}, Supply conditions outside saturation limit')
         
         
         # Pre-processing on Heat Recovery and Mixer
