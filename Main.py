@@ -5,7 +5,7 @@ import numpy as np
 from RC_classes.Simulation import Sim
 
 
-# Creation of the Sim object
+# Creation of the Sim objectexit
 city = Sim()
 
 # Loading the input data
@@ -36,3 +36,5 @@ city.simulation()
 # Output processing
 city.output()
 
+
+# %%
