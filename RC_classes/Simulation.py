@@ -92,6 +92,12 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+
+           
             
         UWG_data : dictionary
                       Dictionary that includes Urban data for Urban Weather Gen
@@ -227,6 +233,10 @@ class Sim():
             self.distToll = float(Sim_input['toll_dist'])
             self.thetaToll = float(Sim_input['toll_theta'])
             self.R_f = float(Sim_input['R_f'])
+
+            self.DHW_calc = float(Sim_input['DHW_calc'])
+            self.DHW_Volume_calc_method = float(Sim_input['Volume_calc_method'])
+            self.DHW_calc_precision = float(Sim_input['Precision'])
             
         except KeyError:
             raise KeyError(f"""ERROR 
@@ -360,6 +370,10 @@ class Sim():
             self.distToll = float(self.excel_input.loc[19])
             self.thetaToll = float(self.excel_input.loc[20])
             self.R_f = float(self.excel_input.loc[21])
+
+            self.DHW_calc = bool(self.excel_input.loc[22])
+            self.DHW_Volume_calc_method = str(self.excel_input.loc[23])
+            self.DHW_calc_precision = str(self.excel_input.loc[24])
             
         except ValueError:
             raise ValueError(f"""ERROR 
@@ -388,7 +402,7 @@ class Sim():
                                """)
             
         try:
-            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 37)
+            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 40)
             self.excel_input = self.excel_input['Unnamed: 2']
             self.UWGCalc =  bool(self.excel_input.loc[0])
             self.UWG_data = {       
