@@ -14,6 +14,7 @@ from RC_classes.Envelope import loadEnvelopes
 from RC_classes.Geometry import Surface
 from RC_classes.Climate import UrbanCanyon
 from RC_classes.auxiliary_functions import wrn
+from RC_classes.DHW import DHW
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
