@@ -40,10 +40,7 @@ class DHW():
     
     def __init__(self, volume_unit, numunits, time_step):
         
-        
-        hoja_pdf=pd.read_excel('C:/Users/ROBERTO/Desktop/ProjectPython/input/pdf_usi_crema-furlan.xlsx',sheet_name='pdf')
-       
-        
+                
         vol_total_drawoff=self.vol_aver_drawoff*self.time_aver_drawoff
         
         vol_total_drawoff_use=np.zeros((self.nuses))

@@ -234,9 +234,9 @@ class Sim():
             self.thetaToll = float(Sim_input['toll_theta'])
             self.R_f = float(Sim_input['R_f'])
 
-            self.DHW_calc = float(Sim_input['DHW_calc'])
-            self.DHW_Volume_calc_method = float(Sim_input['Volume_calc_method'])
-            self.DHW_calc_precision = float(Sim_input['Precision'])
+            self.DHW_calc = bool(Sim_input['DHW_calc'])
+            self.DHW_Volume_calc_method = str(Sim_input['Volume_calc_method'])
+            self.DHW_calc_precision = str(Sim_input['Precision'])
             
         except KeyError:
             raise KeyError(f"""ERROR 
@@ -262,7 +262,10 @@ class Sim():
                                toll_dist
                                toll_theta
                                R_f
-
+                            
+                               DHW_calc          
+                               Volume_calc_method
+                               Precision
                                
                             The actual dictionary keys are: {Input_files.keys()} 
                            """)
@@ -289,6 +292,11 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+
                            The actual data are: {Sim_input.values()} 
                            """)
 
@@ -399,6 +407,11 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+
                                """)
             
         try:

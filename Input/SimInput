@@ -32,11 +32,11 @@ Sim_input = {'year' : 2020,                                 # INT : the year, it
              'toll_az' : float(80),                         # FLOAT : Semi-tollerance on azimuth of shading surface [°]
              'toll_dist' : float(100),                      # FLOAT : Tollerance on distance of shading surface [m]
              'toll_theta' : float(80),                      # FLOAT : Semi-tollerance on position of the shading surfaces [°]
-             'R_f' : float(0)                               # FLOAT : Reduction factor of the direct solar radiation due to the shading effect [0-1]
+             'R_f' : float(0),                               # FLOAT : Reduction factor of the direct solar radiation due to the shading effect [0-1]
 
              'DHW_calc' : True,                      	    # BOOL : True or False (only for residential)
              'Volume_calc_method' : 'Static',               # STRING : Methods for the calculation of the flow rate: 'Static', 'ISO 11300-2'
-             'Precision' : float(0)                         # STRING : If yearlyor timestep claculation: 'Timestep', 'Year'
+             'Precision' : 'Time step'                          # STRING : If yearlyor timestep claculation: 'Timestep', 'Year'
 
             }
 
