@@ -36,5 +36,4 @@ city.simulation()
 # Output processing
 city.output()
 
-
 # %%

@@ -624,6 +624,7 @@ class City():
                 self.buildings[self.city.loc[i]['id']].geometrical_processing()
                 self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
                 if dhw_calc and (self.buildings[self.city.loc[i]['id']].end_use in dhw_arch):
+                    print(dhw_calc)
                     self.buildings[self.city.loc[i]['id']].dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):

@@ -381,7 +381,7 @@ class Sim():
             self.thetaToll = float(self.excel_input.loc[20])
             self.R_f = float(self.excel_input.loc[21])
 
-            self.DHW_calc = bool(self.excel_input.loc[22])
+            self.DHW_calc = True if ((self.excel_input.loc[22]) == 'True') else False
             self.DHW_Volume_calc_method = str(self.excel_input.loc[23])
             self.DHW_calc_precision = str(self.excel_input.loc[24])
             self.DHW_calc_archetypes = str(self.excel_input.loc[25]).split(';')
@@ -783,15 +783,18 @@ class Sim():
         '''
         
         if self.DHW_calc:
-            dhw_cons = pd.DataFrame(index = self.city.buildings.keys() ,columns = ['Consumption [kWh/y]','Consumption [kWh/m2 y]'])
+            dhw_cons = pd.DataFrame(index = self.city.buildings.keys() ,columns = ['Consumption [kWh/y]','Consumption [kWh/m2 y]','Consumption [l/d dwelling]'])
             for bd in self.city.buildings.keys():
                 building = self.city.buildings[bd]
                 try:
-                    dhw_cons['Consumption [kWh/y]'] = building.Q_DHW
-                    dhw_cons['Consumption [kWh/m2 y]'] = building.q_DHW
-                except NameError:
-                    dhw_cons['Consumption [kWh/y]'] = 0
-                    dhw_cons['Consumption [kWh/m2 y]'] = 0
+                    dhw_cons.loc[bd]['Consumption [kWh/y]'] = building.Q_DHW
+                    dhw_cons.loc[bd]['Consumption [kWh/m2 y]'] = building.q_DHW
+                    dhw_cons.loc[bd]['Consumption [l/d dwelling]'] = building.dhw_prof.Volume_meanb1
+                except AttributeError:
+                    dhw_cons.loc[bd]['Consumption [kWh/y]'] = 0
+                    dhw_cons.loc[bd]['Consumption [kWh/m2 y]'] = 0
+                    dhw_cons.loc[bd]['Consumption [l/d dwelling]'] = 0
+                    
                 
             i=0
             columns = []
@@ -800,7 +803,7 @@ class Sim():
                 columns.append(bd)
                 try:
                     dhw_prof[i]=self.city.buildings[bd].dhw_prof.volume_profile
-                except NameError:
+                except AttributeError:
                     dhw_prof[i]=np.zeros(365*24*12)
                 i += 1    
                 
