@@ -17,6 +17,7 @@ from RC_classes.AHU import AirHandlingUnit
 from RC_classes.PVPlant import DistrictPVGIS
 from RC_classes.BuildingsPlants import Plants
 from RC_classes.WeatherData import  Weather
+from RC_classes.DHW import  DHW
 #from mpl_toolkits.mplot3d import Axes3D
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -1889,7 +1890,59 @@ class Building:
         self.BuildPV = DistrictPVGIS(self.extRoofArea,self.l)
         self.BuildPV.PV_calc(weather)
         
+    def dhw_calculation(self, volume_method = None, ts = None):
+        '''
+        This calculates the demand for the DHW (method for residential buildings only)
         
+        Parameters
+            ----------
+            volume_method  : string
+                'Static' model or 'ISO 11300-2' model
+            ts : string
+                'Year' for yearly demand, 'Time step' for a 5 minutes vector prediction
+
+        Returns
+        -------
+        None.    
+        '''
+
+        # Check values
+        if volume_method not in ['Static' ,'ISO 11300-2']:
+            raise ValueError(f'Building class, dhw_calculation, bd {self.name}. Give a proper volume calculation model: "Static" ,"ISO 11300-2". \nvolume_method: {volume_method}')
+        if ts not in ['Year' ,'Time step']:
+            raise ValueError(f'Building class, dhw_calculation, bd {self.name}. Give a proper time step: "Year" ,"Time step".\nts: {ts}')
+
+        dhw_vol_single = 200 # l/d dwelling
+        
+        if volume_method == 'ISO 11300-2':
+            # Calculation of demand and volume with ISO 11300
+            # Vw [lt/day] = a [lt/(m2 day)] * Af [m2] + b [lt/day]    
+            Af = self.total_area/self.nFloors  
+            if Af<=35:               a=0.0; b=50.0
+            elif 35<Af<=50:          a=2.667; b=-43.33
+            elif 50<Af<=200:         a=1.067; b=36.67               
+            elif Af>200:             a=0.0; b=250.0
+            
+            # Water Need [m3/day]
+            Vw_single = (a*Af + b)/1000 
+            # Water Need [l/day]
+            dhw_vol_single = Vw_single*1000
+        
+        if ts == 'Time step':
+            # Calculation of DHW profiles
+            self.dhw_prof = DHW(dhw_vol_single, self.nFloors, 5)
+            dhw_vol_single = self.dhw_prof.Volume_meanb1
+        
+        self.dhw_vol = dhw_vol_single * self.nFloors # 1 dwelling for each floor        
+
+        Cw = 1.162     # [Wh/(kg K)]
+        DTw = 25       # [°C]
+        days = 365     # [days/year] 
+        rho = 994.1    # [kg/m^3]
+
+        self.Q_DHW = rho*(Cw/1000)*self.dhw_vol/1000*DTw*days      # [kWh/year]
+        self.q_DHW = self.Q_DHW/self.total_area                                          # [kWh/(mq year)]
+
     def BDdesigndays_Heating(self,Plant_calc):
         '''
         This method allows to calculate Heating maximum power required by

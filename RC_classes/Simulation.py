@@ -15,7 +15,6 @@ from RC_classes.BuildingsPlants import loadPlants
 #%% ---------------------------------------------------------------------------------------------------
 #%% Sim class     
 
-
 class Sim():
     '''
     This class manages the simulation of the district
@@ -237,6 +236,7 @@ class Sim():
             self.DHW_calc = bool(Sim_input['DHW_calc'])
             self.DHW_Volume_calc_method = str(Sim_input['Volume_calc_method'])
             self.DHW_calc_precision = str(Sim_input['Precision'])
+            self.DHW_calc_archetypes = str(Sim_input['DHW End-uses']).split(';')
             
         except KeyError:
             raise KeyError(f"""ERROR 
@@ -266,7 +266,8 @@ class Sim():
                                DHW_calc          
                                Volume_calc_method
                                Precision
-                               
+                               DHW End-uses
+
                             The actual dictionary keys are: {Input_files.keys()} 
                            """)
         except ValueError:
@@ -296,6 +297,7 @@ class Sim():
                                DHW_calc : Bool           
                                Volume_calc_method : String
                                Precision : String
+                               DHW End-uses : String
 
                            The actual data are: {Sim_input.values()} 
                            """)
@@ -382,6 +384,7 @@ class Sim():
             self.DHW_calc = bool(self.excel_input.loc[22])
             self.DHW_Volume_calc_method = str(self.excel_input.loc[23])
             self.DHW_calc_precision = str(self.excel_input.loc[24])
+            self.DHW_calc_archetypes = str(self.excel_input.loc[25]).split(';')
             
         except ValueError:
             raise ValueError(f"""ERROR 
@@ -411,11 +414,12 @@ class Sim():
                                DHW_calc : Bool           
                                Volume_calc_method : String
                                Precision : String
+                               DHW End-uses : String
 
                                """)
             
         try:
-            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 40)
+            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 41)
             self.excel_input = self.excel_input['Unnamed: 2']
             self.UWGCalc =  bool(self.excel_input.loc[0])
             self.UWG_data = {       
@@ -588,7 +592,12 @@ class Sim():
         
         start = tm.time()
         
-        self.city.paramsandloads(self.envelopes, self.sched, self.weather, mode = self.json_mode)
+        dhw_params = {'dhw_calc' : self.DHW_calc,
+                      'dhw_vol_calc': self.DHW_Volume_calc_method,
+                      'dhw_ts': self.DHW_calc_precision,
+                      'dhw_arch': self.DHW_calc_archetypes}
+                      
+        self.city.paramsandloads(self.envelopes, self.sched, self.weather, mode = self.json_mode, DHW_params = dhw_params)
         
         end = tm.time()
                 
@@ -772,6 +781,38 @@ class Sim():
         if mode == 'geojson':
             Padua.complexmerge()
         '''
+        
+        if self.DHW_calc:
+            dhw_cons = pd.DataFrame(index = self.city.buildings.keys() ,columns = ['Consumption [kWh/y]','Consumption [kWh/m2 y]'])
+            for bd in self.city.buildings.keys():
+                building = self.city.buildings[bd]
+                try:
+                    dhw_cons['Consumption [kWh/y]'] = building.Q_DHW
+                    dhw_cons['Consumption [kWh/m2 y]'] = building.q_DHW
+                except NameError:
+                    dhw_cons['Consumption [kWh/y]'] = 0
+                    dhw_cons['Consumption [kWh/m2 y]'] = 0
+                
+            i=0
+            columns = []
+            dhw_prof = np.zeros([nb,365*24*12])
+            for bd in self.city.buildings.keys():
+                columns.append(bd)
+                try:
+                    dhw_prof[i]=self.city.buildings[bd].dhw_prof.volume_profile
+                except NameError:
+                    dhw_prof[i]=np.zeros(365*24*12)
+                i += 1    
+                
+            dhw_prof = dhw_prof.transpose()  
+            
+            if self.StampOutputReport:
+                pd.DataFrame(data = dhw_prof, columns = columns).to_csv(os.path.join('OutputReport',self.model,'DHW_profile.csv'))
+                dhw_cons.to_csv(os.path.join('OutputReport',self.model,'DHW_consumption.csv'))
+            
+                
+                
+            
         
         end = tm.time()
                 

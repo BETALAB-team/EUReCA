@@ -36,8 +36,8 @@ Sim_input = {'year' : 2020,                                 # INT : the year, it
 
              'DHW_calc' : True,                      	    # BOOL : True or False (only for residential)
              'Volume_calc_method' : 'Static',               # STRING : Methods for the calculation of the flow rate: 'Static', 'ISO 11300-2'
-             'Precision' : 'Time step'                          # STRING : If yearlyor timestep claculation: 'Timestep', 'Year'
-
+             'Precision' : 'Time step',                          # STRING : If yearly or timestep claculation: 'Timestep', 'Year'
+	     'DHW End-uses': 'Residential;Residenziale'     # STRING : string with all the residential end-uses list (simicolons separator) 
             }
 
 

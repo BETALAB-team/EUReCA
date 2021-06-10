@@ -547,7 +547,7 @@ class City():
                     self.all_Vertsurf[x][0].shading_effect = shading_eff_01
 
     
-    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson'):
+    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson', DHW_params = {'dhw_calc': False}):
         
         '''
         This method permits firstly to conclude the geometrical 
@@ -566,6 +566,12 @@ class City():
             object of the class weather WeatherData module
         mode : str
             cityjson or geojson mode calculation
+        DHW_params : dict
+            dict with dhw params, example:
+            dhw_params = {'dhw_calc' : True,
+                      'dhw_vol_calc': 'Static',
+                      'dhw_ts': 'Yearly',
+                      'dhw_arch': ['Residential']}
         
         Returns
         -------
@@ -583,6 +589,8 @@ class City():
             raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
             raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
+        if not isinstance(DHW_params, dict):
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, DHW_params is not a dict: DHW_params {DHW_params}')
         
         # Check input data quality
         
@@ -592,19 +600,31 @@ class City():
             wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
         if mode != 'geojson' and  mode != 'cityjson':
             wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
-
+        if not bool(DHW_params['dhw_calc']):
+            wrn(f"WARNING JsonCity class - paramsandloads, the DHW calculation (y/n) is not a bool..... DHW calculation {DHW_params['dhw_calc']}")
+        
         # Parameters and thermal loads calculation 
+
+        dhw_calc = DHW_params['dhw_calc']
+        dhw_vol_calc = DHW_params['dhw_vol_calc']
+        dhw_ts = DHW_params['dhw_ts']
+        dhw_arch = DHW_params['dhw_arch']
+
         if mode == 'cityjson':
             for bd in self.buildings.values():
-                self.archId = 1
+                # self.archId = 1
                 bd.geometrical_processing()
                 bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
+                if dhw_calc and (bd.end_use in dhw_arch):
+                    bd.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
+                
         
         elif mode == 'geojson':
             for i in self.city.index:
                 self.buildings[self.city.loc[i]['id']].geometrical_processing()
                 self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
-
+                if dhw_calc and (self.buildings[self.city.loc[i]['id']].end_use in dhw_arch):
+                    self.buildings[self.city.loc[i]['id']].dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):
         
