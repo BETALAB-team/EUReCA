@@ -15,7 +15,6 @@ from RC_classes.BuildingsPlants import loadPlants
 #%% ---------------------------------------------------------------------------------------------------
 #%% Sim class     
 
-
 class Sim():
     '''
     This class manages the simulation of the district
@@ -92,6 +91,12 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+
+           
             
         UWG_data : dictionary
                       Dictionary that includes Urban data for Urban Weather Gen
@@ -227,6 +232,11 @@ class Sim():
             self.distToll = float(Sim_input['toll_dist'])
             self.thetaToll = float(Sim_input['toll_theta'])
             self.R_f = float(Sim_input['R_f'])
+
+            self.DHW_calc = bool(Sim_input['DHW_calc'])
+            self.DHW_Volume_calc_method = str(Sim_input['Volume_calc_method'])
+            self.DHW_calc_precision = str(Sim_input['Precision'])
+            self.DHW_calc_archetypes = str(Sim_input['DHW End-uses']).split(';')
             
         except KeyError:
             raise KeyError(f"""ERROR 
@@ -252,8 +262,12 @@ class Sim():
                                toll_dist
                                toll_theta
                                R_f
+                            
+                               DHW_calc          
+                               Volume_calc_method
+                               Precision
+                               DHW End-uses
 
-                               
                             The actual dictionary keys are: {Input_files.keys()} 
                            """)
         except ValueError:
@@ -279,6 +293,12 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+                               DHW End-uses : String
+
                            The actual data are: {Sim_input.values()} 
                            """)
 
@@ -360,6 +380,11 @@ class Sim():
             self.distToll = float(self.excel_input.loc[19])
             self.thetaToll = float(self.excel_input.loc[20])
             self.R_f = float(self.excel_input.loc[21])
+
+            self.DHW_calc = True if ((self.excel_input.loc[22]) == 'True') else False
+            self.DHW_Volume_calc_method = str(self.excel_input.loc[23])
+            self.DHW_calc_precision = str(self.excel_input.loc[24])
+            self.DHW_calc_archetypes = str(self.excel_input.loc[25]).split(';')
             
         except ValueError:
             raise ValueError(f"""ERROR 
@@ -385,10 +410,16 @@ class Sim():
                                toll_dist : float
                                toll_theta : float
                                R_f : float
+
+                               DHW_calc : Bool           
+                               Volume_calc_method : String
+                               Precision : String
+                               DHW End-uses : String
+
                                """)
             
         try:
-            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 37)
+            self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 41)
             self.excel_input = self.excel_input['Unnamed: 2']
             self.UWGCalc =  bool(self.excel_input.loc[0])
             self.UWG_data = {       
@@ -561,7 +592,12 @@ class Sim():
         
         start = tm.time()
         
-        self.city.paramsandloads(self.envelopes, self.sched, self.weather, mode = self.json_mode)
+        dhw_params = {'dhw_calc' : self.DHW_calc,
+                      'dhw_vol_calc': self.DHW_Volume_calc_method,
+                      'dhw_ts': self.DHW_calc_precision,
+                      'dhw_arch': self.DHW_calc_archetypes}
+                      
+        self.city.paramsandloads(self.envelopes, self.sched, self.weather, mode = self.json_mode, DHW_params = dhw_params)
         
         end = tm.time()
                 
@@ -745,6 +781,41 @@ class Sim():
         if mode == 'geojson':
             Padua.complexmerge()
         '''
+        
+        if self.DHW_calc:
+            dhw_cons = pd.DataFrame(index = self.city.buildings.keys() ,columns = ['Consumption [kWh/y]','Consumption [kWh/m2 y]','Consumption [l/d dwelling]'])
+            for bd in self.city.buildings.keys():
+                building = self.city.buildings[bd]
+                try:
+                    dhw_cons.loc[bd]['Consumption [kWh/y]'] = building.Q_DHW
+                    dhw_cons.loc[bd]['Consumption [kWh/m2 y]'] = building.q_DHW
+                    dhw_cons.loc[bd]['Consumption [l/d dwelling]'] = building.dhw_prof.Volume_meanb1
+                except AttributeError:
+                    dhw_cons.loc[bd]['Consumption [kWh/y]'] = 0
+                    dhw_cons.loc[bd]['Consumption [kWh/m2 y]'] = 0
+                    dhw_cons.loc[bd]['Consumption [l/d dwelling]'] = 0
+                    
+                
+            i=0
+            columns = []
+            dhw_prof = np.zeros([nb,365*24*12])
+            for bd in self.city.buildings.keys():
+                columns.append(bd)
+                try:
+                    dhw_prof[i]=self.city.buildings[bd].dhw_prof.volume_profile
+                except AttributeError:
+                    dhw_prof[i]=np.zeros(365*24*12)
+                i += 1    
+                
+            dhw_prof = dhw_prof.transpose()  
+            
+            if self.StampOutputReport:
+                pd.DataFrame(data = dhw_prof, columns = columns).to_csv(os.path.join('OutputReport',self.model,'DHW_profile.csv'))
+                dhw_cons.to_csv(os.path.join('OutputReport',self.model,'DHW_consumption.csv'))
+            
+                
+                
+            
         
         end = tm.time()
                 
