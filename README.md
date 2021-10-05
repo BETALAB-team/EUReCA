@@ -5,7 +5,7 @@ The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua
 
 ## Python environment set up
-The tool is distributed via the GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** bottom and downloading the zip file.
+The tool is distributed via the GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** button and downloading the zip file.
 
 An eureca.yml file is also included in the repository. It provides the python packages needed to run the EUReCA simulation. 
 
