@@ -11,7 +11,7 @@ from cjio import cityjson
 from RC_classes.WeatherData import SolarPosition, Weather
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
-from RC_classes.Geometry import Surface
+from RC_classes.Geometry import Surface, normalAlternative
 from RC_classes.Climate import UrbanCanyon
 from RC_classes.auxiliary_functions import wrn
 from RC_classes.DHW import DHW
@@ -254,6 +254,10 @@ class City():
                 soffitto = []
                 z_pav = 0
                 z_soff = self.city.loc[i]['Height']
+                normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
+                if normal[2] > 0.: 
+                    # Just to adjust in case of anticlockwise perimeter
+                    coords.reverse() 
                 for n in range(len(coords)):
                     pavimento.append(coords[n]+[z_pav])
                     soffitto.append(coords[-n]+[z_soff])  
@@ -381,12 +385,12 @@ class City():
         # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
         self.all_Vertsurf = []
         
-        if mode == 'cityjson':
-            for bd in self.buildings.keys():
-                self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
-        if mode == 'geojson':
-            for i in self.city.index:
-                self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
+        # if mode == 'cityjson':
+        for bd in self.buildings.keys():
+            self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
+        # if mode == 'geojson':
+        #     for i in self.city.index:
+        #         self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
        
         # Each surface is compared with all the others
         for x in range(len(self.all_Vertsurf)):
