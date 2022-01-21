@@ -281,7 +281,7 @@ class City():
                 except KeyError:
                     self.cooling_plant = 'IdealLoad'
                     
-                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['Name'], 
+                self.buildings[str(self.city.loc[i]['id'])]=Building(self.city.loc[i]['Name'], 
                                                                 self.mode, 
                                                                 build_surf,
                                                                 self.city.loc[i]['Nfloors'],
@@ -625,11 +625,11 @@ class City():
         
         elif mode == 'geojson':
             for i in self.city.index:
-                self.buildings[self.city.loc[i]['id']].geometrical_processing()
-                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
-                if dhw_calc and (self.buildings[self.city.loc[i]['id']].end_use in dhw_arch):
-                    print(dhw_calc)
-                    self.buildings[self.city.loc[i]['id']].dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
+                idx = str(self.city.loc[i]['id'])
+                self.buildings[idx].geometrical_processing()
+                self.buildings[idx].BDParamsandLoads(self.model,envelopes,sched_db,weather)
+                if dhw_calc and (self.buildings[idx].end_use in dhw_arch):
+                    self.buildings[idx].dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):
         
@@ -842,7 +842,7 @@ class City():
         # Check input data quality
         print(time.dtype)
         if not time.dtype == np.dtype('int64') and not time.dtype == np.dtype('int32'):
-            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}")
+            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time {time}")
        
         # Energy simulation of the city
         for t in time:
