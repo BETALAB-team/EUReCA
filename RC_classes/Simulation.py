@@ -365,17 +365,17 @@ class Sim():
                               [self.excel_input.loc[8],self.excel_input.loc[9]]],
                              dtype = int)
             self.time_to_regime = int(self.excel_input.loc[10])
-            self.DoDDcalc = bool(self.excel_input.loc[11])
-            self.DoPlantCalc = bool(self.excel_input.loc[12])
-            self.StampOutputReport = bool(self.excel_input.loc[13])
+            self.DoDDcalc = True if ((self.excel_input.loc[11]) == 'True') else False
+            self.DoPlantCalc = True if ((self.excel_input.loc[12]) == 'True') else False
+            self.StampOutputReport = True if ((self.excel_input.loc[13]) == 'True') else False
             
             
             self.azSubdiv = int(self.excel_input.loc[14])
             self.hSubdiv = int(self.excel_input.loc[15])
-            self.SolarCalc = bool(self.excel_input.loc[16])
+            self.SolarCalc = True if ((self.excel_input.loc[16]) == 'True') else False
             
             
-            self.ShadingCalc = bool(self.excel_input.loc[17])
+            self.ShadingCalc = True if ((self.excel_input.loc[17]) == 'True') else False
             self.azToll = float(self.excel_input.loc[18])
             self.distToll = float(self.excel_input.loc[19])
             self.thetaToll = float(self.excel_input.loc[20])
@@ -421,9 +421,9 @@ class Sim():
         try:
             self.excel_input = pd.read_excel(input_path, usecols = 'C', skiprows = 41)
             self.excel_input = self.excel_input['Unnamed: 2']
-            self.UWGCalc =  bool(self.excel_input.loc[0])
+            self.UWGCalc =  True if ((self.excel_input.loc[0]) == 'True') else False
             self.UWG_data = {       
-                            'UWG_calc' : bool(self.excel_input.loc[0]), 
+                            'UWG_calc' : self.UWGCalc, 
                             'Area' : float(self.excel_input.loc[1]),
                             'Diameter': float(self.excel_input.loc[2]),
                             'Perimeter': float(self.excel_input.loc[3]),

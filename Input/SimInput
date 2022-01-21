@@ -28,7 +28,7 @@ Sim_input = {'year' : 2020,                                 # INT : the year, it
              'hSubdiv' : 3,                                 # INT : Tilt subdivision
              'SolarCalc' : True,                           # BOOL : Need of a Solar Calculation?
  
-             'Shading_calc' : True,                         # BOOL : Select 'YES' or 'NO' to take into consideration the shading effect
+             'Shading_calc' : False,                         # BOOL : Select 'YES' or 'NO' to take into consideration the shading effect
              'toll_az' : float(80),                         # FLOAT : Semi-tollerance on azimuth of shading surface [°]
              'toll_dist' : float(100),                      # FLOAT : Tollerance on distance of shading surface [m]
              'toll_theta' : float(80),                      # FLOAT : Semi-tollerance on position of the shading surfaces [°]
