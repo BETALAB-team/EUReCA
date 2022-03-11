@@ -523,7 +523,25 @@ class Surface:
         if self.opaqueArea == 0:
             self.opaqueArea = 0.0000001                                        #Avoid zero division
             
-                        
+    def reduceInternalHoles(self,hole_area, hole_points_list, rh_gross = 1.):
+        self.area -= hole_area*rh_gross       
+        if self.area < 1e-10:
+            self.area = 0.0000001 
+        
+        self.opaqueArea = (1-self.wwr)*self.area
+        self.glazedArea = (self.wwr)*self.area
+        if self.glazedArea == 0:
+            self.glazedArea = 0.0000001                                        #Avoid zero division
+        if self.opaqueArea == 0:
+            self.opaqueArea = 0.0000001                                        #Avoid zero division
+
+        try:
+            self.internal_holes_list
+        except NameError:
+            self.internal_holes_list = []
+            
+        self.internal_holes_list.append(hole_points_list)
+        
     def maxHeight(self):
     
         '''
