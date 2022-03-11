@@ -15,6 +15,7 @@ from RC_classes.Geometry import Surface, normalAlternative
 from RC_classes.Climate import UrbanCanyon
 from RC_classes.auxiliary_functions import wrn
 from RC_classes.DHW import DHW
+import shapely
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
@@ -274,9 +275,21 @@ class City():
                     area_of_int_rings = []
                     for int_rings in g.interiors:
                         x,y = int_rings.coords.xy
-                        coords = np.dstack((x,y)).tolist()[0]
-                        list_of_int_rings.append(coords)
+                        coords_int = np.dstack((x,y)).tolist()[0]
+                        coords_int.pop()
+                        normal = normalAlternative([coords_int[n] + [z_pav] for n in range(len(coords_int))])
+                        if normal[2] > 0.: 
+                            # Just to adjust in case of anticlockwise perimeter
+                            coords_int.reverse() 
+                        list_of_int_rings.append(coords_int)
                         area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
+                        
+                        # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
+                        for n in range(len(coords_int)):
+                            build_surf.append([coords_int[n-1]+[z_soff],\
+                                                coords_int[n]+[z_soff],\
+                                                coords_int[n]+[z_pav],\
+                                                coords_int[n-1]+[z_pav]])\
                     
                     build_surf.append(pavimento)
                     build_surf.append(soffitto)
@@ -312,7 +325,9 @@ class City():
                                                                     self.rh_gross,
                                                                     self.heating_plant,
                                                                     self.cooling_plant,
-                                                                    weather)
+                                                                    weather,
+                                                                    list_of_int_rings = list_of_int_rings,
+                                                                    area_of_int_rings = area_of_int_rings)
                 
         else:
             sys.exit('Set a proper mode')
