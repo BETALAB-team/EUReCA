@@ -269,7 +269,15 @@ class City():
                                             coords[n]+[z_soff],\
                                             coords[n]+[z_pav],\
                                             coords[n-1]+[z_pav]])\
-                            
+                    
+                    list_of_int_rings = []
+                    area_of_int_rings = []
+                    for int_rings in g.interiors:
+                        x,y = int_rings.coords.xy
+                        coords = np.dstack((x,y)).tolist()[0]
+                        list_of_int_rings.append(coords)
+                        area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
+                    
                     build_surf.append(pavimento)
                     build_surf.append(soffitto)
                     self.rh_net = self.city.loc[i]['VolCoeff']
@@ -287,8 +295,8 @@ class City():
                         
                     if len(building_parts) > 1:
                         contatore_per_sotto_edifci += 1
-                        key = str(self.city.loc[i]['id']) + f"_{contatore_per_sotto_edifci}"
-                        name = self.city.loc[i]['Name'] + f"_{contatore_per_sotto_edifci}"
+                        key = str(self.city.loc[i]['id']) + f"_p{contatore_per_sotto_edifci}"
+                        name = self.city.loc[i]['Name'] + f"_p{contatore_per_sotto_edifci}"
                     else:
                         key = str(self.city.loc[i]['id'])
                         name = self.city.loc[i]['Name']
