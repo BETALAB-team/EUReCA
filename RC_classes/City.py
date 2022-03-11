@@ -243,56 +243,68 @@ class City():
             # Extrusion from the footprint operation
             for i in self.city.index:
                 self.jsonBuildings[self.city.loc[i]['id']] = self.city.loc[i].to_dict()
+                print(self.city.loc[i]['Name'])
                 # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-                g = [i for i in self.city.loc[i].geometry]
-                x,y = g[0].exterior.coords.xy
-                coords = np.dstack((x,y)).tolist()
-                coords=coords[0]
-                coords.pop()
-                build_surf=[]
-                pavimento = []
-                soffitto = []
-                z_pav = 0
-                z_soff = self.city.loc[i]['Height']
-                normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
-                if normal[2] > 0.: 
-                    # Just to adjust in case of anticlockwise perimeter
-                    coords.reverse() 
-                for n in range(len(coords)):
-                    pavimento.append(coords[n]+[z_pav])
-                    soffitto.append(coords[-n]+[z_soff])  
-                for n in range(len(coords)):
-                    build_surf.append([coords[n-1]+[z_soff],\
-                                        coords[n]+[z_soff],\
-                                        coords[n]+[z_pav],\
-                                        coords[n-1]+[z_pav]])\
-                        
-                build_surf.append(pavimento)
-                build_surf.append(soffitto)
-                self.rh_net = self.city.loc[i]['VolCoeff']
-                self.rh_gross = self.city.loc[i]['ExtWallCoeff']
-                
-                try:
-                    self.heating_plant = self.city.loc[i]['H_Plant']
-                except KeyError:
-                    self.heating_plant = 'IdealLoad'
-                try:
-                    self.cooling_plant = self.city.loc[i]['C_Plant']
-                except KeyError:
-                    self.cooling_plant = 'IdealLoad'
+                building_parts = [i for i in self.city.loc[i].geometry]
+                contatore_per_sotto_edifci = 0
+                for g in building_parts:
+                    x,y = g.exterior.coords.xy
+                    coords = np.dstack((x,y)).tolist()
+                    coords=coords[0]
+                    coords.pop()
+                    build_surf=[]
+                    pavimento = []
+                    soffitto = []
+                    z_pav = 0
+                    z_soff = self.city.loc[i]['Height']
+                    normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
+                    if normal[2] > 0.: 
+                        # Just to adjust in case of anticlockwise perimeter
+                        coords.reverse() 
+                    for n in range(len(coords)):
+                        pavimento.append(coords[n]+[z_pav])
+                        soffitto.append(coords[-n]+[z_soff])  
+                    for n in range(len(coords)):
+                        build_surf.append([coords[n-1]+[z_soff],\
+                                            coords[n]+[z_soff],\
+                                            coords[n]+[z_pav],\
+                                            coords[n-1]+[z_pav]])\
+                            
+                    build_surf.append(pavimento)
+                    build_surf.append(soffitto)
+                    self.rh_net = self.city.loc[i]['VolCoeff']
+                    self.rh_gross = self.city.loc[i]['ExtWallCoeff']
                     
-                self.buildings[str(self.city.loc[i]['id'])]=Building(self.city.loc[i]['Name'], 
-                                                                self.mode, 
-                                                                build_surf,
-                                                                self.city.loc[i]['Nfloors'],
-                                                                self.city.loc[i]['Use'],                                                                                                                             
-                                                                envelopes,
-                                                                self.city.loc[i]['Age'],
-                                                                self.rh_net,
-                                                                self.rh_gross,
-                                                                self.heating_plant,
-                                                                self.cooling_plant,
-                                                                weather)
+                    try:
+                        self.heating_plant = self.city.loc[i]['H_Plant']
+                    except KeyError:
+                        self.heating_plant = 'IdealLoad'
+                    try:
+                        self.cooling_plant = self.city.loc[i]['C_Plant']
+                    except KeyError:
+                        self.cooling_plant = 'IdealLoad'
+                        
+                        
+                    if len(building_parts) > 1:
+                        contatore_per_sotto_edifci += 1
+                        key = str(self.city.loc[i]['id']) + f"_{contatore_per_sotto_edifci}"
+                        name = self.city.loc[i]['Name'] + f"_{contatore_per_sotto_edifci}"
+                    else:
+                        key = str(self.city.loc[i]['id'])
+                        name = self.city.loc[i]['Name']
+                        
+                    self.buildings[key]=Building(name, 
+                                                                    self.mode, 
+                                                                    build_surf,
+                                                                    self.city.loc[i]['Nfloors'],
+                                                                    self.city.loc[i]['Use'],                                                                                                                             
+                                                                    envelopes,
+                                                                    self.city.loc[i]['Age'],
+                                                                    self.rh_net,
+                                                                    self.rh_gross,
+                                                                    self.heating_plant,
+                                                                    self.cooling_plant,
+                                                                    weather)
                 
         else:
             sys.exit('Set a proper mode')
