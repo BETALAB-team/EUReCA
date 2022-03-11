@@ -1589,7 +1589,9 @@ class Building:
     def __init__(self,buildingName,mode,surfList,n_Floors,
                  end_use,envelopes,archId,
                  rh_net,rh_gross,
-                 heating_plant,cooling_plant,weather):
+                 heating_plant,cooling_plant,weather,
+                 list_of_int_rings = None,
+                 area_of_int_rings = None):
         '''
         Initializes the building object
         Builds up teh building geometry with respet to the input data
@@ -1743,6 +1745,13 @@ class Building:
                 surface = Surface('Building Surface '+str(i),weather.azSubdiv,weather.hSubdiv,self.wwr,rh_gross,surf)
                 if surface.type == 'ExtWall':
                     self.Vertsurf.append([surface,[]])
+                
+                if  isinstance(list_of_int_rings, list) and surface.type in ['GroundFloor','Roof']:
+                    for area, points in zip(area_of_int_rings, list_of_int_rings):
+                        if surface.type == 'Roof':
+                            points.reverse()
+                        surface.reduceInternalHoles(area, points, rh_gross = rh_gross)
+                    
                 self.buildingSurfaces['Building Surface '+str(i)]=surface
                 self.ii = i
                 

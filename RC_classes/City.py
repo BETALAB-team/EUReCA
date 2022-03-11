@@ -659,12 +659,11 @@ class City():
                 
         
         elif mode == 'geojson':
-            for i in self.city.index:
-                idx = str(self.city.loc[i]['id'])
-                self.buildings[idx].geometrical_processing()
-                self.buildings[idx].BDParamsandLoads(self.model,envelopes,sched_db,weather)
-                if dhw_calc and (self.buildings[idx].end_use in dhw_arch):
-                    self.buildings[idx].dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
+            for bd_id, building in self.buildings.items():
+                building.geometrical_processing()
+                building.BDParamsandLoads(self.model,envelopes,sched_db,weather)
+                if dhw_calc and (building.end_use in dhw_arch):
+                    building.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):
         

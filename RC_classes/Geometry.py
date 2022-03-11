@@ -537,7 +537,7 @@ class Surface:
 
         try:
             self.internal_holes_list
-        except NameError:
+        except AttributeError:
             self.internal_holes_list = []
             
         self.internal_holes_list.append(hole_points_list)
