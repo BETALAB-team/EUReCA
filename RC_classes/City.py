@@ -244,7 +244,6 @@ class City():
             # Extrusion from the footprint operation
             for i in self.city.index:
                 self.jsonBuildings[self.city.loc[i]['id']] = self.city.loc[i].to_dict()
-                print(self.city.loc[i]['Name'])
                 # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
                 building_parts = [i for i in self.city.loc[i].geometry]
                 contatore_per_sotto_edifci = 0
