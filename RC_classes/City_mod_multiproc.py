@@ -9,7 +9,7 @@ import time as tm
 from cjio import cityjson
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
-from RC_classes.Geometry import Surface
+from RC_classes.Geometry import Surface, normalAlternative
 from RC_classes.Climate import UrbanCanyon
 import time
 import concurrent.futures
@@ -143,6 +143,10 @@ class JsonCity():
                 soffitto = []
                 z_pav = 0
                 z_soff = self.city.loc[i].altezza
+                normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
+                if normal[2] > 0.: 
+                    # Just to adjust in case of anticlockwise perimeter
+                    coords.reverse() 
                 for n in range(len(coords)):
                     pavimento.append(coords[n]+[z_pav])
                     soffitto.append(coords[-n]+[z_soff])  
@@ -230,12 +234,12 @@ class JsonCity():
         start = tm.time()
         self.all_Vertsurf = []
         
-        if mode == 'cityjson':
-            for bd in self.buildings.keys():
-                self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
-        if mode == 'geojson':
-            for i in self.city.index:
-                self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
+        # if mode == 'cityjson':
+        for bd in self.buildings.keys():
+            self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
+        # if mode == 'geojson':
+        #     for i in self.city.index:
+        #         self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
                 
         end = tm.time()
         print('Shading effect Part1: ',end - start)

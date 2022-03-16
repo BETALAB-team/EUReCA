@@ -11,9 +11,11 @@ from cjio import cityjson
 from RC_classes.WeatherData import SolarPosition, Weather
 from RC_classes.thermalZone import Building, Complex
 from RC_classes.Envelope import loadEnvelopes
-from RC_classes.Geometry import Surface
+from RC_classes.Geometry import Surface, normalAlternative
 from RC_classes.Climate import UrbanCanyon
 from RC_classes.auxiliary_functions import wrn
+from RC_classes.DHW import DHW
+import shapely
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions
@@ -242,52 +244,90 @@ class City():
             # Extrusion from the footprint operation
             for i in self.city.index:
                 self.jsonBuildings[self.city.loc[i]['id']] = self.city.loc[i].to_dict()
+                print(self.city.loc[i]['Name'])
                 # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-                g = [i for i in self.city.loc[i].geometry]
-                x,y = g[0].exterior.coords.xy
-                coords = np.dstack((x,y)).tolist()
-                coords=coords[0]
-                coords.pop()
-                build_surf=[]
-                pavimento = []
-                soffitto = []
-                z_pav = 0
-                z_soff = self.city.loc[i]['Height']
-                for n in range(len(coords)):
-                    pavimento.append(coords[n]+[z_pav])
-                    soffitto.append(coords[-n]+[z_soff])  
-                for n in range(len(coords)):
-                    build_surf.append([coords[n-1]+[z_soff],\
-                                        coords[n]+[z_soff],\
-                                        coords[n]+[z_pav],\
-                                        coords[n-1]+[z_pav]])\
-                        
-                build_surf.append(pavimento)
-                build_surf.append(soffitto)
-                self.rh_net = self.city.loc[i]['VolCoeff']
-                self.rh_gross = self.city.loc[i]['ExtWallCoeff']
-                
-                try:
-                    self.heating_plant = self.city.loc[i]['H_Plant']
-                except KeyError:
-                    self.heating_plant = 'IdealLoad'
-                try:
-                    self.cooling_plant = self.city.loc[i]['C_Plant']
-                except KeyError:
-                    self.cooling_plant = 'IdealLoad'
+                building_parts = [i for i in self.city.loc[i].geometry]
+                contatore_per_sotto_edifci = 0
+                for g in building_parts:
+                    x,y = g.exterior.coords.xy
+                    coords = np.dstack((x,y)).tolist()
+                    coords=coords[0]
+                    coords.pop()
+                    build_surf=[]
+                    pavimento = []
+                    soffitto = []
+                    z_pav = 0
+                    z_soff = self.city.loc[i]['Height']
+                    normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
+                    if normal[2] > 0.: 
+                        # Just to adjust in case of anticlockwise perimeter
+                        coords.reverse() 
+                    for n in range(len(coords)):
+                        pavimento.append(coords[n]+[z_pav])
+                        soffitto.append(coords[-n]+[z_soff])  
+                    for n in range(len(coords)):
+                        build_surf.append([coords[n-1]+[z_soff],\
+                                            coords[n]+[z_soff],\
+                                            coords[n]+[z_pav],\
+                                            coords[n-1]+[z_pav]])\
                     
-                self.buildings[self.city.loc[i]['id']]=Building(self.city.loc[i]['Name'], 
-                                                                self.mode, 
-                                                                build_surf,
-                                                                self.city.loc[i]['Nfloors'],
-                                                                self.city.loc[i]['Use'],                                                                                                                             
-                                                                envelopes,
-                                                                self.city.loc[i]['Age'],
-                                                                self.rh_net,
-                                                                self.rh_gross,
-                                                                self.heating_plant,
-                                                                self.cooling_plant,
-                                                                weather)
+                    list_of_int_rings = []
+                    area_of_int_rings = []
+                    for int_rings in g.interiors:
+                        x,y = int_rings.coords.xy
+                        coords_int = np.dstack((x,y)).tolist()[0]
+                        coords_int.pop()
+                        normal = normalAlternative([coords_int[n] + [z_pav] for n in range(len(coords_int))])
+                        if normal[2] > 0.: 
+                            # Just to adjust in case of anticlockwise perimeter
+                            coords_int.reverse() 
+                        list_of_int_rings.append(coords_int)
+                        area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
+                        
+                        # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
+                        for n in range(len(coords_int)):
+                            build_surf.append([coords_int[n-1]+[z_soff],\
+                                                coords_int[n]+[z_soff],\
+                                                coords_int[n]+[z_pav],\
+                                                coords_int[n-1]+[z_pav]])\
+                    
+                    build_surf.append(pavimento)
+                    build_surf.append(soffitto)
+                    self.rh_net = self.city.loc[i]['VolCoeff']
+                    self.rh_gross = self.city.loc[i]['ExtWallCoeff']
+                    
+                    try:
+                        self.heating_plant = self.city.loc[i]['H_Plant']
+                    except KeyError:
+                        self.heating_plant = 'IdealLoad'
+                    try:
+                        self.cooling_plant = self.city.loc[i]['C_Plant']
+                    except KeyError:
+                        self.cooling_plant = 'IdealLoad'
+                        
+                        
+                    if len(building_parts) > 1:
+                        contatore_per_sotto_edifci += 1
+                        key = str(self.city.loc[i]['id']) + f"_p{contatore_per_sotto_edifci}"
+                        name = self.city.loc[i]['Name'] + f"_p{contatore_per_sotto_edifci}"
+                    else:
+                        key = str(self.city.loc[i]['id'])
+                        name = self.city.loc[i]['Name']
+                        
+                    self.buildings[key]=Building(name, 
+                                                                    self.mode, 
+                                                                    build_surf,
+                                                                    self.city.loc[i]['Nfloors'],
+                                                                    self.city.loc[i]['Use'],                                                                                                                             
+                                                                    envelopes,
+                                                                    self.city.loc[i]['Age'],
+                                                                    self.rh_net,
+                                                                    self.rh_gross,
+                                                                    self.heating_plant,
+                                                                    self.cooling_plant,
+                                                                    weather,
+                                                                    list_of_int_rings = list_of_int_rings,
+                                                                    area_of_int_rings = area_of_int_rings)
                 
         else:
             sys.exit('Set a proper mode')
@@ -380,12 +420,12 @@ class City():
         # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
         self.all_Vertsurf = []
         
-        if mode == 'cityjson':
-            for bd in self.buildings.keys():
-                self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
-        if mode == 'geojson':
-            for i in self.city.index:
-                self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
+        # if mode == 'cityjson':
+        for bd in self.buildings.keys():
+            self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
+        # if mode == 'geojson':
+        #     for i in self.city.index:
+        #         self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
        
         # Each surface is compared with all the others
         for x in range(len(self.all_Vertsurf)):
@@ -546,7 +586,7 @@ class City():
                     self.all_Vertsurf[x][0].shading_effect = shading_eff_01
 
     
-    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson'):
+    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson', DHW_params = {'dhw_calc': False}):
         
         '''
         This method permits firstly to conclude the geometrical 
@@ -565,6 +605,12 @@ class City():
             object of the class weather WeatherData module
         mode : str
             cityjson or geojson mode calculation
+        DHW_params : dict
+            dict with dhw params, example:
+            dhw_params = {'dhw_calc' : True,
+                      'dhw_vol_calc': 'Static',
+                      'dhw_ts': 'Yearly',
+                      'dhw_arch': ['Residential']}
         
         Returns
         -------
@@ -582,6 +628,8 @@ class City():
             raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
         if not isinstance(mode, str):
             raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
+        if not isinstance(DHW_params, dict):
+            raise TypeError(f'ERROR JsonCity class - paramsandloads, DHW_params is not a dict: DHW_params {DHW_params}')
         
         # Check input data quality
         
@@ -591,19 +639,31 @@ class City():
             wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
         if mode != 'geojson' and  mode != 'cityjson':
             wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
-
+        if not bool(DHW_params['dhw_calc']):
+            wrn(f"WARNING JsonCity class - paramsandloads, the DHW calculation (y/n) is not a bool..... DHW calculation {DHW_params['dhw_calc']}")
+        
         # Parameters and thermal loads calculation 
+
+        dhw_calc = DHW_params['dhw_calc']
+        dhw_vol_calc = DHW_params['dhw_vol_calc']
+        dhw_ts = DHW_params['dhw_ts']
+        dhw_arch = DHW_params['dhw_arch']
+
         if mode == 'cityjson':
             for bd in self.buildings.values():
-                self.archId = 1
+                # self.archId = 1
                 bd.geometrical_processing()
                 bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
+                if dhw_calc and (bd.end_use in dhw_arch):
+                    bd.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
+                
         
         elif mode == 'geojson':
-            for i in self.city.index:
-                self.buildings[self.city.loc[i]['id']].geometrical_processing()
-                self.buildings[self.city.loc[i]['id']].BDParamsandLoads(self.model,envelopes,sched_db,weather)
-
+            for bd_id, building in self.buildings.items():
+                building.geometrical_processing()
+                building.BDParamsandLoads(self.model,envelopes,sched_db,weather)
+                if dhw_calc and (building.end_use in dhw_arch):
+                    building.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):
         
@@ -816,7 +876,7 @@ class City():
         # Check input data quality
         print(time.dtype)
         if not time.dtype == np.dtype('int64') and not time.dtype == np.dtype('int32'):
-            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time[t] {time[t]}")
+            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time {time}")
        
         # Energy simulation of the city
         for t in time:

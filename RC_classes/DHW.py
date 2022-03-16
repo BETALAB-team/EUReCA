@@ -40,10 +40,7 @@ class DHW():
     
     def __init__(self, volume_unit, numunits, time_step):
         
-        
-        hoja_pdf=pd.read_excel('C:/Users/ROBERTO/Desktop/ProjectPython/input/pdf_usi_crema-furlan.xlsx',sheet_name='pdf')
-       
-        
+                
         vol_total_drawoff=self.vol_aver_drawoff*self.time_aver_drawoff
         
         vol_total_drawoff_use=np.zeros((self.nuses))
@@ -142,12 +139,12 @@ class DHW():
     
             Volume_use_unit[:,units0]=np.sum(Volume_use_array,axis=1)
     
-            if numunits>1:
-                Volume_use_arrayb0[:]=np.sum(Volume_use_unit)
-            else:
-                Volume_use_arrayb0[:]=Volume_use_unit[:,0]
+            # if numunits>1:
+            Volume_use_arrayb0=np.sum(Volume_use_unit, axis = 1)
+            # else:
+            #     Volume_use_arrayb0=Volume_use_unit[:,0]
     
-        Volume_totalb1 = np.sum(Volume_use_arrayb0[:])
+        Volume_totalb1 = np.sum(Volume_use_arrayb0)
         
         self.number_units = numunits
         
@@ -161,18 +158,18 @@ class DHW():
         print(f'The number of units is: {self.number_units}')
 
 
-
-V = np.random.randint(50,200,3)
-n_units = np.ones(20, dtype = int)
-ts = 5
-
-
-start = time.time()
-dhw_list = {}
-for i in range(3):
-    dhw_list[i] = DHW(V[i], n_units[i], ts)   
-
-total = time.time() - start
+if __name__ == '__main__':
+    V = np.random.randint(50,200,3)
+    n_units = 2*np.ones(20, dtype = int)
+    ts = 5
+    
+    
+    start = time.time()
+    dhw_list = {}
+    for i in range(3):
+        dhw_list[i] = DHW(V[i], n_units[i], ts)   
+    
+    total = time.time() - start
 
 
 #%%
