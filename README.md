@@ -104,3 +104,19 @@ In case you ran the command `city.output()` the folder OutputReport will be crea
 The report consists of several `output_variable.csv` files, including many outputs, as buildings' temperature, humidity, and consumption.
 
 A `warning.txt` file is printed, as well. 
+
+
+### How to cite EUReCA
+In case you want to use EUReCA for your own research project, please cite this paper: 
+@article{PRATAVIERA2021544,
+title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},
+journal = {Renewable Energy},
+volume = {173},
+pages = {544-560},
+year = {2021},
+issn = {0960-1481},
+doi = {https://doi.org/10.1016/j.renene.2021.03.144},
+url = {https://www.sciencedirect.com/science/article/pii/S0960148121005085},
+author = {Enrico Prataviera and Pierdonato Romano and Laura Carnieletto and Francesco Pirotti and Jacopo Vivian and Angelo Zarrella},
+keywords = {Urban building energy modelling, Lumped-capacitance thermal networks, Semantic georeferenced data, EUReCA, District simulation}
+}
