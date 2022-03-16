@@ -108,6 +108,8 @@ A `warning.txt` file is printed, as well.
 
 ### How to cite EUReCA
 In case you want to use EUReCA for your own research project, please cite this paper: 
+
+
 @article{PRATAVIERA2021544,
 title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},
 journal = {Renewable Energy},
