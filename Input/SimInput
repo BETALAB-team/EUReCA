@@ -2,12 +2,12 @@
 
 Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw file name
                'envelopes' : 'Envelopes.xlsx',                      # STR : envelopes file name
-               'end-uses' : 'ScheduleSemp.xlsx',                    # STR : end-uses file name
+               'end-uses' : 'ScheduleComp.xlsx',                    # STR : end-uses file name
                'plants' : 'PlantsList.xlsx',                        # STR : plants file name
-               'json' : 'PaduaRestricted.json',                     # STR : json file name
+               'json' : 'PiovegoRestricted_with_holes.geojson',                     # STR : json file name
                'default_input_path' : os.path.join('.','Input'),    # STR : input path file name
-               'end-uses_mod' : 'Daily',                            # STR : Daily or Yearly
-               'json_mod' : 'cityjson'                              # STR : geojson or cityjson
+               'end-uses_mod' : 'Yearly',                            # STR : Daily or Yearly
+               'json_mod' : 'geojson'                              # STR : geojson or cityjson
                }
 
 Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
@@ -28,7 +28,7 @@ Sim_input = {'year' : 2020,                                 # INT : the year, it
              'hSubdiv' : 3,                                 # INT : Tilt subdivision
              'SolarCalc' : True,                           # BOOL : Need of a Solar Calculation?
  
-             'Shading_calc' : False,                         # BOOL : Select 'YES' or 'NO' to take into consideration the shading effect
+             'Shading_calc' : True,                         # BOOL : Select 'YES' or 'NO' to take into consideration the shading effect
              'toll_az' : float(80),                         # FLOAT : Semi-tollerance on azimuth of shading surface [°]
              'toll_dist' : float(100),                      # FLOAT : Tollerance on distance of shading surface [m]
              'toll_theta' : float(80),                      # FLOAT : Semi-tollerance on position of the shading surfaces [°]
@@ -37,7 +37,7 @@ Sim_input = {'year' : 2020,                                 # INT : the year, it
              'DHW_calc' : True,                      	    # BOOL : True or False (only for residential)
              'Volume_calc_method' : 'Static',               # STRING : Methods for the calculation of the flow rate: 'Static', 'ISO 11300-2'
              'Precision' : 'Time step',                          # STRING : If yearly or timestep claculation: 'Timestep', 'Year'
-	     'DHW End-uses': 'Residential;Residenziale'     # STRING : string with all the residential end-uses list (simicolons separator) 
+    	     'DHW End-uses': 'Residential;Residenziale'     # STRING : string with all the residential end-uses list (simicolons separator) 
             }
 
 
