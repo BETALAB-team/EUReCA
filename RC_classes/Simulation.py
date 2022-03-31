@@ -764,6 +764,8 @@ class Sim():
         Final = Final.transpose()
         
         # Output 
+        if not os.path.isdir(os.path.join('OutputReport',self.model)):
+            os.mkdir(os.path.join('OutputReport',self.model))
         
         if self.StampOutputReport:
             pd.DataFrame(data = H_F, columns = columns).to_csv(os.path.join('OutputReport',self.model,'HeatFlow.csv'))
