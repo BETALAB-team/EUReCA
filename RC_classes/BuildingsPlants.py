@@ -268,9 +268,9 @@ class Plants():
             
         elif self.C_plant_type == "SplitAirConditioner":
             if heatFlow < 0:
-                self.Plant.solveSplitAirConditioner(Typologies,heatFlow,t,T_ext)
-                self.Electrical_energy_consumption[t] = self.Plant.W_el[t] 
-                self.H_waste[t] = self.Plant.H_waste[t]
+                self.cooling_Plant.solveSplitAirConditioner(Typologies,heatFlow,t,T_ext)
+                self.Electrical_energy_consumption[t] = self.cooling_Plant.W_el[t] 
+                self.H_waste[t] = self.cooling_Plant.H_waste[t]
             else:
                 pass
 
