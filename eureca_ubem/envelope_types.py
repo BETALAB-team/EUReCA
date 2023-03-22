@@ -11,6 +11,7 @@ __maintainer__ = "Enrico Prataviera"
 '''IMPORTING MODULES'''
 
 import pandas as pd
+
 from eureca_building.construction_dataset import ConstructionDataset
 from eureca_building.construction import Construction
 from eureca_building.window import SimpleWindow
@@ -29,7 +30,7 @@ def load_envelopes(path):
         Path containing the string of the Buildings_Envelopes.xlsx
     Returns
     -------
-    envelopes_dict: dictionary with archetype_key/Envelope(object) data
+    envelopes_dict: dictionary with EnvelopeType objects
 
     '''
 

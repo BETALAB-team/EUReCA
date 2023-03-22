@@ -1,13 +1,22 @@
+"""
+This module includes a container class for schedule end-uses
+"""
+
+__author__ = "Enrico Prataviera"
+__credits__ = ["Enrico Prataviera"]
+__license__ = "MIT"
+__version__ = "0.1"
+__maintainer__ = "Enrico Prataviera"
+
 '''IMPORTING MODULES'''
 
-import sys
-import pandas as pd
 import os
+import pandas as pd
 import numpy as np
-from RC_classes.auxiliary_functions import wrn
+from eureca_building.config import CONFIG
 
 #%% ---------------------------------------------------------------------------------------------------
-#%% Useful functions to create the schedule archetypes
+#%% Useful functions to create the schedule end_uses
 
 def loadArchetype(path,timeIndex,ts):
     '''
@@ -155,13 +164,13 @@ def loadSimpleArchetype(path,timeIndex,first_day = 1,ts = 1, PlantDays = [2520,3
     return archetypes
 
 #%%--------------------------------------------------------------------------------------------------- 
-#%% Archetype class
+#%% EndUse class
 
-class Archetype:
+class EndUse:
     '''
     This class manages the end use with its schedules
 
-    init method: sets only the name and creats a Dataframe:
+    init method: sets only the name and create a Dataframe:
         name: a string with the name
         
     loadSchedComp: loads the complex (annual) method for schedules:
@@ -207,8 +216,37 @@ class Archetype:
         # Inizialization
         
         self.name = name
-        self.sched_df = pd.DataFrame()
-        self.scalar_data = {}
+        schedules_list = [
+                'appliances',
+                'lighting',
+                'people',
+                'heating_temperature_sp',
+                'cooling_temperature_sp',
+                'humidification_sp',
+                'dehumidification_sp',
+                'ventilation_flow_rate',
+                'infiltration_flow_rate',
+                'sensible_systems_availability',
+                'latent_system_availability',
+                'ahu_availability',
+                'ahu_humidity_control',
+                'ahu_supply_temperature',
+                'ahu_supply_specific_temperature',
+            ]
+
+        # Schedules in files are set using hourly timestep
+        self.sched_df = pd.DataFrame(
+            index = range(8760),
+            columns = schedules_list,
+        )
+
+        self.scalar_data = {
+            "convective_fraction": 0.5,
+            "ahu_humidity_control": "False",
+            "ahu_sensible_heat_recovery": 0.5,
+            "ahu_latent_heat_recovery": 0.0,
+            "outdoor_air_ratio": 0.0,
+        }
         '''
         Take care of units!!!
         All formula referes to the complex schedule file units, 
