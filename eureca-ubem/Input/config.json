@@ -1,0 +1,15 @@
+{
+  "DEFAULT": {},
+  "model": {
+    "name": "example_model"
+  },
+  "simulation settings": {
+    "time steps per hour": "2",
+    "start date": "01-01 00:00",
+    "final date": "01-31 23:00"
+  },
+  "solar radiation settings": {
+    "height subdivisions": "4",
+    "azimuth subdivisions": "8"
+  }
+}
