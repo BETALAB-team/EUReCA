@@ -1,14 +1,18 @@
 ''' IMPORTING MODULES '''
 
-import pandas as pd
 import os
-import numpy as np
 import time as tm
-from RC_classes.Envelope import loadEnvelopes
-from RC_classes.EndUse import loadArchetype, loadSimpleArchetype
-from RC_classes.City import City
-from RC_classes.WeatherData import  Weather
-from RC_classes.BuildingsPlants import loadPlants
+
+import pandas as pd
+import numpy as np
+
+from eureca_building.weather import WeatherFile
+from eureca_ubem.envelope_types import load_envelopes
+from eureca_building.config import CONFIG
+
+# from RC_classes.EndUse import loadArchetype, loadSimpleArchetype
+# from RC_classes.City import City
+# from RC_classes.BuildingsPlants import loadPlants
 
 
         
@@ -491,40 +495,41 @@ class Sim():
         
         # Creation of the weather obj
         
-        self.weather = Weather(self.epw_name, input_path = self.input_folder, tz = self.tz, 
-                         year = self.year, ts = self.ts, hours = self.hours, n_years = 1, 
-                         irradiances_calc = self.SolarCalc, 
-                         azSubdiv = self.azSubdiv, hSubdiv = self.hSubdiv, 
-                         shad_tol = [self.azToll,
-                                     self.distToll,
-                                     self.thetaToll])
+        self.weather = WeatherFile(
+            os.path.join(self.input_folder, self.epw_name),
+            year = self.year,
+            time_steps = CONFIG.ts_per_hour,
+            irradiances_calculation = self.SolarCalc,
+            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
+            height_subdivisions = CONFIG.height_subdivisions,
+            urban_shading_tol = [self.azToll, self.distToll, self.thetaToll])
         
          
         # Loading Envelope and Schedule Data 
         
-        self.envelopes = loadEnvelopes(os.path.join(self.input_folder,self.envelopes_name))                                            # Envelope file loading
+        self.envelopes_dict = load_envelopes(os.path.join(self.input_folder,self.envelopes_name))                                            # Envelope file loading
         
-        if self.end_uses_mode == 'Daily':
-            PlantDays=[2520,3984,6192,6912]                                            # 15th April, 15th June, 15th September, 15th October
-            self.sched = loadSimpleArchetype(os.path.join(self.input_folder,self.end_uses_name),
-                                                     np.arange(8760),self.first_day,self.ts,PlantDays)
-        elif self.end_uses_mode == 'Yearly':
-            self.sched = loadArchetype(os.path.join(self.input_folder,self.end_uses_name),
-                                                     np.arange(8760),self.ts)
-        else:
-            raise ValueError('ERROR Set a proper schedule inporting methodology (Daily or Yearly): SchedMethod {self.end_uses_mode}')
-        
-        # Plants List 
-        
-        self.Plants_list = loadPlants(os.path.join(self.input_folder,self.plants_name))
-        
+        # if self.end_uses_mode == 'Daily':
+        #     PlantDays=[2520,3984,6192,6912]                                            # 15th April, 15th June, 15th September, 15th October
+        #     self.sched = loadSimpleArchetype(os.path.join(self.input_folder,self.end_uses_name),
+        #                                              np.arange(8760),self.first_day,self.ts,PlantDays)
+        # elif self.end_uses_mode == 'Yearly':
+        #     self.sched = loadArchetype(os.path.join(self.input_folder,self.end_uses_name),
+        #                                              np.arange(8760),self.ts)
+        # else:
+        #     raise ValueError('ERROR Set a proper schedule inporting methodology (Daily or Yearly): SchedMethod {self.end_uses_mode}')
+        #
+        # # Plants List
+        #
+        # self.Plants_list = loadPlants(os.path.join(self.input_folder,self.plants_name))
+
         end = tm.time()
-        
+
         self.times['preprocessing'] = end - start
         
         print('Pre-processing:       ', end - start)
     
-   
+"""   
     def city_creation(self):
         '''
         City object creation
@@ -825,112 +830,5 @@ class Sim():
 
 #%% TEST METHOD
 
-if __name__ == '__main__':
 
-    # Setting Input Data 
-    
-    Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',
-                   'envelopes' : 'Envelopes.xlsx',
-                   'end-uses' : 'ScheduleSemp.xlsx',
-                   'plants' : 'PlantsList.xlsx',
-                   'json' : 'PaduaRestricted.json',
-                   'default_input_path' : os.path.join('.','Input'),
-                   'end-uses_mod' : 'Daily',
-                   'json_mod' : 'cityjson'
-                   }
-    
-    Sim_input = {'year' : 2020,                                 # the year, it is usedin order to create the schedule set, but it's almost useless
-                 'first_day' : 7,                               # first day of the year
-                 'tz' : 'Europe/Rome',                          # Thermal zone
-                 'ts' : 1,                                      # Number of time-steps per hour
-                 'hours' : 8760,                                # number of hours (actually only 8760 is implemented)
-                 'model' : '2C',                                # model to be used (2C, 1C)
-                 'DD_boundaries' : np.array(
-                                 [[167,504], [4681,5017]],
-                                 dtype = int),                  # Heating and Cooling Design Days Periods
-                 'Time_to_regime' : 168,                        # Time needed to reach a regime condition for Design Days Calculation
-                 'DesignDays_calc' : True,                      # Select 'YES' or 'NO' to calculate or not design days demand
-                 'Plant_calc' : True,                           # Select 'YES' or 'NO' to calculate or not buildings plant
-                 'OutputReport' : True,  
-                 
-                 'azSubdiv' : 8,                                # Azimuth subdivision
-                 'hSubdiv' : 3,                                 # Tilt subdivision
-                 'SolarCalc' : False,                           # Need of a Solar Calculation?
- 
-                 'Shading_calc' : True,                         # Select 'YES' or 'NO' to take into consideration the shading effect
-                 'toll_az' : float(80),                         # Semi-tollerance on azimuth of shading surface [°]
-                 'toll_dist' : float(100),                      # Tollerance on distance of shading surface [m]
-                 'toll_theta' : float(80),                      # Semi-tollerance on position of the shading surfaces [°]
-                 'R_f' : float(0)                               # Reduction factor of the direct solar radiation due to the shading effect [0-1]
-
-                }
-    
-    
-    # Urban Canyon Data
-    
-    UWG_data = {
-        'UWG_calc' : bool(False), 
-        'Area' : float(538000),
-        'Diameter': float(800),
-        'Perimeter': float(3280),
-        'Ortogonal_length': float(800),
-        'h_layer_inf': 2,
-        'h_layer_sup': 150,
-        'z_i_day': 1000,
-        'z_i_night': 50,
-        'z_i_m': 10,
-        'z_i_ref': 150,
-        'ExtWall_radiative_coef': float(5),
-        'ExtWall_convective_coef': float(17),
-        'ExtWall_emissivity': float(0.85),
-        'ExtWall_reflection': float(0.15),
-        'Average_U_windows': float(2),
-        'Vegetation_density': float(0.16),
-        'Road_radiative_coef': float(5),
-        
-        'Road_layers': np.array([
-            [0.05, 1.9*10**6, 273 + 10],
-            [0.2 , 2*10**6,   273 + 12],
-            [1   , 1.4*10**6, 273 + 13],
-            ], dtype = float),                          # first column thickness [m], second capacity [J/m3K], first row asphalt, second stones, third gravel 
-            
-        'Soil_layers': np.array([
-            [3 , 1.4*10**6, 273 + 10],
-            [3 , 1.4*10**6, 273 + 12],
-            [3 , 1.4*10**6, 273 + 13],
-            ], dtype = float),                          # first column thickness [m], second capacity [J/m3K]
-        'T_deep': float(13+273),
-        
-        
-        'cars_number_over_1000_px': float(39545000/60360),
-        'motorcycles_number_over_1000_px': float(6896000/60360),
-        'othervehicle_number_over_1000_px': float(5364000/60360),
-        'emission_factor_cars_over_1000_px': float(	24.74 ),
-        'emission_factor_motorcycles_over_1000_px': float(13.34),
-        'emission_factor_othervehicle_over_1000_px': float(104.95),
-        'vehicle_multiplying_factor': float(1),
-        'distance_per_hour': float(64000),
-        'population_density': float(2283.2),
-        'first_day': Sim_input['first_day'],
-        'Hw_week': np.array([0.9,0.5,0.9,2.1,3.3,4.2,5.8,7.1,6.3,5.8,5.4,5.4,5.8,6.3,6.7,7.1,7.5,5.8,4.2,3.3,2.5,1.7,1.3,0.9])/100,
-        'Hw_end': np.array([1.7,1.2,1.,1.7,2.6,3.3,4.2,5,5.8,6.2,6.7,6.7,6.7,6.7,6.3,5.8,5,4.6,4.2,3.7,3.3,2.9,2.5,2.1])/100    
-        }
-    
-    '''
-    Reference H_traffic
-    Italian vehicles number: http://www.opv.aci.it/WEBDMCircolante/
-    emission factors
-    https://link.springer.com/article/10.1007/s00704-008-0086-5/tables/4
-    with 64 km/h
-    
-    '''
-
-    city = Sim()
-    city.set_input_from_dictionary(Input_files,Sim_input,UWG_data)
-    city.preprocessing()
-    city.city_creation()
-    city.urban_shading()
-    city.buildings_params_and_loads()
-    city.plants_design_and_creation()
-    city.simulation()
-    city.output()
+"""

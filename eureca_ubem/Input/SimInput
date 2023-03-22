@@ -1,16 +1,16 @@
 # Setting Input Data 
 
 Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw file name
-               'envelopes' : 'Envelopes.xlsx',                      # STR : envelopes file name
+               'envelopes' : 'materials_and_construction_test.xlsx',                      # STR : envelopes file name
                'end-uses' : 'ScheduleComp.xlsx',                    # STR : end-uses file name
                'plants' : 'PlantsList.xlsx',                        # STR : plants file name
                'json' : 'PiovegoRestricted_with_holes.geojson',                     # STR : json file name
-               'default_input_path' : os.path.join('.','Input'),    # STR : input path file name
+               'default_input_path' : os.path.join('.'),    # STR : input path file name
                'end-uses_mod' : 'Yearly',                            # STR : Daily or Yearly
                'json_mod' : 'geojson'                              # STR : geojson or cityjson
                }
 
-Sim_input = {'year' : 2020,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
+Sim_input = {'year' : 2019,                                 # INT : the year, it is usedin order to create the schedule set, but it's almost useless
              'first_day' : 7,                               # INT : first day of the year
              'tz' : 'Europe/Rome',                          # STR : Thermal zone
              'ts' : 2,                                      # INT : Number of time-steps per hour
