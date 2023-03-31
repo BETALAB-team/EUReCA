@@ -7,8 +7,9 @@ import pandas as pd
 import numpy as np
 
 from eureca_building.weather import WeatherFile
-from eureca_ubem.envelope_types import load_envelopes
 from eureca_building.config import CONFIG
+from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.end_uses import load_schedules
 
 # from RC_classes.EndUse import loadArchetype, loadSimpleArchetype
 # from RC_classes.City import City
@@ -508,7 +509,8 @@ class Sim():
         # Loading Envelope and Schedule Data 
         
         self.envelopes_dict = load_envelopes(os.path.join(self.input_folder,self.envelopes_name))                                            # Envelope file loading
-        
+        self.end_uses_dict = load_schedules(os.path.join(self.input_folder,self.end_uses_name))
+
         # if self.end_uses_mode == 'Daily':
         #     PlantDays=[2520,3984,6192,6912]                                            # 15th April, 15th June, 15th September, 15th October
         #     self.sched = loadSimpleArchetype(os.path.join(self.input_folder,self.end_uses_name),

@@ -3,13 +3,16 @@
 import os
 import numpy as np
 
+import matplotlib
+matplotlib.use('TkAgg')
+matplotlib.interactive(True)
+
 from eureca_building.config import load_config
 load_config("config.json")
 
 from eureca_ubem.Simulation import Sim
 
-
-# Creation of the Sim objectexit
+# Creation of the Sim object exit
 city = Sim()
 
 # Loading the input data

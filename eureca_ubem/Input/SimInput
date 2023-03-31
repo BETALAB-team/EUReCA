@@ -2,7 +2,7 @@
 
 Input_files = {'epw' : 'ITA_Venezia-Tessera.161050_IGDG.epw',       # STR : epw file name
                'envelopes' : 'materials_and_construction_test.xlsx',                      # STR : envelopes file name
-               'end-uses' : 'ScheduleComp.xlsx',                    # STR : end-uses file name
+               'end-uses' : 'Schedules.xlsx',                    # STR : end-uses file name
                'plants' : 'PlantsList.xlsx',                        # STR : plants file name
                'json' : 'PiovegoRestricted_with_holes.geojson',                     # STR : json file name
                'default_input_path' : os.path.join('.'),    # STR : input path file name
