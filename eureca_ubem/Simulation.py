@@ -517,7 +517,7 @@ class Sim():
         
         print('Pre-processing:       ', end - start)
     
-"""   
+
     def city_creation(self):
         '''
         City object creation
