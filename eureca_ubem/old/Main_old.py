@@ -1,22 +1,21 @@
 ''' IMPORTING MODULES '''
 
 import os
-import numpy as np
 
 import matplotlib
 matplotlib.use('TkAgg')
 matplotlib.interactive(True)
 
 from eureca_building.config import load_config
-load_config("config.json")
+load_config("../Input/config.json")
 
-from eureca_ubem.Simulation import Sim
+from eureca_ubem.old.Simulation import Sim
 
 # Creation of the Sim object exit
 city = Sim()
 
 # Loading the input data
-city.set_input_from_text_file(os.path.join('.','SimInput'))
+city.set_input_from_text_file(os.path.join('../Input', 'SimInput'))
 # city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
 
 # Loading weather data, envelopes and schedules

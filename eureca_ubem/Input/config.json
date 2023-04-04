@@ -5,6 +5,7 @@
   },
   "simulation settings": {
     "time steps per hour": "2",
+    "simulation reference year" : "2023",
     "start date": "01-01 00:00",
     "final date": "01-31 23:00",
     "heating season start": "11-15 23:00",
@@ -13,7 +14,9 @@
     "cooling season end": "09-30 23:00"
   },
   "solar radiation settings": {
+    "do solar radiation calculation": "True",
     "height subdivisions": "4",
-    "azimuth subdivisions": "8"
+    "azimuth subdivisions": "8",
+    "urban shading tolerances": "80.,100.,80."
   }
 }

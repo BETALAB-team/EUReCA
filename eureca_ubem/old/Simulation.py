@@ -334,7 +334,7 @@ class Sim():
         try: 
             self.excel_input = pd.read_excel(input_path, usecols = 'D')
             self.excel_input = self.excel_input['Unnamed: 3']
-            self.input_folder = os.path.join('.',str(self.excel_input.loc[5]))    
+            self.input_folder = os.path.join('..', str(self.excel_input.loc[5]))
             self.epw_name = str(self.excel_input.loc[0])    
             self.envelopes_name = str(self.excel_input.loc[1])  
             self.end_uses_name = str(self.excel_input.loc[2])
@@ -489,8 +489,8 @@ class Sim():
         
         # Cleaning warning file
         
-        if os.path.isfile(os.path.join('.','OutputReport','warnings.txt')):
-            os.remove(os.path.join('.','OutputReport','warnings.txt'))
+        if os.path.isfile(os.path.join('..', 'OutputReport', 'warnings.txt')):
+            os.remove(os.path.join('..', 'OutputReport', 'warnings.txt'))
         
         start = tm.time()
         
@@ -759,16 +759,16 @@ class Sim():
         # Output 
         
         if self.StampOutputReport:
-            pd.DataFrame(data = H_F, columns = columns).to_csv(os.path.join('OutputReport',self.model,'HeatFlow.csv'))
-            pd.DataFrame(data = L_F, columns = columns).to_csv(os.path.join('OutputReport',self.model,'LantentFlow.csv'))
-            pd.DataFrame(data = AHU_D, columns = columns).to_csv(os.path.join('OutputReport',self.model,'AHU.csv'))
-            pd.DataFrame(data = T, columns = columns).to_csv(os.path.join('OutputReport',self.model,'Temp.csv'))
-            pd.DataFrame(data = RH, columns = columns).to_csv(os.path.join('OutputReport',self.model,'RH.csv'))
-            pd.DataFrame(data = ElEn, columns = columns).to_csv(os.path.join('OutputReport',self.model,'ElectricalEnergy.csv'))
-            pd.DataFrame(data = GasCon, columns = columns).to_csv(os.path.join('OutputReport',self.model,'GasConsumption.csv'))
+            pd.DataFrame(data = H_F, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'HeatFlow.csv'))
+            pd.DataFrame(data = L_F, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'LantentFlow.csv'))
+            pd.DataFrame(data = AHU_D, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'AHU.csv'))
+            pd.DataFrame(data = T, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'Temp.csv'))
+            pd.DataFrame(data = RH, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'RH.csv'))
+            pd.DataFrame(data = ElEn, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'ElectricalEnergy.csv'))
+            pd.DataFrame(data = GasCon, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'GasConsumption.csv'))
             # pd.DataFrame(data = Final, columns = columns).to_csv(os.path.join('OutputReport',model,'FinalEnergy.csv'))
             
-            BuiInfo.to_csv(os.path.join('OutputReport',self.model,'BuildingsParams.csv'))
+            BuiInfo.to_csv(os.path.join('../OutputReport', self.model, 'BuildingsParams.csv'))
         
         '''
         if mode == 'geojson':
@@ -803,8 +803,8 @@ class Sim():
             dhw_prof = dhw_prof.transpose()  
             
             if self.StampOutputReport:
-                pd.DataFrame(data = dhw_prof, columns = columns).to_csv(os.path.join('OutputReport',self.model,'DHW_profile.csv'))
-                dhw_cons.to_csv(os.path.join('OutputReport',self.model,'DHW_consumption.csv'))
+                pd.DataFrame(data = dhw_prof, columns = columns).to_csv(os.path.join('../OutputReport', self.model, 'DHW_profile.csv'))
+                dhw_cons.to_csv(os.path.join('../OutputReport', self.model, 'DHW_consumption.csv'))
             
                 
                 

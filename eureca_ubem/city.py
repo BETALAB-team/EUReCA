@@ -3,143 +3,27 @@
 import sys
 import math
 import os
+import concurrent.futures
+
 import geopandas as gpd
 import numpy as np
 import time as tm
 import pandas as pd
 from cjio import cityjson
-from RC_classes.WeatherData import SolarPosition, Weather
-from RC_classes.thermalZone import Building, Complex
-from RC_classes.Envelope import loadEnvelopes
-from RC_classes.Geometry import Surface, normalAlternative
-from RC_classes.Climate import UrbanCanyon
-from RC_classes.auxiliary_functions import wrn
-from RC_classes.DHW import DHW
+
+from eureca_building.config import CONFIG
+from eureca_building.weather import WeatherFile
+from eureca_building.thermal_zone import ThermalZone
+from eureca_building.building import Building
+from eureca_building.surface import Surface, SurfaceInternalMass
+from eureca_building._geometry_auxiliary_functions import normal_versor_2
+from eureca_building.air_handling_unit import AirHandlingUnit
+from eureca_ubem.end_uses import load_schedules
+from eureca_ubem.envelope_types import load_envelopes
+
+# from RC_classes.thermalZone import Building, Complex
+# from RC_classes.Climate import UrbanCanyon
 import shapely
-
-#%% ---------------------------------------------------------------------------------------------------
-#%% Useful functions
- 
-def cityobj(p):
-    
-    '''
-    This function permits to create the city object when mode == cityjson
-    
-    Parameters
-    ----------
-    p : str
-        path of the cityJSON file
-    
-    Returns
-    -------
-    c : cjio.cityjson.CityJSON
-        city object
-        
-    '''
-    
-    # Check input data type
-    
-    if not isinstance(p, str):
-        raise TypeError(f'ERROR cityobj function, p is not a str: p {p}')
-
-    # CityJSON object creation
-    try:
-        with open(p, 'r') as f:
-            c = cityjson.CityJSON(file=f)
-            return c
-    except FileNotFoundError:
-        raise FileNotFoundError(f'ERROR Cityjson object not found: {p}. Give a proper path')
-        
-
-
-def createBuilding(name,bd,vertList,mode,n_Floors,envelopes,weather):
-    
-    '''
-    This function allows to identify buildings and their attributes when
-    mode == cityjson
-    
-    Parameters
-    ----------
-    name : str
-        name of the district's buildings 
-    bd : dict
-        dictionary for each building containing attributes and info
-    vertList : list
-        list of all buildings vertices
-    mode : str
-        cityjson or geojson mode calculation
-    n_Floors : int
-        initialization of the building's number of floors
-    envelopes : dict
-        envelope information for each age class category
-    weather : RC_classes.WeatherData.Weather obj
-        object of the class weather WeatherData module
-    
-    Returns
-    -------
-    Building : class
-    '''
-
-    # Check input data type
-
-    if not isinstance(name, str):
-        raise TypeError(f'ERROR createBuilding function, name is not a str: name {name}')
-    if not isinstance(bd, dict):
-        raise TypeError(f'ERROR createBuilding function, bd is not a dict: bd {bd}')
-    if not isinstance(vertList, list):
-        raise TypeError(f'ERROR createBuilding function, vertList is not a list: vertList {vertList}')
-    if not isinstance(mode, str):
-        raise TypeError(f'ERROR createBuilding function, mode is not a str: mode {mode}')
-    if not isinstance(n_Floors, int):
-        raise TypeError(f'ERROR createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
-    if not isinstance(envelopes, dict):
-        raise TypeError(f'ERROR createBuilding function, envelopes is not a dict: envelopes {envelopes}')
-    if not isinstance(weather, Weather):
-        raise TypeError(f'ERROR createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-            
-    # Check input data quality
-
-    for vtx in vertList:
-        if not isinstance(vtx, list):
-            raise TypeError(f'ERROR  createBuilding function, an input is not a list: input {vtx}')
-        if len(vtx) != 3:
-            raise TypeError(f'ERROR createBuilding function, a vertex is not a list of 3 components: input {vtx}')
-        try:
-            vtx[0] = float(vtx[0])
-            vtx[1] = float(vtx[1])
-            vtx[2] = float(vtx[2])
-        except ValueError:
-            raise ValueError(f'ERROR createBuilding function, a coordinate is not a float: input {vtx}')     
-    if not bool(envelopes):
-        wrn(f"WARNING createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}")
-    
-    
-    # Setting the attributes of the building
-    age = bd['attributes']['Age']                                              # Age-class of the building
-    use = bd['attributes']['Use']                                              # End-use of the building
-    try: 
-        H_plant = bd['attributes']['H_Plant']                                  # Heating plant of the building
-    except KeyError:
-        H_plant = 'IdealLoad'
-    try:
-        C_plant = bd['attributes']['C_Plant']                                  # Cooling plant of the building
-    except KeyError:
-        C_plant = 'IdealLoad'
-    
-    for geo in bd['geometry']:
-        if geo['type']=='MultiSurface':
-            boundaries = geo['boundaries']
-            surfaces=[]
-            for surface in boundaries:
-                for subsurface in surface:
-                    surf=[]
-                    for vert_id in subsurface:
-                        surf.append(vertList[vert_id])    
-                    surfaces.append(surf)
-        
-        # Building class initialization
-        return Building(name,mode,surfaces,n_Floors,use,envelopes,age,1,1,H_plant,C_plant,weather)
-
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -163,14 +47,78 @@ class City():
     '''
     
     # class variables
-    T_w_0 = 15.                                                                # Starting average temperature of the walls [°C]
-    T_out_inf = 15.                                                            # Starting average temperature outgoing the buildings [°C]
-    T_out_AHU = 15.                                                            # Starting average temperature outgoing the Air Handling units [°C]
-    V_0_inf = 0.                                                               # Starting average volumetric flow rate outgoing the buildings due to the inflitrations[m3/s]
-    V_0_vent = 0.                                                              # Starting average volumetric flow rate outgoing the Air Handling units [m3/s]
-    H_waste_0 = 0.                                                             # Starting waste heating rejected by external condensers [kW]
+    T_w_0 = 15.          # Starting average temperature of the walls [°C]
+    T_out_inf = 15.      # Starting average temperature outgoing the buildings [°C]
+    T_out_AHU = 15.      # Starting average temperature outgoing the Air Handling units [°C]
+    V_0_inf = 0.         # Starting average volumetric flow rate outgoing the buildings due to the inflitrations[m3/s]
+    V_0_vent = 0.        # Starting average volumetric flow rate outgoing the Air Handling units [m3/s]
+    H_waste_0 = 0.       # Starting waste heating rejected by external condensers [kW]
     
-    def __init__(self,json_path,envelopes,weather,model = '1C', mode='cityjson'):
+    def __init__(self,
+                 city_model:str,
+                 envelope_types_file:str,
+                 end_uses_types_file:str,
+                 epw_weather_file:str,
+                 building_model = "2C",
+                 ):
+
+        """
+
+        Parameters
+        ----------
+        city_model: str
+            path to the json/cityjson file
+        envelope_types_file: str
+            path to the envelope_types file
+        end_uses_types_file: str
+            path to the end_uses file
+        epw_weather_file:: str
+            path to the epw weather file
+        """
+
+        # Loading weather file
+        self.weather_file = WeatherFile(
+            epw_weather_file,
+            year = CONFIG.simulation_reference_year,
+            time_steps = CONFIG.ts_per_hour,
+            irradiances_calculation = CONFIG.do_solar_radiation_calculation,
+            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
+            height_subdivisions = CONFIG.height_subdivisions,
+            urban_shading_tol = CONFIG.urban_shading_tolerances
+        )
+
+        # Loading Envelope and Schedule Data
+        self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
+        self.end_uses_dict = load_schedules(end_uses_types_file)
+
+        self.building_model = building_model
+
+        if city_model.endswith('.json'):
+            self.buildings_creation_from_cityjson(city_model)
+        elif city_model.endswith('.geojson'):
+            self.buildings_creation_from_geojson(city_model)
+        else:
+            raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {city_model}")
+
+
+    @property
+    def building_model(self) -> str:
+        return self._building_model
+
+    @building_model.setter
+    def building_model(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError(
+                f"City class, building_model is not a string: {value}"
+            )
+        if value not in ["1C","2C"]:
+            # Check if unreasonable values provided
+            raise ValueError(
+                f"City class, building_model is not a allowed: {value}. please provide an allowed model."
+            )
+        self._building_model = value
+
+    def buildings_creation_from_cityjson(self,json_path):
         
         '''
         This method creates the city from the json file
@@ -179,177 +127,338 @@ class City():
         ----------
         json_path : str
             path of the cityJSON file
-        envelopes : dict
-            envelope information for each age class category
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-        model : str
-            Resistance-Capacitance model used
-        mode : str
-            cityjson or geojson mode calculation
         
         Returns
         -------
         None
         
         '''
-        
-        # Check input data type
-    
-        if not isinstance(json_path, str):
-            raise TypeError(f'ERROR JsonCity class, json_path is not a str: json_path {json_path}')
-        if not isinstance(model, str):
-            raise TypeError(f'ERROR JsonCity class, model is not a str: model {model}')
-        if not isinstance(envelopes, dict):
-            raise TypeError(f'ERROR JsonCity class, envelopes is not a dict: envelopes {envelopes}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        if not isinstance(mode, str):
-            raise TypeError(f'ERROR JsonCity class, mode is not a str: mode {mode}')
 
-        # Check input data quality
-        
-        if model != '1C' and  model != '2C':
-            wrn(f"WARNING JsonCity class, the model doesn't exist..... model {model}\n")
-        if not bool(envelopes):
-            wrn(f"WARNING JsonCity class, the envelopes dictionary is empty..... envelopes {envelopes}")
-
-        # Creation of the city
-        self.model = model
-        
         # Case of cityJSON file availability:
-        if mode=='cityjson':
-            self.mode = mode
-            self.n_Floors = 0
-            self.city = cityobj(json_path)
-            self.jsonBuildings= {}
-            [(self.jsonBuildings.update({i:self.city.j['CityObjects'][i]})) for i in self.city.j['CityObjects'] if self.city.j['CityObjects'][i]['type']=='Building']
-            self.buildings = {}
-            self.complexes = {}
-            for bd in self.jsonBuildings:
-                if not(isinstance(self.city.j['vertices'], list)):
-                    raise ValueError('json file vertices are not a list')
-                if not(isinstance(self.n_Floors, int)):
-                    raise ValueError('The floor number is not an integer')
-                self.buildings[bd]=createBuilding(bd,self.jsonBuildings[bd],self.city.j['vertices'],self.mode,self.n_Floors,envelopes,weather)
-        
+        self.n_Floors = 0
+
+        try:
+            with open(json_path, 'r') as f:
+                self.cityjson = cityjson.CityJSON(file=f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f'ERROR Cityjson object not found: {p}. Give a proper path')
+
+        if not(isinstance(self.cityjson.j['vertices'], list)):
+            raise ValueError('json file vertices are not a list')
+
+        self.json_buildings= {}
+        [(self.json_buildings.update({i:self.cityjson.j['CityObjects'][i]})) for i in self.cityjson.j['CityObjects'] if self.cityjson.j['CityObjects'][i]['type']=='Building']
+        self.buildings_objects = {}
+        self.buildings_info = {}
+
+        for bd_key, bd_data in self.json_buildings.items():
+
+            # Setting the attributes of the building
+            vertices_list = self.cityjson.j['vertices']
+
+            name = bd_key  # Heating plant of the building
+            envelope = self.envelopes_dict[bd_data['attributes']['Envelope']]  # Age-class of the building
+
+            surf_counter = 0
+            max_height = 0.
+            min_height = 1000.
+            footprint_area = 0.
+            surfaces_list = []
+            for geo in bd_data['geometry']:
+                if geo['type'] == 'MultiSurface':
+                    boundaries = geo['boundaries']
+                    for surface in boundaries:
+                        for subsurface in surface:
+                            surf = []
+                            for vert_id in subsurface:
+                                surf.append(tuple(vertices_list[vert_id]))
+
+                            surface = Surface(
+                                name = f"Bd {name}: surface {surf_counter}",
+                                vertices = surf,
+                            )
+
+                            # TODO: Update wwr calculation
+
+                            if surface.surface_type == "ExtWall":
+                                surface._wwr = 0.125
+
+                            surface.construction = {
+                                "ExtWall": envelope.external_wall,
+                                "Roof": envelope.roof,
+                                "GroundFloor": envelope.ground_floor,
+                            }[surface.surface_type]
+
+                            surface.window = envelope.window
+
+                            max_height = max(max_height, surface.max_height())
+                            min_height = min(min_height, surface.min_height())
+
+                            surfaces_list.append(surface)
+                            surf_counter += 1
+
+                            if surface.surface_type == "GroundFloor":
+                                footprint_area += surface._area
+
+            # Add internal walls and ceilings 3.3 m height
+            floor_height = 3.3
+            n_floors = int((max_height - min_height) // floor_height)
+            surf_counter = 0
+            for i in range(1, n_floors):
+                surfaces_list.append(SurfaceInternalMass(
+                    name = f"Bd {name}: internal surface {surf_counter}",
+                    area = footprint_area,
+                    surface_type = "IntCeiling",
+                    construction = envelope.interior_ceiling
+                ))
+
+                surfaces_list.append(SurfaceInternalMass(
+                    name=f"Bd {name}: internal surface {surf_counter + 1}",
+                    area=footprint_area,
+                    surface_type="IntFloor",
+                    construction=envelope.interior_floor
+                ))
+
+                surf_counter += 2
+
+            surfaces_list.append(
+                SurfaceInternalMass(
+                    name=f"Bd {name}: internal surface {surf_counter}",
+                    area=footprint_area * n_floors  * 2.5,
+                    surface_type="IntWall",
+                    construction=envelope.interior_wall
+                )
+            )
+
+            # Creation of thermal zone and building
+
+            thermal_zone = ThermalZone(
+                name=f"Bd {name} thermal zone",
+                surface_list=surfaces_list,
+                net_floor_area=footprint_area * n_floors,
+                volume=footprint_area * n_floors * floor_height
+            )
+
+            {
+            "1C":thermal_zone._ISO13790_params,
+            "2C":thermal_zone._VDI6007_params,
+            }[self.building_model]()
+
+
+            self.buildings_info[bd_key] = bd_data['attributes']
+            self.buildings_info[bd_key]['Name'] = bd_key
+            self.buildings_objects[bd_key] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone], model=self.building_model)
+    def buildings_creation_from_geojson(self, json_path):
         # Case of GeoJSON file availability:
-        elif mode=='geojson':
-            self.mode = mode
-            self.city = gpd.read_file(json_path)
-            self.jsonBuildings= {}
-            self.buildings = {}
-            self.complexes = {}
-            
-            # Extrusion from the footprint operation
-            for i in self.city.index:
-                self.jsonBuildings[self.city.loc[i]['id']] = self.city.loc[i].to_dict()
-                # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-                building_parts = [i for i in self.city.loc[i].geometry]
-                contatore_per_sotto_edifci = 0
-                for g in building_parts:
-                    x,y = g.exterior.coords.xy
-                    coords = np.dstack((x,y)).tolist()
-                    coords=coords[0]
-                    coords.pop()
-                    build_surf=[]
-                    pavimento = []
-                    soffitto = []
-                    z_pav = 0
-                    z_soff = self.city.loc[i]['Height']
-                    normal = normalAlternative([coords[n] + [z_pav] for n in range(len(coords))])
-                    if normal[2] > 0.: 
-                        # Just to adjust in case of anticlockwise perimeter
-                        coords.reverse() 
-                    for n in range(len(coords)):
-                        pavimento.append(coords[n]+[z_pav])
-                        soffitto.append(coords[-n]+[z_soff])  
-                    for n in range(len(coords)):
-                        build_surf.append([coords[n-1]+[z_soff],\
-                                            coords[n]+[z_soff],\
-                                            coords[n]+[z_pav],\
-                                            coords[n-1]+[z_pav]])\
-                    
-                    list_of_int_rings = []
-                    area_of_int_rings = []
-                    for int_rings in g.interiors:
-                        x,y = int_rings.coords.xy
-                        coords_int = np.dstack((x,y)).tolist()[0]
-                        coords_int.pop()
-                        normal = normalAlternative([coords_int[n] + [z_pav] for n in range(len(coords_int))])
-                        if normal[2] > 0.: 
-                            # Just to adjust in case of anticlockwise perimeter
-                            coords_int.reverse() 
-                        list_of_int_rings.append(coords_int)
-                        area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
-                        
-                        # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
-                        for n in range(len(coords_int)):
-                            build_surf.append([coords_int[n-1]+[z_soff],\
-                                                coords_int[n]+[z_soff],\
-                                                coords_int[n]+[z_pav],\
-                                                coords_int[n-1]+[z_pav]])\
-                    
-                    build_surf.append(pavimento)
-                    build_surf.append(soffitto)
-                    self.rh_net = self.city.loc[i]['VolCoeff']
-                    self.rh_gross = self.city.loc[i]['ExtWallCoeff']
-                    
-                    try:
-                        self.heating_plant = self.city.loc[i]['H_Plant']
-                    except KeyError:
-                        self.heating_plant = 'IdealLoad'
-                    try:
-                        self.cooling_plant = self.city.loc[i]['C_Plant']
-                    except KeyError:
-                        self.cooling_plant = 'IdealLoad'
-                        
-                        
-                    if len(building_parts) > 1:
-                        contatore_per_sotto_edifci += 1
-                        key = str(self.city.loc[i]['id']) + f"_p{contatore_per_sotto_edifci}"
-                        name = self.city.loc[i]['Name'] + f"_p{contatore_per_sotto_edifci}"
-                    else:
-                        key = str(self.city.loc[i]['id'])
-                        name = self.city.loc[i]['Name']
-                        
-                    self.buildings[key]=Building(name, 
-                                                                    self.mode, 
-                                                                    build_surf,
-                                                                    self.city.loc[i]['Nfloors'],
-                                                                    self.city.loc[i]['Use'],                                                                                                                             
-                                                                    envelopes,
-                                                                    self.city.loc[i]['Age'],
-                                                                    self.rh_net,
-                                                                    self.rh_gross,
-                                                                    self.heating_plant,
-                                                                    self.cooling_plant,
-                                                                    weather,
-                                                                    list_of_int_rings = list_of_int_rings,
-                                                                    area_of_int_rings = area_of_int_rings)
-                
-        else:
-            sys.exit('Set a proper mode')
+        self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        self.json_buildings= {}
+        self.buildings_objects = {}
+        self.buildings_info = {}
+
+        # Extrusion from the footprint operation
+        for i in self.cityjson.index:
+            id = str(self.cityjson.loc[i]['id']) + "_" + str(i[1])
+            self.json_buildings[id] = self.cityjson.loc[i].to_dict()
+            bd_data = self.json_buildings[id]
+            # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
+            name = bd_data["Name"]  # Heating plant of the building
+            envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
+            g = self.cityjson.loc[i].geometry
+            counter_for_sub_parts = 0
+            # for g in building_parts:
+            x,y = g.exterior.coords.xy
+            coords = np.dstack((x,y)).tolist()
+            coords=coords[0]
+            coords.pop()
+            build_surf=[]
+            pavimento = []
+            soffitto = []
+            z_pav = 0
+            z_soff = self.cityjson.loc[i]['Height']
+            normal = normal_versor_2(tuple([tuple(coords[n] + [z_pav]) for n in range(len(coords))]))
+            if normal[2] > 0.:
+                # Just to adjust in case of anticlockwise perimeter
+                coords.reverse()
+            for n in range(len(coords)):
+                pavimento.append(tuple(coords[n]+[z_pav]))
+                soffitto.append(tuple(coords[-n]+[z_soff]))
+            for n in range(len(coords)):
+                build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
+                                    tuple(coords[n]+[z_soff]),\
+                                    tuple(coords[n]+[z_pav]),\
+                                    tuple(coords[n-1]+[z_pav])]))\
+
+            list_of_int_rings = []
+            area_of_int_rings = []
+            for int_rings in g.interiors:
+                x,y = int_rings.coords.xy
+                coords_int = np.dstack((x,y)).tolist()[0]
+                coords_int.pop()
+                normal = normal_versor_2(tuple([tuple(coords_int[n] + [z_pav]) for n in range(len(coords_int))]))
+                if normal[2] > 0.:
+                    # Just to adjust in case of anticlockwise perimeter
+                    coords_int.reverse()
+                list_of_int_rings.append(tuple(coords_int))
+                area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
+
+                # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
+                for n in range(len(coords_int)):
+                    build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
+                                        tuple(coords_int[n]+[z_soff]),\
+                                        tuple(coords_int[n]+[z_pav]),\
+                                        tuple(coords_int[n-1]+[z_pav])]))\
+
+            build_surf.append(tuple(pavimento))
+            build_surf.append(tuple(soffitto))
+
+            # TODO: implement volume and external wall multiplication coefficients
+            self.rh_net = 1.
+            self.rh_gross = 1.
+
+            # Creation of surfaces
+            surf_counter = 0
+            footprint_area = 0.
+            surfaces_list = []
+            for vertices in build_surf:
+                surface = Surface(
+                        name = f"Bd {name}: surface {surf_counter}",
+                        vertices = vertices,
+                    )
 
 
-    def printInfo(self):
-        
+                # TODO: Update wwr calculation
+
+                if surface.surface_type == "ExtWall":
+                    surface._wwr = 0.125
+
+                surface.construction = {
+                    "ExtWall": envelope.external_wall,
+                    "Roof": envelope.roof,
+                    "GroundFloor": envelope.ground_floor,
+                }[surface.surface_type]
+
+                surface.window = envelope.window
+
+                surfaces_list.append(surface)
+                surf_counter += 1
+
+                if surface.surface_type == "GroundFloor":
+                    footprint_area += surface._area
+
+            # Add internal walls and ceilings 3.3 m height
+            n_floors = int(self.cityjson.loc[i]['Floors'])
+            floor_height = self.cityjson.loc[i]['Height'] / n_floors
+            surf_counter = 0
+            for i in range(1, n_floors):
+                surfaces_list.append(SurfaceInternalMass(
+                    name=f"Bd {name}: internal surface {surf_counter}",
+                    area=footprint_area,
+                    surface_type="IntCeiling",
+                    construction=envelope.interior_ceiling
+                ))
+
+                surfaces_list.append(SurfaceInternalMass(
+                    name=f"Bd {name}: internal surface {surf_counter + 1}",
+                    area=footprint_area,
+                    surface_type="IntFloor",
+                    construction=envelope.interior_floor
+                ))
+
+                surf_counter += 2
+
+            surfaces_list.append(
+                SurfaceInternalMass(
+                    name=f"Bd {name}: internal surface {surf_counter}",
+                    area=footprint_area * n_floors * 2.5,
+                    surface_type="IntWall",
+                    construction=envelope.interior_wall
+                )
+            )
+
+            # Creation of thermal zone and building
+
+            thermal_zone = ThermalZone(
+                name=f"Bd {name} thermal zone",
+                surface_list=surfaces_list,
+                net_floor_area=footprint_area * n_floors,
+                volume=footprint_area * n_floors * floor_height
+            )
+
+            {
+                "1C": thermal_zone._ISO13790_params,
+                "2C": thermal_zone._VDI6007_params,
+            }[self.building_model]()
+
+
+            self.buildings_info[id] = bd_data
+            self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
+                                                          model=self.building_model)
+
+    def loads_calculation(self):
+
         '''
-        This method prints some variable of the district
-        
-        Parameters
-        ----------
-        None
-        
+        This method does the internal and solar calculation, as well as the set of set points and ventialtion and systems
+
         Returns
         -------
         None
-        
+
         '''
-        
-        for i in self.buildings.values():
-            i.printBuildingInfo()
-    
+
+        for bd_id, building_info in self.buildings_info.items():
+            building_obj = self.buildings_objects[bd_id]
+            use = self.end_uses_dict[building_info["End Use"]]
+            tz = building_obj._thermal_zones_list[0]
+
+            tz.add_internal_load(
+                use.heat_gains['appliances'],
+                use.heat_gains['people'],
+                use.heat_gains['lighting'],
+            )
+
+            tz.extract_convective_radiative_latent_load()
+            {
+                "1C": tz.calculate_zone_loads_ISO13790,
+                "2C": tz.calculate_zone_loads_VDI6007
+            }[self.building_model](self.weather_file)
+
+            tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
+            tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
+
+            tz.add_infiltration(use.infiltration['infiltration'])
+            tz.calc_infiltration(self.weather_file)
+
+            ahu = AirHandlingUnit(
+                name = f"ahu Bd {building_info['Name']}",
+                mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
+                supply_temperature = use.air_handling_unit_system['ahu_supply_temperature'],
+                supply_specific_humidity = use.air_handling_unit_system['ahu_supply_humidity'],
+                ahu_operation = use.air_handling_unit_system['ahu_availability'],
+                humidity_control = use.air_handling_unit_system['ahu_humidity_control'],
+                sensible_heat_recovery_eff = use.air_handling_unit_system['ahu_sensible_heat_recovery'],
+                latent_heat_recovery_eff = use.air_handling_unit_system['ahu_latent_heat_recovery'],
+                outdoor_air_ratio = use.air_handling_unit_system['outdoor_air_ratio'],
+                weather = self.weather_file,
+                thermal_zone = tz,
+            )
+
+            tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+            tz.design_heating_load(-5.)
+
+            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
+            building_obj.set_hvac_system_capacity(self.weather_file)
+
+    def simulate(self):
+        preprocessing_timesteps = 100
+        for t in range(-preprocessing_timesteps, 8760 * 2 - 1):
+            print(t)
+            bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+
+            # for bd_id, building_info in self.buildings_info.items():
+            #     self.buildings_objects[bd_id].solve_timestep(t, self.weather_file)
+
     def surfaces_coincidence_and_shading_effect(self,Solar_position,
                        shading_calc = False,
                        mode = 'cityjson',
@@ -585,84 +694,7 @@ class City():
                     self.all_Vertsurf[x][0].shading_effect = shading_eff_01
 
     
-    def paramsandloads(self,envelopes,sched_db,weather,mode = 'cityjson', DHW_params = {'dhw_calc': False}):
-        
-        '''
-        This method permits firstly to conclude the geometrical 
-        processing after surfaces_coincidence_and_shading_effect
-        
-        then to calculate the equivalent electrical network
-        parameters and thermal loads
-        
-        Parameters
-        ----------
-        envelopes : dict
-            envelope information for each age class category   
-        sched_db : dict
-            dictionary containing the operational schedules for each end-use category
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-        mode : str
-            cityjson or geojson mode calculation
-        DHW_params : dict
-            dict with dhw params, example:
-            dhw_params = {'dhw_calc' : True,
-                      'dhw_vol_calc': 'Static',
-                      'dhw_ts': 'Yearly',
-                      'dhw_arch': ['Residential']}
-        
-        Returns
-        -------
-        None
-        
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(envelopes, dict):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, envelopes is not a dict: envelopes {envelopes}')
-        if not isinstance(sched_db, dict):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, sched_db is not a dict: sched_db {sched_db}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        if not isinstance(mode, str):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, mode is not a str: mode {mode}')
-        if not isinstance(DHW_params, dict):
-            raise TypeError(f'ERROR JsonCity class - paramsandloads, DHW_params is not a dict: DHW_params {DHW_params}')
-        
-        # Check input data quality
-        
-        if not bool(envelopes):
-            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
-        if not bool(sched_db):
-            wrn(f"WARNING JsonCity class - paramsandloads, the envelopes dictionary is empty..... envelopes {envelopes}")
-        if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"WARNING JsonCity class - paramsandloads, the mode doesn't exist..... mode {mode}")
-        if not bool(DHW_params['dhw_calc']):
-            wrn(f"WARNING JsonCity class - paramsandloads, the DHW calculation (y/n) is not a bool..... DHW calculation {DHW_params['dhw_calc']}")
-        
-        # Parameters and thermal loads calculation 
 
-        dhw_calc = DHW_params['dhw_calc']
-        dhw_vol_calc = DHW_params['dhw_vol_calc']
-        dhw_ts = DHW_params['dhw_ts']
-        dhw_arch = DHW_params['dhw_arch']
-
-        if mode == 'cityjson':
-            for bd in self.buildings.values():
-                # self.archId = 1
-                bd.geometrical_processing()
-                bd.BDParamsandLoads(self.model,envelopes,sched_db,weather)
-                if dhw_calc and (bd.end_use in dhw_arch):
-                    bd.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
-                
-        
-        elif mode == 'geojson':
-            for bd_id, building in self.buildings.items():
-                building.geometrical_processing()
-                building.BDParamsandLoads(self.model,envelopes,sched_db,weather)
-                if dhw_calc and (building.end_use in dhw_arch):
-                    building.dhw_calculation(volume_method = dhw_vol_calc, ts = dhw_ts)
 
     def create_urban_canyon(self,sim_time,calc,data):
         
@@ -983,8 +1015,103 @@ class City():
                     self.complexes[self.city.loc[i]['nome']].AHUDemand_sensC += self.buildings[self.city.loc[x]['id']].AHUDemand_sensBD
             i = i + 1
             x = x + 1
-             
-        
+
+
+# %% ---------------------------------------------------------------------------------------------------
+# %% Useful functions
+
+def createBuilding(name, bd, vertList, mode, n_Floors, envelopes, weather):
+    '''
+    This function allows to identify buildings and their attributes when
+    mode == cityjson
+
+    Parameters
+    ----------
+    name : str
+        name of the district's buildings
+    bd : dict
+        dictionary for each building containing attributes and info
+    vertList : list
+        list of all buildings vertices
+    mode : str
+        cityjson or geojson mode calculation
+    n_Floors : int
+        initialization of the building's number of floors
+    envelopes : dict
+        envelope information for each age class category
+    weather : RC_classes.WeatherData.Weather obj
+        object of the class weather WeatherData module
+
+    Returns
+    -------
+    Building : class
+    '''
+
+    # Check input data type
+
+    if not isinstance(name, str):
+        raise TypeError(f'ERROR createBuilding function, name is not a str: name {name}')
+    if not isinstance(bd, dict):
+        raise TypeError(f'ERROR createBuilding function, bd is not a dict: bd {bd}')
+    if not isinstance(vertList, list):
+        raise TypeError(f'ERROR createBuilding function, vertList is not a list: vertList {vertList}')
+    if not isinstance(mode, str):
+        raise TypeError(f'ERROR createBuilding function, mode is not a str: mode {mode}')
+    if not isinstance(n_Floors, int):
+        raise TypeError(f'ERROR createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
+    if not isinstance(envelopes, dict):
+        raise TypeError(f'ERROR createBuilding function, envelopes is not a dict: envelopes {envelopes}')
+    if not isinstance(weather, Weather):
+        raise TypeError(
+            f'ERROR createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+
+    # Check input data quality
+
+    for vtx in vertList:
+        if not isinstance(vtx, list):
+            raise TypeError(f'ERROR  createBuilding function, an input is not a list: input {vtx}')
+        if len(vtx) != 3:
+            raise TypeError(f'ERROR createBuilding function, a vertex is not a list of 3 components: input {vtx}')
+        try:
+            vtx[0] = float(vtx[0])
+            vtx[1] = float(vtx[1])
+            vtx[2] = float(vtx[2])
+        except ValueError:
+            raise ValueError(f'ERROR createBuilding function, a coordinate is not a float: input {vtx}')
+    if not bool(envelopes):
+        wrn(f"WARNING createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}")
+
+    # Setting the attributes of the building
+    age = bd['attributes']['Age']  # Age-class of the building
+    use = bd['attributes']['Use']  # End-use of the building
+    try:
+        H_plant = bd['attributes']['H_Plant']  # Heating plant of the building
+    except KeyError:
+        H_plant = 'IdealLoad'
+    try:
+        C_plant = bd['attributes']['C_Plant']  # Cooling plant of the building
+    except KeyError:
+        C_plant = 'IdealLoad'
+
+    for geo in bd['geometry']:
+        if geo['type'] == 'MultiSurface':
+            boundaries = geo['boundaries']
+            surfaces = []
+            for surface in boundaries:
+                for subsurface in surface:
+                    surf = []
+                    for vert_id in subsurface:
+                        surf.append(vertList[vert_id])
+                    surfaces.append(surf)
+
+        # Building class initialization
+        return Building(name, mode, surfaces, n_Floors, use, envelopes, age, 1, 1, H_plant, C_plant, weather)
+
+
+def bd_parallel_solve(x):
+    t, bd, weather = x
+    bd.solve_timestep(t, weather)
+
 #%%--------------------------------------------------------------------------------------------------- 
 #%% some test methods
 

@@ -1,7 +1,7 @@
 ''' IMPORTING MODULES '''
 
 import os
-import numpy as np
+import time as tm
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -10,37 +10,46 @@ matplotlib.interactive(True)
 from eureca_building.config import load_config
 load_config("config.json")
 
-from eureca_ubem.Simulation import Sim
+from eureca_ubem.city import City
 
-# Creation of the Sim object exit
-city = Sim()
+weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
+schedules_file = os.path.join(".","Schedules.xlsx")
+materials_file = os.path.join(".","materials_and_construction_test.xlsx")
+city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
-# Loading the input data
-city.set_input_from_text_file(os.path.join('.','SimInput'))
-# city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
+# Creation of the City object exit
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+)
+city_geojson.loads_calculation()
 
-# Loading weather data, envelopes and schedules
-city.preprocessing()
 
-# # Creation of the district (geometrical processing)
-# city.city_creation()
-#
-# # Evaluating Urban shadings between buildings
-# city.surfaces_and_shading()
-#
-# # Calculation buildings parameters
-# city.buildings_params_and_loads()
-#
-# # Evaluating Urban shadings between buildings
-# city.urban_canopy()
-#
-# # Design power of buildings and plants creation
-# city.plants_design_and_creation()
-#
-# # Annual simulation
-# city.simulation()
-#
-# # Output processing
-# city.output()
+city_model_file = os.path.join(".","PaduaRestricted.json")
 
-# %%
+# Creation of the City object exit
+city_json = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+)
+city_json.loads_calculation()
+
+materials_file = os.path.join(".","total envelope types.xlsx")
+city_model_file = os.path.join(".","Belzoni.json")
+
+start = tm.time()
+# Creation of the City object exit
+belzoni = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+)
+belzoni.loads_calculation()
+belzoni.simulate()
+
+print(f"Belzoni loading and calcs: {(tm.time() - start)/60} min")
