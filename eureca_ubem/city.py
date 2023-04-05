@@ -1,14 +1,12 @@
 '''IMPORTING MODULES'''
 
-import sys
 import math
 import os
 import concurrent.futures
 
+import shapely
 import geopandas as gpd
 import numpy as np
-import time as tm
-import pandas as pd
 from cjio import cityjson
 
 from eureca_building.config import CONFIG
@@ -21,9 +19,6 @@ from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 
-# from RC_classes.thermalZone import Building, Complex
-# from RC_classes.Climate import UrbanCanyon
-import shapely
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -53,13 +48,15 @@ class City():
     V_0_inf = 0.         # Starting average volumetric flow rate outgoing the buildings due to the inflitrations[m3/s]
     V_0_vent = 0.        # Starting average volumetric flow rate outgoing the Air Handling units [m3/s]
     H_waste_0 = 0.       # Starting waste heating rejected by external condensers [kW]
-    
+
     def __init__(self,
                  city_model:str,
                  envelope_types_file:str,
                  end_uses_types_file:str,
                  epw_weather_file:str,
+                 output_folder: str,
                  building_model = "2C",
+                 shading_calculation = False,
                  ):
 
         """
@@ -74,7 +71,15 @@ class City():
             path to the end_uses file
         epw_weather_file:: str
             path to the epw weather file
+        output_folder: str
+            folder to save results
+        building_model: str
+            1C or 2C string
+        shading_calculation: bool
+            whether to do or not the shading calculation
         """
+
+        self.__city_surfaces = []  # List of all the external surfaces of a city
 
         # Loading weather file
         self.weather_file = WeatherFile(
@@ -92,6 +97,7 @@ class City():
         self.end_uses_dict = load_schedules(end_uses_types_file)
 
         self.building_model = building_model
+        self.shading_calculation = shading_calculation
 
         if city_model.endswith('.json'):
             self.buildings_creation_from_cityjson(city_model)
@@ -100,6 +106,8 @@ class City():
         else:
             raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {city_model}")
 
+        if not os.path.isdir(output_folder):
+            os.mkdir(output_folder)
 
     @property
     def building_model(self) -> str:
@@ -178,6 +186,9 @@ class City():
                                 vertices = surf,
                             )
 
+                            if surface.surface_type != "GroundFloor":
+                                self.__city_surfaces.append(surface)
+
                             # TODO: Update wwr calculation
 
                             if surface.surface_type == "ExtWall":
@@ -248,6 +259,9 @@ class City():
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
             self.buildings_objects[bd_key] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone], model=self.building_model)
+
+        self.geometric_preprocessing()
+
     def buildings_creation_from_geojson(self, json_path):
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
@@ -304,9 +318,9 @@ class City():
                 # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
                 for n in range(len(coords_int)):
                     build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
-                                        tuple(coords_int[n]+[z_soff]),\
+                                        tuple(coords_int[n-1]+[z_pav]),\
                                         tuple(coords_int[n]+[z_pav]),\
-                                        tuple(coords_int[n-1]+[z_pav])]))\
+                                        tuple(coords_int[n]+[z_soff]),]))
 
             build_surf.append(tuple(pavimento))
             build_surf.append(tuple(soffitto))
@@ -325,8 +339,11 @@ class City():
                         vertices = vertices,
                     )
 
+                if surface.surface_type != "GroundFloor":
+                    self.__city_surfaces.append(surface)
 
                 # TODO: Update wwr calculation
+                # TODO: reduce area of internal rings
 
                 if surface.surface_type == "ExtWall":
                     surface._wwr = 0.125
@@ -375,8 +392,6 @@ class City():
                 )
             )
 
-            # Creation of thermal zone and building
-
             thermal_zone = ThermalZone(
                 name=f"Bd {name} thermal zone",
                 surface_list=surfaces_list,
@@ -385,14 +400,16 @@ class City():
             )
 
             {
-                "1C": thermal_zone._ISO13790_params,
-                "2C": thermal_zone._VDI6007_params,
+                    "1C": thermal_zone._ISO13790_params,
+                    "2C": thermal_zone._VDI6007_params,
             }[self.building_model]()
-
 
             self.buildings_info[id] = bd_data
             self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
                                                           model=self.building_model)
+
+        # Geometric preprocessing
+        self.geometric_preprocessing()
 
     def loads_calculation(self):
 
@@ -449,23 +466,20 @@ class City():
             building_obj.set_hvac_system_capacity(self.weather_file)
 
     def simulate(self):
-        preprocessing_timesteps = 100
-        for t in range(-preprocessing_timesteps, 8760 * 2 - 1):
-            print(t)
-            bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
-            with concurrent.futures.ProcessPoolExecutor() as executor:
-                bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+        for bd_id, building_info in self.buildings_info.items():
+            self.buildings_objects[bd_id].simulate(self.weather_file)
 
-            # for bd_id, building_info in self.buildings_info.items():
-            #     self.buildings_objects[bd_id].solve_timestep(t, self.weather_file)
+        # def bd_parallel_solve(x):
+        #     # Local function to be used in ThreadPoolExecutor
+        #     t, bd, weather = x
+        #     bd.solve_timestep(t, weather)
+        # for t in range(-preprocessing_timesteps, 31*24 - 1):
+            # bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
-    def surfaces_coincidence_and_shading_effect(self,Solar_position,
-                       shading_calc = False,
-                       mode = 'cityjson',
-                       toll_az = 80.,
-                       toll_dist = 100. ,
-                       toll_theta = 80.,
-                       R_f = 0.):
+
+    def geometric_preprocessing(self):
         
         '''
         This method firstly reduces the area of coincidence surfaces. This first part must be done to get consistent results
@@ -473,189 +487,183 @@ class City():
         
         Parameters
         ----------
-        Solar_position : WeatherData.SolarPosition
-            Object containing information about the position of the sun over the time of simulation
-        shading_calc : Boolean
-            whether or not to do the shading calculation 
-        mode : str
-            cityjson or geojson mode calculation
-        toll_az : float
-            semi-tollerance on azimuth of shading surface [°]
-        toll_dist : float
-            tollerance on distance of shading surface [m]
-        toll_theta : float
-            semi-tollerance on position of the shading surfaces [°]
-        R_f : float
-            Reduction factor of the direct solar radiation due to the shading effect [0-1]
-        
+        shading_calculation: bool
+            if True runs the shading calculation
+
         Returns
         -------
         None
         
         '''
-        
-        # Check input data type
-        
-        if not isinstance(mode, str):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, mode is not a str: mode {mode}')
-        if not isinstance(toll_az, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_az is not a float: toll_az {toll_az}')
-        if not isinstance(toll_dist, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_dist is not a float: toll_dist {toll_dist}')
-        if not isinstance(toll_theta, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, toll_theta is not a float: toll_theta {toll_theta}')
-        if not isinstance(Solar_position, SolarPosition):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, Solar_position is not a SolarPosition object: Solar_position {Solar_position}')
-        if not isinstance(R_f, float):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, R_f is not a float: R_f {R_f}')
-        if not isinstance(shading_calc, bool):
-            raise TypeError(f'ERROR JsonCity class - shading_effect, shading_calc is not a boolean: shading_calc {shading_calc}')
-        
-        # Check input data quality
-        
-        if mode != 'geojson' and  mode != 'cityjson':
-            wrn(f"WARNING JsonCity class - shading_effect, the mode doesn't exist..... mode {mode}")
-        if toll_az < 0.0 or toll_az > 90.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_az is out of range [0-90]..... toll_az {toll_az}")
-        if toll_dist < 0.0 or toll_dist > 200.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_dist is out of range [0-200]..... toll_dist {toll_dist}")
-        if toll_theta < 0.0 or toll_theta > 90.0:
-            wrn(f"WARNING JsonCity class - shading_effect, toll_theta is out of range [0-90]..... toll_theta {toll_theta}")
-        if R_f < 0.0 or R_f > 1.0:
-            wrn(f"WARNING JsonCity class - shading_effect, R_f is out of range [0-1]..... R_f {R_f}")
-            
 
-        # SECTION 1: All surfaces are compared and potentially shading surfaces are stored
-        self.all_Vertsurf = []
-        
-        # if mode == 'cityjson':
-        for bd in self.buildings.keys():
-            self.all_Vertsurf.extend(self.buildings[str(bd)].Vertsurf)
-        # if mode == 'geojson':
-        #     for i in self.city.index:
-        #         self.all_Vertsurf.extend(self.buildings[i+1].Vertsurf)
-       
+        toll_az = CONFIG.urban_shading_tolerances[0]
+        toll_dist = CONFIG.urban_shading_tolerances[1]
+        toll_theta = CONFIG.urban_shading_tolerances[2]
+
         # Each surface is compared with all the others
-        for x in range(len(self.all_Vertsurf)):
-            for y in range(len(self.all_Vertsurf)):
-                if y > x:
-                    # Calculation of the distance between the centroids of the two surfaces under examination
-                    dist = math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0]-self.all_Vertsurf[y][0].centroid_coord[0])**2+(self.all_Vertsurf[x][0].centroid_coord[1]-self.all_Vertsurf[y][0].centroid_coord[1])**2)
-                        
-                    # Reducing the area of the coincidence surfaces
-                    if dist < 15.:
-                        if self.all_Vertsurf[x][0].checkSurfaceCoincidence(self.all_Vertsurf[y][0]):
-                            intersectionArea = self.all_Vertsurf[x][0].calculateIntersectionArea(self.all_Vertsurf[y][0])
-                            self.all_Vertsurf[y][0].reduceArea(intersectionArea)
-                            self.all_Vertsurf[x][0].reduceArea(intersectionArea)
-                    
-                    if shading_calc:        
-                        if dist == 0.0:
-                            pass
-                        else:
-                            
-                            # Calculation of the vector direction between the centroids of the two surfaces under examination
-                            theta_xy = np.degrees(np.arccos((self.all_Vertsurf[y][0].centroid_coord[0]-self.all_Vertsurf[x][0].centroid_coord[0])/dist))
-                            theta = -(theta_xy + 90)
-                            if self.all_Vertsurf[y][0].centroid_coord[1] < self.all_Vertsurf[x][0].centroid_coord[1]:
-                                theta = theta + 2*theta_xy
-                            if theta < -180:
-                                theta = theta + 360
-                            if theta > 180:
-                                theta = theta - 360
-                        
-                        # Conditions:
-                        #    1. the distance between surfaces must be less than toll_dist
-                        #    2. the theta angle between surfaces must be within the range
-                        #    3. the azimuth angle of the second surface must be within the range
-                        
-                        if dist < toll_dist:
-                            if self.all_Vertsurf[x][0].azimuth < 0:
-                                azimuth_opp = self.all_Vertsurf[x][0].azimuth + 180
-                                azimuth_opp_max = azimuth_opp + toll_az
-                                azimuth_opp_min = azimuth_opp - toll_az
-                                theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
-                                theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
-                                if theta_min < -180:
-                                    theta_min = theta_min + 360
-                                    if theta_min < theta < 180 or -180 < theta < theta_max:
-                                        if azimuth_opp_max > 180:
-                                            azimuth_opp_max = azimuth_opp_max - 360
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                        else:
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                else:
-                                    if theta_min < theta < theta_max:
-                                        if azimuth_opp_max > 180:
-                                            azimuth_opp_max = azimuth_opp_max - 360
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180 or -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                        else:
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+        for x in range(len(self.__city_surfaces)):
+            for y in range(x + 1,len(self.__city_surfaces)):
+
+                try:
+                    self.__city_surfaces[x].shading_coupled_surfaces
+                except AttributeError:
+                    self.__city_surfaces[x].shading_coupled_surfaces = []
+                try:
+                    self.__city_surfaces[y].shading_coupled_surfaces
+                except AttributeError:
+                    self.__city_surfaces[y].shading_coupled_surfaces = []
+
+                # Calculation of the distance between the centroids of the two surfaces under examination
+                dist = math.sqrt(
+                    (self.__city_surfaces[x]._centroid[0]-self.__city_surfaces[y]._centroid[0])**2 +
+                    (self.__city_surfaces[x]._centroid[1]-self.__city_surfaces[y]._centroid[1])**2
+                )
+
+                # Reducing the area of the coincidence surfaces
+                if dist < 15.:
+                    if self.__city_surfaces[x].check_surface_coincidence(self.__city_surfaces[y]):
+                        intersectionArea = self.__city_surfaces[x].calculate_intersection_area(self.__city_surfaces[y])
+                        self.__city_surfaces[y].reduce_area(intersectionArea)
+                        self.__city_surfaces[x].reduce_area(intersectionArea)
+
+                if self.shading_calculation:
+                    if dist == 0.0:
+                        pass
+                    else:
+
+                        # Calculation of the vector direction between the centroids of the two surfaces under examination
+                        theta_xy = np.degrees(np.arccos((self.__city_surfaces[y]._centroid[0]-self.__city_surfaces[x]._centroid[0])/dist))
+                        theta = -(theta_xy + 90)
+                        if self.__city_surfaces[y]._centroid[1] < self.__city_surfaces[x]._centroid[1]:
+                            theta = theta + 2*theta_xy
+                        if theta < -180:
+                            theta = theta + 360
+                        if theta > 180:
+                            theta = theta - 360
+
+                    # Conditions:
+                    #    1. the distance between surfaces must be less than toll_dist
+                    #    2. the theta angle between surfaces must be within the range
+                    #    3. the azimuth angle of the second surface must be within the range
+
+                    if dist < toll_dist:
+                        if self.__city_surfaces[x]._azimuth < 0:
+                            azimuth_opp = self.__city_surfaces[x]._azimuth + 180
+                            azimuth_opp_max = azimuth_opp + toll_az
+                            azimuth_opp_min = azimuth_opp - toll_az
+                            theta_max = self.__city_surfaces[x]._azimuth + toll_theta
+                            theta_min = self.__city_surfaces[x]._azimuth - toll_theta
+                            if theta_min < -180:
+                                theta_min = theta_min + 360
+                                if theta_min < theta < 180 or -180 < theta < theta_max:
+                                    if azimuth_opp_max > 180:
+                                        azimuth_opp_max = azimuth_opp_max - 360
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                                    else:
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
                             else:
-                                azimuth_opp = self.all_Vertsurf[x][0].azimuth - 180
-                                azimuth_opp_max = azimuth_opp + toll_az
-                                azimuth_opp_min = azimuth_opp - toll_az
-                                theta_max = self.all_Vertsurf[x][0].azimuth + toll_theta
-                                theta_min = self.all_Vertsurf[x][0].azimuth - toll_theta
-                                if theta_max > 180:
-                                    theta_max = theta_max - 360
-                                    if theta_min < theta < 180 or -180 <= theta < theta_max:
-                                        if azimuth_opp_min < -180:
-                                            azimuth_opp_min = azimuth_opp_min + 360
-                                            if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                        else:
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                else:
-                                    if theta_min < theta < theta_max:
-                                        if azimuth_opp_min < -180:
-                                            azimuth_opp_min = azimuth_opp_min + 360
-                                            if -180 <= self.all_Vertsurf[y][0].azimuth < azimuth_opp_max or azimuth_opp_min < self.all_Vertsurf[y][0].azimuth <= 180:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
-                                        else:
-                                            if azimuth_opp_min < self.all_Vertsurf[y][0].azimuth < azimuth_opp_max:
-                                                self.all_Vertsurf[x][1].extend([[dist,y]])
-                                                self.all_Vertsurf[y][1].extend([[dist,x]])
+                                if theta_min < theta < theta_max:
+                                    if azimuth_opp_max > 180:
+                                        azimuth_opp_max = azimuth_opp_max - 360
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                                    else:
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                        else:
+                            azimuth_opp = self.__city_surfaces[x]._azimuth - 180
+                            azimuth_opp_max = azimuth_opp + toll_az
+                            azimuth_opp_min = azimuth_opp - toll_az
+                            theta_max = self.__city_surfaces[x]._azimuth + toll_theta
+                            theta_min = self.__city_surfaces[x]._azimuth - toll_theta
+                            if theta_max > 180:
+                                theta_max = theta_max - 360
+                                if theta_min < theta < 180 or -180 <= theta < theta_max:
+                                    if azimuth_opp_min < -180:
+                                        azimuth_opp_min = azimuth_opp_min + 360
+                                        if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                                    else:
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                            else:
+                                if theta_min < theta < theta_max:
+                                    if azimuth_opp_min < -180:
+                                        azimuth_opp_min = azimuth_opp_min + 360
+                                        if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+                                    else:
+                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
         
-        if shading_calc:
+        if self.shading_calculation:
             # SECTION 2: Calculation of the shading effect
-            for x in range(len(self.all_Vertsurf)):
-                if self.all_Vertsurf[x][1] != []:
-                    self.all_Vertsurf[x][0].OnOff_shading = 'On'
-                    shading = [0]*len(self.all_Vertsurf[x][1])
-                    for y in range(len(self.all_Vertsurf[x][1])):
-                        
+            for x in range(len(self.__city_surfaces)):
+                self.__city_surfaces[x].shading_coefficient = 1.
+                if self.__city_surfaces[x].shading_coupled_surfaces != []:
+                    self.__city_surfaces[x].shading_calculation = 'On'
+                    shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
+                    for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
+
+                        distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
+                        surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]
+
                         # Calculation of the solar height limit
-                        if self.all_Vertsurf[x][1][y][0] == 0:
+                        if distance == 0:
+                            # Case of distance = 0
                             sol_h_lim = 90.
                         else:
-                            sol_h_lim = np.degrees(np.arctan((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][2] - self.all_Vertsurf[x][0].centroid_coord[2])/self.all_Vertsurf[x][1][y][0]))
-                        self.all_Vertsurf[x][1][y].append(sol_h_lim)
+                            sol_h_lim = np.degrees(
+                                np.arctan(
+                                    (self.__city_surfaces[surface_opposite_index].max_height() -
+                                     self.__city_surfaces[x]._centroid[2])/distance
+                                )
+                            )
+                        self.__city_surfaces[x].shading_coupled_surfaces[y].append(sol_h_lim)
                         
                         # Calculation of the solar azimuth limits
-                        sol_az_lim1_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1])**2)))
-                        sol_az_lim2_xy = np.degrees(np.arccos((self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0] - self.all_Vertsurf[x][0].centroid_coord[0])/math.sqrt((self.all_Vertsurf[x][0].centroid_coord[0] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][0])**2 + (self.all_Vertsurf[x][0].centroid_coord[1] - self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1])**2)))
+                        sol_az_lim1_xy = np.degrees(
+                            np.arccos(
+                                (self.__city_surfaces[surface_opposite_index]._vertices[0][0] -
+                                 self.__city_surfaces[x]._centroid[0])/
+                                math.sqrt(
+                                    (self.__city_surfaces[x]._centroid[0] -
+                                     self.__city_surfaces[surface_opposite_index]._vertices[0][0])**2
+                                    + (self.__city_surfaces[x]._centroid[1] -
+                                       self.__city_surfaces[surface_opposite_index]._vertices[0][1])**2)
+                            )
+                        )
+                        sol_az_lim2_xy = np.degrees(
+                            np.arccos(
+                                (self.__city_surfaces[surface_opposite_index]._vertices[2][0]
+                                 - self.__city_surfaces[x]._centroid[0])
+                                /math.sqrt(
+                                    (self.__city_surfaces[x]._centroid[0] -
+                                     self.__city_surfaces[surface_opposite_index]._vertices[2][0])**2 +
+                                    (self.__city_surfaces[x]._centroid[1]
+                                     - self.__city_surfaces[surface_opposite_index]._vertices[2][1])**2
+                                )
+                            )
+                        )
                         sol_az_lim1 = -(sol_az_lim1_xy + 90)
                         sol_az_lim2 = -(sol_az_lim2_xy + 90)
-                        if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[0][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
+                        if self.__city_surfaces[surface_opposite_index]._vertices[0][1] < self.__city_surfaces[x]._centroid[1]:
                             sol_az_lim1 = sol_az_lim1 + 2*sol_az_lim1_xy
                         if sol_az_lim1 < -180:
                             sol_az_lim1 = sol_az_lim1 + 360
                         if sol_az_lim1 > 180:
                             sol_az_lim1 = sol_az_lim1 - 360
-                        if self.all_Vertsurf[self.all_Vertsurf[x][1][y][1]][0].vertList[1][1] < self.all_Vertsurf[x][0].centroid_coord[1]:
+                        if self.__city_surfaces[surface_opposite_index]._vertices[2][1] < self.__city_surfaces[x]._centroid[1]:
                             sol_az_lim2 = sol_az_lim2 + 2*sol_az_lim2_xy
                         if sol_az_lim2 < -180:
                             sol_az_lim2 = sol_az_lim2 + 360
@@ -666,481 +674,360 @@ class City():
                         #    1. solar height less than the solar height limit
                         #    2. solar azimuth between the solar azimuth limits
                         
-                        shading_sol_h = np.less(Solar_position.elevation,self.all_Vertsurf[x][1][y][2])
+                        shading_sol_h = np.less(
+                            self.weather_file.hourly_data["solar_position_elevation"],
+                            sol_h_lim
+                        )
                         sol_az_lim_inf = min(sol_az_lim1,sol_az_lim2)
                         sol_az_lim_sup = max(sol_az_lim1,sol_az_lim2)
                         if abs(sol_az_lim_inf - sol_az_lim_sup) < 180:
-                            self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
-                            shading_sol_az = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
+                            self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
+                            shading_sol_az = [
+                                np.less(
+                                self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup
+                            ),np.greater(
+                                self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf
+                            )
+                            ]
                             shading_tot = shading_sol_h & shading_sol_az[0] & shading_sol_az[1]
                         else:
                             sol_az_lim_inf = max(sol_az_lim1,sol_az_lim2)
                             sol_az_lim_sup = min(sol_az_lim1,sol_az_lim2)
-                            self.all_Vertsurf[x][1][y].append([sol_az_lim_inf,sol_az_lim_sup])
-                            shading_sol_az1 = [np.less_equal(Solar_position.azimuth,180),np.greater(Solar_position.azimuth,sol_az_lim_inf)]
-                            shading_sol_az2 = [np.less(Solar_position.azimuth,sol_az_lim_sup),np.greater_equal(Solar_position.azimuth,-180)]
+                            self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
+                            shading_sol_az1 = [np.less_equal(self.weather_file.hourly_data["solar_position_azimuth"],180),
+                                               np.greater(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf)]
+                            shading_sol_az2 = [np.less(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup),
+                                               np.greater_equal(self.weather_file.hourly_data["solar_position_azimuth"],-180)]
                             shading_az1 = shading_sol_az1[0] & shading_sol_az1[1]
                             shading_az2 = shading_sol_az2[0] & shading_sol_az2[1]
                             shading_az = shading_az1 | shading_az2
                             shading_tot = shading_sol_h & shading_az
                         shading[y] = shading_tot
-                    for y in range(len(self.all_Vertsurf[x][1])):
+                    for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
                         if y == 0:
                             shading_eff = shading[y]
                         else:
                             shading_eff = shading_eff | shading[y]
                     shading_eff_01 = (1 - np.where(shading_eff==True,1,shading_eff))
-                    shading_eff_01 = np.where(shading_eff_01==0,R_f,shading_eff_01)
-                    self.all_Vertsurf[x][0].shading_effect = shading_eff_01
+                    shading_eff_01 = np.where(shading_eff_01==0, 0. ,shading_eff_01)
+                    self.__city_surfaces[x].shading_coefficient = shading_eff_01
 
-    
-
-
-    def create_urban_canyon(self,sim_time,calc,data):
-        
-        '''
-        This method allows to evaluate the Urban Heat Island effect
-        
-        Parameters
-        ----------
-        sim_time : list
-            list containing timestep per hour and hours of simulation info  
-        calc : bool
-            True if the calculation is performed, False in the opposite case
-        data : dict
-            dictionary containing general and specific district information
-        
-        Returns
-        -------
-        None
-        
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(sim_time, list):
-            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, sim_time is not a list: sim_time {sim_time}')
-        if not isinstance(calc, bool):
-            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, calc is not a bool: calc {calc}')
-        if not isinstance(data, dict):
-            raise TypeError(f'ERROR JsonCity class - create_urban_canyon, data is not a dict: data {data}')
-        
-        # Check input data quality
-        
-        if sim_time[0] > 6:
-            wrn(f"WARNING JsonCity class - create_urban_canyon, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}")
-        
-        # Urban Heat Island evaluation
-        if calc:
-            self.urban_canyon_calc = calc
-            self.bd_ext_walls = np.array([],dtype = float)
-            tot_wall_glazed_area = .0
-            tot_wall_opaque_area = .0
-            h_builidngs = np.array([], dtype = float)       
-            building_footprints = np.array([], dtype = float)
-            for bd in self.buildings.values():
-                self.bd_ext_walls = np.append(self.bd_ext_walls, bd.extWallOpaqueArea + bd.extWallWinArea)
-                tot_wall_opaque_area += bd.extWallOpaqueArea
-                tot_wall_glazed_area += bd.extWallWinArea
-                building_footprints = np.append(building_footprints, bd.footprint) 
-                h_builidngs = np.append(h_builidngs, bd.buildingHeight)
-            
-            data['tot_wall_opaque_area'] = tot_wall_opaque_area
-            data['tot_wall_glazed_area'] = tot_wall_glazed_area
-            data['tot_footprint'] = np.sum(building_footprints)
-            data['h_builidng_average'] = np.average(h_builidngs, weights = building_footprints)
-            data['VH_urb'] = (tot_wall_opaque_area + tot_wall_glazed_area)/data['Area']
-            data['Buildings_density'] = data['tot_footprint'] /data['Area']
-            
-            # Check data quality
-            
-            if ((data['Buildings_density'] + data['Vegetation_density']) > 0.9) :
-                print('WARNING: building density with vegetation density higher than 0.9: check vegetation density')
-                if ((data['Buildings_density'] + data['Vegetation_density']) >= .99):
-                    data['Vegetation_density'] = 0.99 - data['Buildings_density'] 
-            if data['tot_footprint'] > data['Area']:
-                sys.exit('Error: the sum of building footprints is higher than City area. Correct city area')
-            
-            self.urban_canyon_data = data
-            self.urban_canyon = UrbanCanyon(sim_time,self.urban_canyon_data)
-        else:
-            self.urban_canyon_calc = calc
-            self.urban_canyon_data = None 
+    # def create_urban_canyon(self,sim_time,calc,data):
+    #
+    #     '''
+    #     This method allows to evaluate the Urban Heat Island effect
+    #
+    #     Parameters
+    #     ----------
+    #     sim_time : list
+    #         list containing timestep per hour and hours of simulation info
+    #     calc : bool
+    #         True if the calculation is performed, False in the opposite case
+    #     data : dict
+    #         dictionary containing general and specific district information
+    #
+    #     Returns
+    #     -------
+    #     None
+    #
+    #     '''
+    #
+    #     # Check input data type
+    #
+    #     if not isinstance(sim_time, list):
+    #         raise TypeError(f'ERROR JsonCity class - create_urban_canyon, sim_time is not a list: sim_time {sim_time}')
+    #     if not isinstance(calc, bool):
+    #         raise TypeError(f'ERROR JsonCity class - create_urban_canyon, calc is not a bool: calc {calc}')
+    #     if not isinstance(data, dict):
+    #         raise TypeError(f'ERROR JsonCity class - create_urban_canyon, data is not a dict: data {data}')
+    #
+    #     # Check input data quality
+    #
+    #     if sim_time[0] > 6:
+    #         wrn(f"WARNING JsonCity class - create_urban_canyon, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}")
+    #
+    #     # Urban Heat Island evaluation
+    #     if calc:
+    #         self.urban_canyon_calc = calc
+    #         self.bd_ext_walls = np.array([],dtype = float)
+    #         tot_wall_glazed_area = .0
+    #         tot_wall_opaque_area = .0
+    #         h_builidngs = np.array([], dtype = float)
+    #         building_footprints = np.array([], dtype = float)
+    #         for bd in self.buildings.values():
+    #             self.bd_ext_walls = np.append(self.bd_ext_walls, bd.extWallOpaqueArea + bd.extWallWinArea)
+    #             tot_wall_opaque_area += bd.extWallOpaqueArea
+    #             tot_wall_glazed_area += bd.extWallWinArea
+    #             building_footprints = np.append(building_footprints, bd.footprint)
+    #             h_builidngs = np.append(h_builidngs, bd.buildingHeight)
+    #
+    #         data['tot_wall_opaque_area'] = tot_wall_opaque_area
+    #         data['tot_wall_glazed_area'] = tot_wall_glazed_area
+    #         data['tot_footprint'] = np.sum(building_footprints)
+    #         data['h_builidng_average'] = np.average(h_builidngs, weights = building_footprints)
+    #         data['VH_urb'] = (tot_wall_opaque_area + tot_wall_glazed_area)/data['Area']
+    #         data['Buildings_density'] = data['tot_footprint'] /data['Area']
+    #
+    #         # Check data quality
+    #
+    #         if ((data['Buildings_density'] + data['Vegetation_density']) > 0.9) :
+    #             print('WARNING: building density with vegetation density higher than 0.9: check vegetation density')
+    #             if ((data['Buildings_density'] + data['Vegetation_density']) >= .99):
+    #                 data['Vegetation_density'] = 0.99 - data['Buildings_density']
+    #         if data['tot_footprint'] > data['Area']:
+    #             sys.exit('Error: the sum of building footprints is higher than City area. Correct city area')
+    #
+    #         self.urban_canyon_data = data
+    #         self.urban_canyon = UrbanCanyon(sim_time,self.urban_canyon_data)
+    #     else:
+    #         self.urban_canyon_calc = calc
+    #         self.urban_canyon_data = None
    
     
-    '''Design Power calculation during design days'''
-    def designdays(self,Plant_calc,Time_to_regime,design_days,weather):
-        
-        '''
-        Design Power calculation during design days
-        
-        Parameters
-        ----------
-        Plant_calc : bool
-            True if plant calculation is performed, False viceversa
-        Time_to_regime : int
-            time needed to reach a regime condition for Design Days Calculation
-        design_days : list
-            period of design days calculation
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-
-        Returns
-        -------
-        None
-        
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(Plant_calc, bool):
-            raise TypeError(f'ERROR JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}')
-        if not isinstance(Time_to_regime, int):
-            raise TypeError(f'ERROR JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
-        if not isinstance(design_days, list):
-            raise TypeError(f'ERROR JsonCity class - designdays, design_days is not a list: design_days {design_days}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        
-       
-        # Calculation in Heating and Cooling seasons
-        for bd in self.buildings.values():
-            bd.BDdesigndays_Heating(Plant_calc)
-                 
-        for t in design_days[1]:
-            if t == design_days[1][0]:
-                x = t
-                while x < design_days[1][Time_to_regime - 1]:
-                    T_e = weather.Text[t]
-                    RH_e = weather.RHext[t]
-        
-                    if T_e < 0:
-                        p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
-                    else:
-                        p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
-        
-                    for bd in self.buildings.values():
-                        bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
-                        
-                    x = x + 1
-            else:
-                T_e = weather.Text[t]
-                RH_e = weather.RHext[t]
-            
-                if T_e < 0:
-                    p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
-                else:
-                    p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
-            
-                for bd in self.buildings.values():
-                    bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
-        
-        # Reset starting values
-        for bd in self.buildings.values():
-            for z in bd.zones.values():
-                z.reset_init_values()
+    # '''Design Power calculation during design days'''
+    # def designdays(self,Plant_calc,Time_to_regime,design_days,weather):
+    #
+    #     '''
+    #     Design Power calculation during design days
+    #
+    #     Parameters
+    #     ----------
+    #     Plant_calc : bool
+    #         True if plant calculation is performed, False viceversa
+    #     Time_to_regime : int
+    #         time needed to reach a regime condition for Design Days Calculation
+    #     design_days : list
+    #         period of design days calculation
+    #     weather : RC_classes.WeatherData.Weather obj
+    #         object of the class weather WeatherData module
+    #
+    #     Returns
+    #     -------
+    #     None
+    #
+    #     '''
+    #
+    #     # Check input data type
+    #
+    #     if not isinstance(Plant_calc, bool):
+    #         raise TypeError(f'ERROR JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}')
+    #     if not isinstance(Time_to_regime, int):
+    #         raise TypeError(f'ERROR JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}')
+    #     if not isinstance(design_days, list):
+    #         raise TypeError(f'ERROR JsonCity class - designdays, design_days is not a list: design_days {design_days}')
+    #     if not isinstance(weather, Weather):
+    #         raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+    #
+    #
+    #     # Calculation in Heating and Cooling seasons
+    #     for bd in self.buildings.values():
+    #         bd.BDdesigndays_Heating(Plant_calc)
+    #
+    #     for t in design_days[1]:
+    #         if t == design_days[1][0]:
+    #             x = t
+    #             while x < design_days[1][Time_to_regime - 1]:
+    #                 T_e = weather.Text[t]
+    #                 RH_e = weather.RHext[t]
+    #
+    #                 if T_e < 0:
+    #                     p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
+    #                 else:
+    #                     p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
+    #
+    #                 for bd in self.buildings.values():
+    #                     bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
+    #
+    #                 x = x + 1
+    #         else:
+    #             T_e = weather.Text[t]
+    #             RH_e = weather.RHext[t]
+    #
+    #             if T_e < 0:
+    #                 p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
+    #             else:
+    #                 p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
+    #
+    #             for bd in self.buildings.values():
+    #                 bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)
+    #
+    #     # Reset starting values
+    #     for bd in self.buildings.values():
+    #         for z in bd.zones.values():
+    #             z.reset_init_values()
     
     
-    ''' Setting plant of each building and checking plant efficiency'''
-    def cityplants(self,Plants_list,weather):
-        
-        '''
-        Setting plant of each building and checking plant efficiency
-        
-        Parameters
-        ----------
-        Plants_list : dict
-            dictionary contaning all the implemented plants
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-        
-        Returns
-        -------
-        None
-        '''
-        
-        # Check input data type
-
-        if not isinstance(Plants_list, dict):
-            raise TypeError(f'ERROR JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-
-        # Setting plant
-        for bd in self.buildings.values():
-            bd.BDplants(Plants_list,weather)
+    # ''' Setting plant of each building and checking plant efficiency'''
+    # def cityplants(self,Plants_list,weather):
+    #
+    #     '''
+    #     Setting plant of each building and checking plant efficiency
+    #
+    #     Parameters
+    #     ----------
+    #     Plants_list : dict
+    #         dictionary contaning all the implemented plants
+    #     weather : RC_classes.WeatherData.Weather obj
+    #         object of the class weather WeatherData module
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     '''
+    #
+    #     # Check input data type
+    #
+    #     if not isinstance(Plants_list, dict):
+    #         raise TypeError(f'ERROR JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}')
+    #     if not isinstance(weather, Weather):
+    #         raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+    #
+    #     # Setting plant
+    #     for bd in self.buildings.values():
+    #         bd.BDplants(Plants_list,weather)
     
     
-    '''Energy simulation of the city'''
-    def citysim(self,time,weather,Plant_calc,Plants_list):
-        
-        '''
-        This method allows the energy simulation of the city
-        
-        Parameters
-        ----------
-        time : simulation timestep
-            array of int32
-        weather : RC_classes.WeatherData.Weather obj
-            object of the class weather WeatherData module
-        Plant_calc : bool
-            True if plant calculation is performed, False viceversa
-        Plants_list : dict
-            dictionary contaning all the implemented plants
-        
-        Returns
-        -------
-        None
-        '''
-        
-        # Check input data type
-        
-        if not isinstance(time, np.ndarray):
-            raise TypeError(f'ERROR JsonCity class - citysim, time is not a np.ndarray: time {time}')
-        if not isinstance(weather, Weather):
-            raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-        if not isinstance(Plant_calc, bool):
-            raise TypeError(f'ERROR JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}')
-        if not isinstance(Plants_list, dict):
-            raise TypeError(f'ERROR JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
-
-        # Check input data quality
-        print(time.dtype)
-        if not time.dtype == np.dtype('int64') and not time.dtype == np.dtype('int32'):
-            wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time {time}")
-       
-        # Energy simulation of the city
-        for t in time:
-            T_e = weather.Text[t]
-            RH_e = weather.RHext[t]
-            w = weather.w[t]
-            zenith = weather.SolarPosition.zenith[t]
-            if T_e < 0:
-                p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
-            else:
-                p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
-                
-            # Urban Heat Island evaluation
-            if self.urban_canyon_calc:
-                radiation = [weather.SolarGains['0.0','0.0','global'].iloc[t],
-                             weather.SolarGains['0.0','0.0','direct'].iloc[t]]
-                self.urban_canyon.solve_canyon(t,
-                                               T_e,
-                                               w,
-                                               radiation,
-                                               self.T_w_0,
-                                               T_e-weather.dT_er,
-                                               self.H_waste_0*1000,
-                                               zenith,
-                                               [self.T_out_inf,self.T_out_AHU],
-                                               [self.V_0_inf,self.V_0_vent])
-                T_e = self.urban_canyon.T_urb[t] - 273.15
-                
-            # Vectors initialization
-            T_w_bd = np.array([],dtype = float)
-            T_out_inf_bd = np.array([],dtype = float)
-            T_out_vent_bd = np.array([],dtype = float)
-            V_0_inf_bd = np.array([],dtype = float)
-            V_0_vent_bd = np.array([],dtype = float)
-            H_waste_0 = np.array([],dtype = float)
-            
-            # Linear system resolution
-            for bd in self.buildings.values():
-                bd.solve(t,
-                         T_e,
-                         RH_e,
-                         p_extsat,
-                         weather.tau,
-                         Plants_list,
-                         Plant_calc,
-                         self.model)
-                T_w_bd = np.append(T_w_bd, bd.T_wall_0)
-                T_out_inf_bd = np.append(T_out_inf_bd, bd.T_out_inf)
-                T_out_vent_bd =np.append(T_out_vent_bd, bd.T_out_AHU)
-                V_0_inf_bd = np.append(V_0_inf_bd, bd.G_inf_0)
-                V_0_vent_bd = np.append(V_0_vent_bd, bd.G_vent_0)
-                H_waste_0 = np.append(H_waste_0, bd.H_waste)
-                
-            # Output post-prcessing in case of Urban Heat Island evaluation
-            if self.urban_canyon_calc:
-                self.T_w_0 = np.average(T_w_bd, weights = self.bd_ext_walls)
-                self.V_0_inf = np.sum(V_0_inf_bd)
-                self.V_0_vent = np.sum(V_0_vent_bd)
-                self.H_waste_0 = np.sum(H_waste_0)
-                try:
-                    self.T_out_inf = np.average(T_out_inf_bd, weights = V_0_inf_bd)
-                except ZeroDivisionError:
-                    self.T_out_inf = 20.
-                try:
-                    self.T_out_AHU = np.average(T_out_vent_bd, weights = V_0_vent_bd)
-                except ZeroDivisionError:
-                    self.T_out_AHU = 20.
+    # '''Energy simulation of the city'''
+    # def citysim(self,time,weather,Plant_calc,Plants_list):
+    #
+    #     '''
+    #     This method allows the energy simulation of the city
+    #
+    #     Parameters
+    #     ----------
+    #     time : simulation timestep
+    #         array of int32
+    #     weather : RC_classes.WeatherData.Weather obj
+    #         object of the class weather WeatherData module
+    #     Plant_calc : bool
+    #         True if plant calculation is performed, False viceversa
+    #     Plants_list : dict
+    #         dictionary contaning all the implemented plants
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     '''
+    #
+    #     # Check input data type
+    #
+    #     if not isinstance(time, np.ndarray):
+    #         raise TypeError(f'ERROR JsonCity class - citysim, time is not a np.ndarray: time {time}')
+    #     if not isinstance(weather, Weather):
+    #         raise TypeError(f'ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
+    #     if not isinstance(Plant_calc, bool):
+    #         raise TypeError(f'ERROR JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}')
+    #     if not isinstance(Plants_list, dict):
+    #         raise TypeError(f'ERROR JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}')
+    #
+    #     # Check input data quality
+    #     print(time.dtype)
+    #     if not time.dtype == np.dtype('int64') and not time.dtype == np.dtype('int32'):
+    #         wrn(f"WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time {time}")
+    #
+    #     # Energy simulation of the city
+    #     for t in time:
+    #         T_e = weather.Text[t]
+    #         RH_e = weather.RHext[t]
+    #         w = weather.w[t]
+    #         zenith = weather.SolarPosition.zenith[t]
+    #         if T_e < 0:
+    #             p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))
+    #         else:
+    #             p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))
+    #
+    #         # Urban Heat Island evaluation
+    #         if self.urban_canyon_calc:
+    #             radiation = [weather.SolarGains['0.0','0.0','global'].iloc[t],
+    #                          weather.SolarGains['0.0','0.0','direct'].iloc[t]]
+    #             self.urban_canyon.solve_canyon(t,
+    #                                            T_e,
+    #                                            w,
+    #                                            radiation,
+    #                                            self.T_w_0,
+    #                                            T_e-weather.dT_er,
+    #                                            self.H_waste_0*1000,
+    #                                            zenith,
+    #                                            [self.T_out_inf,self.T_out_AHU],
+    #                                            [self.V_0_inf,self.V_0_vent])
+    #             T_e = self.urban_canyon.T_urb[t] - 273.15
+    #
+    #         # Vectors initialization
+    #         T_w_bd = np.array([],dtype = float)
+    #         T_out_inf_bd = np.array([],dtype = float)
+    #         T_out_vent_bd = np.array([],dtype = float)
+    #         V_0_inf_bd = np.array([],dtype = float)
+    #         V_0_vent_bd = np.array([],dtype = float)
+    #         H_waste_0 = np.array([],dtype = float)
+    #
+    #         # Linear system resolution
+    #         for bd in self.buildings.values():
+    #             bd.solve(t,
+    #                      T_e,
+    #                      RH_e,
+    #                      p_extsat,
+    #                      weather.tau,
+    #                      Plants_list,
+    #                      Plant_calc,
+    #                      self.model)
+    #             T_w_bd = np.append(T_w_bd, bd.T_wall_0)
+    #             T_out_inf_bd = np.append(T_out_inf_bd, bd.T_out_inf)
+    #             T_out_vent_bd =np.append(T_out_vent_bd, bd.T_out_AHU)
+    #             V_0_inf_bd = np.append(V_0_inf_bd, bd.G_inf_0)
+    #             V_0_vent_bd = np.append(V_0_vent_bd, bd.G_vent_0)
+    #             H_waste_0 = np.append(H_waste_0, bd.H_waste)
+    #
+    #         # Output post-prcessing in case of Urban Heat Island evaluation
+    #         if self.urban_canyon_calc:
+    #             self.T_w_0 = np.average(T_w_bd, weights = self.bd_ext_walls)
+    #             self.V_0_inf = np.sum(V_0_inf_bd)
+    #             self.V_0_vent = np.sum(V_0_vent_bd)
+    #             self.H_waste_0 = np.sum(H_waste_0)
+    #             try:
+    #                 self.T_out_inf = np.average(T_out_inf_bd, weights = V_0_inf_bd)
+    #             except ZeroDivisionError:
+    #                 self.T_out_inf = 20.
+    #             try:
+    #                 self.T_out_AHU = np.average(T_out_vent_bd, weights = V_0_vent_bd)
+    #             except ZeroDivisionError:
+    #                 self.T_out_AHU = 20.
         
     
-    def complexmerge(self):
-        
-        '''
-        Post-processing: output vectors in case of geojson mode.
-        ATTENTION: Buildings with the same name must be listed in the
-           object city() one after the other
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None
-        
-        '''
-
-
-        nb = len(self.buildings.values())
-        for y in range(nb-1,-1,-1):
-            self.complexes[self.city.loc[y]['nome']] = Complex(self.city.loc[y]['nome'])
-            self.complexes[self.city.loc[y]['nome']].heatFlowC = self.buildings[self.city.loc[y]['id']].heatFlowBD 
-            self.complexes[self.city.loc[y]['nome']].latentFlowC = self.buildings[self.city.loc[y]['id']].latentFlowBD
-            self.complexes[self.city.loc[y]['nome']].AHUDemandC = self.buildings[self.city.loc[y]['id']].AHUDemandBD
-            self.complexes[self.city.loc[y]['nome']].AHUDemand_latC = self.buildings[self.city.loc[y]['id']].AHUDemand_latBD
-            self.complexes[self.city.loc[y]['nome']].AHUDemand_sensC = self.buildings[self.city.loc[y]['id']].AHUDemand_sensBD
-        i = 0
-        x = 1
-        while i < nb:
-            if i < nb - 1:
-                if self.city.loc[i]['nome'] == self.city.loc[x]['nome']:
-                    self.complexes[self.city.loc[i]['nome']].heatFlowC += self.buildings[self.city.loc[x]['id']].heatFlowBD
-                    self.complexes[self.city.loc[i]['nome']].latentFlowC += self.buildings[self.city.loc[x]['id']].latentFlowBD
-                    self.complexes[self.city.loc[i]['nome']].AHUDemandC += self.buildings[self.city.loc[x]['id']].AHUDemandBD
-                    self.complexes[self.city.loc[i]['nome']].AHUDemand_latC += self.buildings[self.city.loc[x]['id']].AHUDemand_latBD
-                    self.complexes[self.city.loc[i]['nome']].AHUDemand_sensC += self.buildings[self.city.loc[x]['id']].AHUDemand_sensBD
-            i = i + 1
-            x = x + 1
-
-
-# %% ---------------------------------------------------------------------------------------------------
-# %% Useful functions
-
-def createBuilding(name, bd, vertList, mode, n_Floors, envelopes, weather):
-    '''
-    This function allows to identify buildings and their attributes when
-    mode == cityjson
-
-    Parameters
-    ----------
-    name : str
-        name of the district's buildings
-    bd : dict
-        dictionary for each building containing attributes and info
-    vertList : list
-        list of all buildings vertices
-    mode : str
-        cityjson or geojson mode calculation
-    n_Floors : int
-        initialization of the building's number of floors
-    envelopes : dict
-        envelope information for each age class category
-    weather : RC_classes.WeatherData.Weather obj
-        object of the class weather WeatherData module
-
-    Returns
-    -------
-    Building : class
-    '''
-
-    # Check input data type
-
-    if not isinstance(name, str):
-        raise TypeError(f'ERROR createBuilding function, name is not a str: name {name}')
-    if not isinstance(bd, dict):
-        raise TypeError(f'ERROR createBuilding function, bd is not a dict: bd {bd}')
-    if not isinstance(vertList, list):
-        raise TypeError(f'ERROR createBuilding function, vertList is not a list: vertList {vertList}')
-    if not isinstance(mode, str):
-        raise TypeError(f'ERROR createBuilding function, mode is not a str: mode {mode}')
-    if not isinstance(n_Floors, int):
-        raise TypeError(f'ERROR createBuilding function, n_Floors is not a int: n_Floors {n_Floors}')
-    if not isinstance(envelopes, dict):
-        raise TypeError(f'ERROR createBuilding function, envelopes is not a dict: envelopes {envelopes}')
-    if not isinstance(weather, Weather):
-        raise TypeError(
-            f'ERROR createBuilding function, weather is not a RC_classes.WeatherData.Weather: weather {weather}')
-
-    # Check input data quality
-
-    for vtx in vertList:
-        if not isinstance(vtx, list):
-            raise TypeError(f'ERROR  createBuilding function, an input is not a list: input {vtx}')
-        if len(vtx) != 3:
-            raise TypeError(f'ERROR createBuilding function, a vertex is not a list of 3 components: input {vtx}')
-        try:
-            vtx[0] = float(vtx[0])
-            vtx[1] = float(vtx[1])
-            vtx[2] = float(vtx[2])
-        except ValueError:
-            raise ValueError(f'ERROR createBuilding function, a coordinate is not a float: input {vtx}')
-    if not bool(envelopes):
-        wrn(f"WARNING createBuilding function, the envelopes dictionary is empty..... envelopes {envelopes}")
-
-    # Setting the attributes of the building
-    age = bd['attributes']['Age']  # Age-class of the building
-    use = bd['attributes']['Use']  # End-use of the building
-    try:
-        H_plant = bd['attributes']['H_Plant']  # Heating plant of the building
-    except KeyError:
-        H_plant = 'IdealLoad'
-    try:
-        C_plant = bd['attributes']['C_Plant']  # Cooling plant of the building
-    except KeyError:
-        C_plant = 'IdealLoad'
-
-    for geo in bd['geometry']:
-        if geo['type'] == 'MultiSurface':
-            boundaries = geo['boundaries']
-            surfaces = []
-            for surface in boundaries:
-                for subsurface in surface:
-                    surf = []
-                    for vert_id in subsurface:
-                        surf.append(vertList[vert_id])
-                    surfaces.append(surf)
-
-        # Building class initialization
-        return Building(name, mode, surfaces, n_Floors, use, envelopes, age, 1, 1, H_plant, C_plant, weather)
-
-
-def bd_parallel_solve(x):
-    t, bd, weather = x
-    bd.solve_timestep(t, weather)
-
-#%%--------------------------------------------------------------------------------------------------- 
-#%% some test methods
-
-'''
-TEST METHOD
-'''
-     
-if __name__=='__main__':  
-    env_path = os.path.join('..','Input','buildings_envelope_V02_EP.xlsx')
-    envelopes = loadEnvelopes(env_path)
-    '''
-    path_p = os.path.join('..','Input', 'ridotto.json')
-    padua = JsonCity(path_p,envelopes)
-    '''    
-    path_v = os.path.join('..','Input', 'verona_geojson.geojson')
-    verona = JsonCity(path_v,envelopes,mode='geojson')
-    '''
-    for i in padua.buildings['RLB-67013'].buildingSurfaces.values():
-        if (isinstance(i, Surface) and [726494.291,5032396.487,56.018] in i.vertList and [726495.621,5032407.056,56.018] in i.vertList):
-            if i.type=='ExtWall':
-                i.printInfo()
-    '''
-    '''  
-    padua.buildings['RLB-67013'].printBuildingInfo()
-    padua.buildings['RLB-67001'].printBuildingInfo()
-    padua.buildings['RLB-67002'].printBuildingInfo()
-    padua.buildings['RLB-67003'].printBuildingInfo()
-    padua.buildings['RLB-66818'].printBuildingInfo()
-    #[(print(s.name), print(s.area), print(s.vertList))for s in padua.buildings['RLB-67002'].buildingSurfaces.values() if s.type=='ExtWall']
-    #padua.buildings['RLB-67013'].plotBuilding(padua.buildings['RLB-67013'].buildingSurfaces['Building Surface 27'])
-    #padua.buildings['RLB-67013'].buildingSurfaces['Building Surface 17'].checkSurfaceCoincidence(padua.buildings['RLB-67013'].buildingSurfaces['Building Surface 27'])
-    '''        
+    # def complexmerge(self):
+    #
+    #     '''
+    #     Post-processing: output vectors in case of geojson mode.
+    #     ATTENTION: Buildings with the same name must be listed in the
+    #        object city() one after the other
+    #
+    #     Parameters
+    #     ----------
+    #     None
+    #
+    #     Returns
+    #     -------
+    #     None
+    #
+    #     '''
+    #
+    #
+    #     nb = len(self.buildings.values())
+    #     for y in range(nb-1,-1,-1):
+    #         self.complexes[self.city.loc[y]['nome']] = Complex(self.city.loc[y]['nome'])
+    #         self.complexes[self.city.loc[y]['nome']].heatFlowC = self.buildings[self.city.loc[y]['id']].heatFlowBD
+    #         self.complexes[self.city.loc[y]['nome']].latentFlowC = self.buildings[self.city.loc[y]['id']].latentFlowBD
+    #         self.complexes[self.city.loc[y]['nome']].AHUDemandC = self.buildings[self.city.loc[y]['id']].AHUDemandBD
+    #         self.complexes[self.city.loc[y]['nome']].AHUDemand_latC = self.buildings[self.city.loc[y]['id']].AHUDemand_latBD
+    #         self.complexes[self.city.loc[y]['nome']].AHUDemand_sensC = self.buildings[self.city.loc[y]['id']].AHUDemand_sensBD
+    #     i = 0
+    #     x = 1
+    #     while i < nb:
+    #         if i < nb - 1:
+    #             if self.city.loc[i]['nome'] == self.city.loc[x]['nome']:
+    #                 self.complexes[self.city.loc[i]['nome']].heatFlowC += self.buildings[self.city.loc[x]['id']].heatFlowBD
+    #                 self.complexes[self.city.loc[i]['nome']].latentFlowC += self.buildings[self.city.loc[x]['id']].latentFlowBD
+    #                 self.complexes[self.city.loc[i]['nome']].AHUDemandC += self.buildings[self.city.loc[x]['id']].AHUDemandBD
+    #                 self.complexes[self.city.loc[i]['nome']].AHUDemand_latC += self.buildings[self.city.loc[x]['id']].AHUDemand_latBD
+    #                 self.complexes[self.city.loc[i]['nome']].AHUDemand_sensC += self.buildings[self.city.loc[x]['id']].AHUDemand_sensBD
+    #         i = i + 1
+    #         x = x + 1

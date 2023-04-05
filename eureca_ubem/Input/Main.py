@@ -23,6 +23,8 @@ city_geojson = City(
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
+    shading_calculation=True,
+    output_folder=os.path.join(".","geojson")
 )
 city_geojson.loads_calculation()
 
@@ -35,6 +37,7 @@ city_json = City(
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
+    output_folder=os.path.join(".","cityjson")
 )
 city_json.loads_calculation()
 
@@ -48,8 +51,13 @@ belzoni = City(
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
+    output_folder=os.path.join(".","belzoni")
 )
+print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
+start = tm.time()
 belzoni.loads_calculation()
+print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
+start = tm.time()
 belzoni.simulate()
+print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
-print(f"Belzoni loading and calcs: {(tm.time() - start)/60} min")
