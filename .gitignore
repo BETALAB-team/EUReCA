@@ -2,6 +2,7 @@
 RCenv.yml
 /eureca_ubem/Input/Belzoni.json
 /eureca_ubem/Input/Belzoni/
+/eureca_ubem/Input/geojson/
 /eureca_ubem/Input/total envelope types.xlsx
 /OutputReport/1C/*.csv
 /OutputReport/2C/*.csv
