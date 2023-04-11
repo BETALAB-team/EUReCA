@@ -59,6 +59,15 @@ The required attributes are:
 
 Input folder provides some example for the city of Padua.
 
+List of available heating systems:
+- CondensingBoiler
+- TraditionalBoiler
+
+List of available cooling systems:
+- SplitAirCooler
+- SplitAirConditioner
+- ChillerAirtoWater
+
 ### Simulation
 
 After the set up of all input files, you can run the Main.py file:

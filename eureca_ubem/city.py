@@ -19,8 +19,6 @@ from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 
-# TODO: implement logging system
-
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
 

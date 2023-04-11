@@ -2,6 +2,7 @@
 
 import os
 import time as tm
+import logging
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -49,8 +50,6 @@ city_geojson.simulate()
 # belzoni.simulate()
 # print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
-
-
 # city_model_file = os.path.join(".","PaduaRestricted.json")
 #
 # # Creation of the City object exit
@@ -63,5 +62,4 @@ city_geojson.simulate()
 # )
 # city_json.loads_calculation()
 
-# Modifica enrico
 
