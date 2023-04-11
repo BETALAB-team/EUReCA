@@ -17,6 +17,26 @@ schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
+materials_file = os.path.join(".","total envelope types.xlsx")
+city_model_file = os.path.join(".","Belzoni.json")
+
+start = tm.time()
+# Creation of the City object exit
+belzoni = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    output_folder=os.path.join(".","belzoni")
+)
+print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
+start = tm.time()
+belzoni.loads_calculation()
+print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
+start = tm.time()
+belzoni.simulate()
+print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
+
 # Creation of the City object exit
 # city_geojson = City(
 #     city_model=city_model_file,
@@ -40,24 +60,4 @@ city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 #     output_folder=os.path.join(".","cityjson")
 # )
 # city_json.loads_calculation()
-
-materials_file = os.path.join(".","total envelope types.xlsx")
-city_model_file = os.path.join(".","Belzoni.json")
-
-start = tm.time()
-# Creation of the City object exit
-belzoni = City(
-    city_model=city_model_file,
-    epw_weather_file=weather_file,
-    end_uses_types_file=schedules_file,
-    envelope_types_file=materials_file,
-    output_folder=os.path.join(".","belzoni")
-)
-print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
-start = tm.time()
-belzoni.loads_calculation()
-print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
-start = tm.time()
-belzoni.simulate()
-print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
