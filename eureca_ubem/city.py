@@ -469,6 +469,7 @@ class City():
     def simulate(self):
         import time
         start = time.time()
+        # parallel simulation commented
         # bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]
         # def bd_parallel_solve(x):
         #     bd, weather, out_fold = x
