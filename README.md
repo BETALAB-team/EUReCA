@@ -5,30 +5,33 @@ The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua
 
 ## Python environment set up
-The tool is distributed via the GitHub repository. It can be freely cloned with git, `git clone https://github.com/BETALAB-team/EUReCA.git`, or clicking on the **code** button and downloading the zip file.
+The tool is distributed via the GitHub repository, and it relies on the [eureca-building](https://github.com/BETALAB-team/eureca-building) library, an additional repository that must be installed before running eureca.
+As first step, you must create a new conda or venv environment. You can name it eureca.
 
-An eureca.yml file is also included in the repository. It provides the python packages needed to run the EUReCA simulation. 
+> conda create -n eureca python 3.9
 
-The virtual environment can be easily set up using the [Anaconda](https://www.anaconda.com/products/individual) package manager. With the command line: 
-```
-conda -env create -f EUReCA_PATH\eureca.yml
-```
-Or using the Anaconda navigator application, under `Environments -> Import -> Import environment from path` and searching for  `EUReCA_PATH\eureca.yml`. The environment will be set up for you by the conda package manager. 
+and activate it:
 
-To activate the RC environment with the command :
-```
-conda activate eureca
-```
+> conda activate eureca
+
+After creating the environment, follow the instruction in the [eureca-building](https://github.com/BETALAB-team/eureca-building) page to install the auxiliary library.
+Then clone the following package in a separate folder:
+
+> git clone https://github.com/BETALAB-team/EUReCA.git
+
+and install it in the same environement:
+
+> pip install -e ./eureca-ubem
 
 ## Preparing and run a simulation
 ### Input files
 
+The eureca_ubem/Input folder contain some examples file to run the simulation. 
 To simulate cities energy consumption in EUReCA, some input files must be prepared:
 - A `weather_data.epw` weather file. These files are available at the [EnergyPlus](https://www.energyplus.net/weather) website.
-- A `Envelopes.xlsx` spreadsheet. It includes the thermophysical properties of building envelopes. An example is available in the `Input.Envelopes.xlsx`
-- A `Schedules.xlsx` spreadsheet. It includes the operational schedules of occupancy, appliances, temperature, humidity setpoints, HVAC usage for different end-uses. There are two possible ways to set up the end-uses usage: using the daily mode (example in `Input\ScheduleSemp.xlsx`) and the Yearly mode (example in `Input\ScheduleComp.xlsx`).
-- A `PlantList.xlsx` spreadsheet. The file includes the input data of many plants model, for different sizes.
-- The `SimInput` file, which defines the simulation parameters. `SimInput.txt` or `SimInput.xlsx` can be used as a reference.
+- A `EnvelopeTypes.xlsx` spreadsheet. It includes the thermo-physic properties of building envelopes. An example is available in the `materials_and_construction_test.xlsx`
+- A `Schedules.xlsx` spreadsheet. It includes the operational schedules of occupancy, appliances, temperature, humidity setpoints, HVAC usage for different end-uses. Example in `Schedules.xlsx`.
+- The `config.json` file, which defines the simulation parameters. Example in `config.json`.
 - The `city.json` model. See the next section for further info on the alternatives.
 
 ### The JSON city model
@@ -37,22 +40,21 @@ Currently, EUReCA can handle two typologies of JSON city models. The recommended
 The required attributes are:
 - CityJSON: 
   ```
-  "Use": "schedule_archetype_name", 
-  "Age": "envelope_archetype_name", 
-  "H_Plant": "heating_plant_name", 
-  "C_Plant": "cooling_plant_name"
+  "End Use": "schedule_type_name", 
+  "Envelope": "envelope_type_name", 
+  "Heating System": "heating_system_name", 
+  "Cooling System": "cooling_system_name"
   ```
 - GeoJSON: 
   ```
   "id": integer, 
   "Name": "name", 
-  "Use": "schedule_archetype_name", 
-  "Age": "envelope_archetype_name", 
+  "End Use": "schedule_archetype_name", 
+  "Envelope": "envelope_archetype_name", 
   "Height": float, "Nfloors": integer, 
-  "ExtWallCoeff": float, 
-  "VolCoeff": float, 
-  "C_Plant": "cooling_plant_name", 
-  "H_Plant": "heating_plant_name"
+  "Floors": float, 
+  "Heating System": "heating_system_name", 
+  "Cooling System": "cooling_system_name"
   ```
 
 Input folder provides some example for the city of Padua.
@@ -62,53 +64,41 @@ Input folder provides some example for the city of Padua.
 After the set up of all input files, you can run the Main.py file:
 
 ```
-''' IMPORTING MODULES '''
-
 import os
-import numpy as np
-from RC_classes.Simulation import Sim
+import time as tm
 
 
-# Creation of the Sim object
-city = Sim()
+# CONFIG FILE LOADING
+from eureca_building.config import load_config
+load_config("config.json")
 
-# Loading the input data: just uncomment one of the following lines depending on the simulation input file you filled
-city.set_input_from_text_file(os.path.join('.','Input','SimInput'))
-# city.set_input_from_excel_file(os.path.join('.','Input','SimInput.xlsx'))
+from eureca_ubem.city import City
 
-# Loading weather data, envelopes and schedules
-city.preprocessing()
+# SET INPUT FILES
+weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
+schedules_file = os.path.join(".","Schedules.xlsx")
+materials_file = os.path.join(".","materials_and_construction_test.xlsx")
+city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
-# Creation of the district (geometrical processing)
-city.city_creation()
-
-# Evaluating Urban shadings between buildings
-city.urban_shading()
-
-# Calculation buildings parameters
-city.buildings_params_and_loads()
-
-# Design power of buildings and plants creation
-city.plants_design_and_creation()
-
-# Annual simulation
-city.simulation()
-
-# Output processing
-city.output()
+# Creation of the City object and simulation
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    shading_calculation=True,
+    output_folder=os.path.join(".","geojson")
+)
+city_geojson.loads_calculation()
+city_geojson.simulate()
 ```
 
 ### Output report
-In case you ran the command `city.output()` the folder OutputReport will be created as final step.
-
-The report consists of several `output_variable.csv` files, including many outputs, as buildings' temperature, humidity, and consumption.
-
-A `warning.txt` file is printed, as well. 
-
+If `output_folder=os.path.join(".","name_output")` is set an output file for each building is created in the output folder.
+Each file is a csv with the main output variables of each building.
 
 ### How to cite EUReCA
 In case you want to use EUReCA for your own research project, please cite this paper: 
-
 
 @article{PRATAVIERA2021544,
 title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},

@@ -17,6 +17,18 @@ schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
+# Creation of the City object exit
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    shading_calculation=True,
+    output_folder=os.path.join(".","geojson")
+)
+city_geojson.loads_calculation()
+city_geojson.simulate()
+
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni.json")
 #
@@ -37,17 +49,6 @@ city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 # belzoni.simulate()
 # print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
-# Creation of the City object exit
-city_geojson = City(
-    city_model=city_model_file,
-    epw_weather_file=weather_file,
-    end_uses_types_file=schedules_file,
-    envelope_types_file=materials_file,
-    shading_calculation=True,
-    output_folder=os.path.join(".","geojson")
-)
-city_geojson.loads_calculation()
-city_geojson.simulate()
 
 
 # city_model_file = os.path.join(".","PaduaRestricted.json")
