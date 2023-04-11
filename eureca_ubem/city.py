@@ -108,6 +108,7 @@ class City():
 
         if not os.path.isdir(output_folder):
             os.mkdir(output_folder)
+        self.output_folder = output_folder
 
     @property
     def building_model(self) -> str:
@@ -466,8 +467,22 @@ class City():
             building_obj.set_hvac_system_capacity(self.weather_file)
 
     def simulate(self):
+        import time
+        start = time.time()
+        bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]
+        def bd_parallel_solve(x):
+            bd, weather, out_fold = x
+            bd.simulate(weather, output_folder=out_fold)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+
+        print(f"Parallel simulation : {(time.time() - start)/60:0.2f} min")
+        start = time.time()
+
         for bd_id, building_info in self.buildings_info.items():
-            self.buildings_objects[bd_id].simulate(self.weather_file)
+            self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+
+        print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
         # def bd_parallel_solve(x):
         #     # Local function to be used in ThreadPoolExecutor
