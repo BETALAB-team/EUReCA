@@ -21,6 +21,7 @@ from eureca_building.schedule import Schedule
 from eureca_building.internal_load import People, Lights, ElectricLoad, InternalLoad
 from eureca_building.setpoints import SetpointDualBand
 from eureca_building.ventilation import Infiltration, MechanicalVentilation
+from eureca_building.domestic_hot_water import DomesticHotWater
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% Useful functions to create the schedule EndUses
@@ -47,7 +48,7 @@ def load_schedules(path):
     end_uses_sheet_dict = pd.read_excel(path,sheet_name=None,header=[0],index_col=[0], skiprows = 0)
     general_data = end_uses_sheet_dict["GeneralData"][['System Convective Fraction', 'AHU humidity control',
                                    'AHU sensible heat recovery', 'AHU latent heat recovery',
-                                   'Outdoor Air Ratio',]]
+                                   'Outdoor Air Ratio','DomesticHotWater calculation']]
 
     holidays = [int(i) for i in list(end_uses_sheet_dict["GeneralData"]["Holidays from 0 to 364"].iloc[0].split(','))]
 
@@ -96,6 +97,9 @@ class EndUse:
             'lighting':None,
             'people':None,
         }
+        self.domestic_hot_water = {
+            'domestic_hot_water':None
+        }
         self.infiltration = {
             'infiltration': None,
         }
@@ -120,6 +124,20 @@ class EndUse:
         Simple schedule file has different units which are converted in the loadSchedSemp method
         (vapuor flow rates)
         '''
+
+    @property
+    def domestic_hot_water(self):
+        return self._domestic_hot_water
+
+    @domestic_hot_water.setter
+    def domestic_hot_water(self, value):
+        if not isinstance(value,dict):
+            raise ValueError(f"EndUse object {self.name}, domestic_hot_water must be a dict: {value}")
+
+        if (not isinstance(value["domestic_hot_water"], DomesticHotWater)) and value["domestic_hot_water"] != None:
+            raise TypeError(f"EndUse object {self.name}: error in setting domestic hot water. Domestic hot water not a DomesticHotWater type")
+
+        self._domestic_hot_water = value
 
     @property
     def heat_gains(self):
@@ -256,6 +274,7 @@ class EndUse:
         sched_df['ahu_supply_specific_humidity_heating'] = daily_df_from_excel['Ventilation Supply specific humidity heating mode']
         sched_df['ahu_supply_temperature_cooling'] = daily_df_from_excel['Ventilation Supply Temperature cooling mode']
         sched_df['ahu_supply_specific_humidity_cooling'] = daily_df_from_excel['Ventilation Supply specific humidity cooling mode']
+        sched_df['dhw'] = daily_df_from_excel['Domestic Hot Water FlowRate']
 
         sched_df = cls.rescale_df(CONFIG.ts_per_hour, sched_df)
 
@@ -266,6 +285,7 @@ class EndUse:
             scalar_data['sensRec'] = float(scalar_df_from_excel.loc[name]['AHU sensible heat recovery'])
             scalar_data['latRec'] = float(scalar_df_from_excel.loc[name]['AHU latent heat recovery'])
             scalar_data['outdoorAirRatio'] = float(scalar_df_from_excel.loc[name]['Outdoor Air Ratio'])
+            scalar_data['DomesticHotWater calculation'] = str(scalar_df_from_excel.loc[name]['DomesticHotWater calculation'])
         except KeyError:
             raise KeyError(
                 f"ERROR Loading end use {name}. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio")
@@ -278,17 +298,18 @@ class EndUse:
                                  SensRec should be a float {scalar_df_from_excel.loc[name]['SensRec']}
                                  LatRec  should be a float {scalar_df_from_excel.loc[name]['LatRec']}
                                  OutAirRatio   should be a float {scalar_df_from_excel.loc[name]['OutAirRatio']}
+                                 DomesticHotWater calculation   should be a str {scalar_df_from_excel.loc[name]['DomesticHotWater calculation']}
                              """)
 
         # Check the quality of input data
         if not 0. <= scalar_data['conFrac'] <= 1.:
-            logging.warning(f"WARNING Loading end use {name}. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac {self.scalar_data['conFrac']}")
+            logging.warning(f"WARNING Loading end use {name}. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac {scalar_data['conFrac']}")
         if not 0. <= scalar_data['sensRec'] <= 1.:
-            logging.warning(f"WARNING Loading end use {name}. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['sensRec']}")
+            logging.warning(f"WARNING Loading end use {name}. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec {scalar_data['sensRec']}")
         if not 0. <= scalar_data['latRec'] <= 1.:
-            logging.warning(f"WARNING Loading end use {name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {self.scalar_data['latRec']}")
+            logging.warning(f"WARNING Loading end use {name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {scalar_data['latRec']}")
         if not 0. <= scalar_data['outdoorAirRatio'] <= 1.:
-            logging.warning(f"WARNING Loading end use {name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {self.scalar_data['outdoorAirRatio']}")
+            logging.warning(f"WARNING Loading end use {name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {scalar_data['outdoorAirRatio']}")
 
         # Creating the end use object
 
@@ -512,11 +533,31 @@ class EndUse:
         ahu_availability_sched.schedule[CONFIG.heating_season_end_time_step: CONFIG.cooling_season_start_time_step] = 0
         ahu_availability_sched.schedule[CONFIG.cooling_season_end_time_step: CONFIG.heating_season_start_time_step] = 0
 
+        domestic_hot_water_sched = Schedule.from_daily_schedule(
+            f"DHW sched {name}",
+            "mass_flow_rate",
+            schedule_week_day=sched_df['dhw'].iloc[:24 * CONFIG.ts_per_hour].values,
+            schedule_saturday=sched_df['dhw'].iloc[24 * CONFIG.ts_per_hour:48 * CONFIG.ts_per_hour].values,
+            schedule_sunday=sched_df['dhw'].iloc[48 * CONFIG.ts_per_hour:24 * 3 * CONFIG.ts_per_hour].values,
+            schedule_holiday=sched_df['dhw'].iloc[48 * CONFIG.ts_per_hour:24 * 3 * CONFIG.ts_per_hour].values,
+            starting_day=0,
+            holidays=holidays
+        )
+
+        dhw = DomesticHotWater(
+            f'DomesticHotWater {name}',
+            calculation_method=scalar_data['DomesticHotWater calculation'],
+            unit="L/s",
+            schedule=domestic_hot_water_sched,
+        )
+
         end_use_obj = cls(name)
 
         end_use_obj.heat_gains['appliances'] = app # InternalLoad type
         end_use_obj.heat_gains['lighting'] = lights # InternalLoad type
         end_use_obj.heat_gains['people'] = people # People Type
+
+        end_use_obj.domestic_hot_water['domestic_hot_water'] = dhw
 
         end_use_obj.infiltration['infiltration'] = inf_obj # Infiltration Type
 
