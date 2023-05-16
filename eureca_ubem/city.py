@@ -4,6 +4,7 @@ import math
 import os
 import concurrent.futures
 
+import pandas as pd
 import shapely
 import geopandas as gpd
 import numpy as np
@@ -396,7 +397,8 @@ class City():
                 name=f"Bd {name} thermal zone",
                 surface_list=surfaces_list,
                 net_floor_area=footprint_area * n_floors,
-                volume=footprint_area * n_floors * floor_height
+                volume=footprint_area * n_floors * floor_height,
+                number_of_units=int( np.around(footprint_area * n_floors / 77.)), # 77 average flor area of an appartment according to ISTAT
             )
 
             {
@@ -427,13 +429,15 @@ class City():
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
 
+            # TODO: copy.deepcopy
+
             tz.add_internal_load(
                 use.heat_gains['appliances'],
                 use.heat_gains['people'],
                 use.heat_gains['lighting'],
             )
 
-            tz.extract_convective_radiative_latent_load()
+            tz.extract_convective_radiative_latent_electric_load()
             {
                 "1C": tz.calculate_zone_loads_ISO13790,
                 "2C": tz.calculate_zone_loads_VDI6007
@@ -462,6 +466,8 @@ class City():
             tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
             tz.design_heating_load(-5.)
 
+            tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
+
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
 
@@ -479,8 +485,22 @@ class City():
         # print(f"Parallel simulation : {(time.time() - start)/60:0.2f} min")
         # start = time.time()
 
+        final_results = {}
+
+        index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
         for bd_id, building_info in self.buildings_info.items():
-            self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+            results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            results.index = index
+            monthly = results.resample("M").sum()
+            gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
+            el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
+            for i in gas_consumption.index:
+                info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+            final_results[self.buildings_objects[bd_id].name] = info
+
+        pd.DataFrame.from_dict(final_results,orient="index").to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
@@ -493,6 +513,7 @@ class City():
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
+        # TODO: wrap up building results
 
     def geometric_preprocessing(self):
         
