@@ -547,7 +547,7 @@ class EndUse:
         dhw = DomesticHotWater(
             f'DomesticHotWater {name}',
             calculation_method=scalar_data['DomesticHotWater calculation'],
-            unit="L/s",
+            unit="L/(m2 h)",
             schedule=domestic_hot_water_sched,
         )
 
