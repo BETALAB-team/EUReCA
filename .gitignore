@@ -6,11 +6,13 @@ RCenv.yml
 /eureca_ubem/Input/geojson_numba/
 /eureca_ubem/Input/logging.log
 /eureca_ubem/Input/total envelope types.xlsx
+/eureca_ubem/__pycache__/
 /eureca_ubem.egg-info/
 /OutputReport/1C/*.csv
 /OutputReport/2C/*.csv
 /OutputReport/warnings.txt
 /eureca_ubem/Input/Chiaravalle/
+/eureca_ubem/Input/.idea/
 AppuntiCoseDaFare.lnk
 *.docx
 /RC_classes/__pycache__/
