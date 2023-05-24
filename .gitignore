@@ -10,6 +10,7 @@ RCenv.yml
 /OutputReport/1C/*.csv
 /OutputReport/2C/*.csv
 /OutputReport/warnings.txt
+/eureca_ubem/Input/Chiaravalle/
 AppuntiCoseDaFare.lnk
 *.docx
 /RC_classes/__pycache__/

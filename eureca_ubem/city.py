@@ -393,12 +393,15 @@ class City():
                 )
             )
 
+            n_units = int(np.around(footprint_area * n_floors / 77.))
+            if n_units == 0: n_units = 1
+
             thermal_zone = ThermalZone(
                 name=f"Bd {name} thermal zone",
                 surface_list=surfaces_list,
                 net_floor_area=footprint_area * n_floors,
                 volume=footprint_area * n_floors * floor_height,
-                number_of_units=int( np.around(footprint_area * n_floors / 77.)), # 77 average flor area of an appartment according to ISTAT
+                number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
             )
 
             {
