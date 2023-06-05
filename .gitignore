@@ -1,6 +1,7 @@
 .spyproject
 RCenv.yml
 /eureca_ubem/Input/Belzoni.json
+/eureca_ubem/Input_qgis/
 /eureca_ubem/Input/Belzoni/
 /eureca_ubem/Input/geojson/
 /eureca_ubem/Input/geojson_numba/
@@ -23,3 +24,7 @@ Elenco_pacchetti.txt
 /eureca/
 /.vscode/
 Main_test_DHW.py
+/dist/
+/build/
+/.idea/
+/eureca_ubem/Input_qgis/.idea/
