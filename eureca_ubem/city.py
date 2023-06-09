@@ -474,7 +474,7 @@ class City():
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
 
-    def simulate(self):
+    def simulate(self, print_single_building_results = False):
         import time
         start = time.time()
         # parallel simulation commented
@@ -491,19 +491,40 @@ class City():
         final_results = {}
 
         index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
+        district_hourly_results = pd.DataFrame(0., index = index, columns = [
+            "Gas consumption [Nm3]",
+            "Electric consumption [Wh]",
+            "Oil consumption [L]",
+            "Wood consumption [kg]",
+        ])
         for bd_id, building_info in self.buildings_info.items():
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
-            results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            if print_single_building_results:
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            else:
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
             monthly = results.resample("M").sum()
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
+            oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
+            wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
             for i in gas_consumption.index:
                 info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                 info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
             final_results[self.buildings_objects[bd_id].name] = info
+            district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
+            district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
+            district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
+            district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
+                                                                    + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
+                                                                    + results["Appliances electric consumption [Wh]"].iloc[:,0]
+
 
         pd.DataFrame.from_dict(final_results,orient="index").to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
