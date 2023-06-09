@@ -497,7 +497,13 @@ class City():
             "Oil consumption [L]",
             "Wood consumption [kg]",
         ])
+        n_buildings = len(self.buildings_objects)
+        counter = 0
         for bd_id, building_info in self.buildings_info.items():
+            if counter%10 == 0:
+                print(f"{counter} buildings simulated over {n_buildings}")
+            counter += 1
+
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
