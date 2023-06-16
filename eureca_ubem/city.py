@@ -505,6 +505,7 @@ class City():
             counter += 1
 
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+            info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
             else:
@@ -520,7 +521,7 @@ class City():
                 info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
                 info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
                 info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
-            final_results[self.buildings_objects[bd_id].name] = info
+            final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
             district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
@@ -529,7 +530,10 @@ class City():
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0]
 
 
-        pd.DataFrame.from_dict(final_results,orient="index").to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
+        # new_geojson = pd.concat([self.cityjson,bd_summary],axis=1)
+        # new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
+        bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
