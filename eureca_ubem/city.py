@@ -273,6 +273,7 @@ class City():
         # Extrusion from the footprint operation
         for i in self.cityjson.index:
             id = str(self.cityjson.loc[i]['id']) + "_" + str(i[1])
+            self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
@@ -531,9 +532,11 @@ class City():
 
 
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
-        # new_geojson = pd.concat([self.cityjson,bd_summary],axis=1)
-        # new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        bd_summary.drop(["Name"], axis = 1, inplace = True)
+        self.cityjson.set_index("new_id", drop=True, inplace = True)
+        new_geojson = pd.concat([self.cityjson,bd_summary],axis=1)
+        new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
