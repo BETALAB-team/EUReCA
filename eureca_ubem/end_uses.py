@@ -420,11 +420,11 @@ class EndUse:
             holidays=holidays
         )
 
-        heat_sp_sched.schedule[CONFIG.heating_season_end_time_step: CONFIG.heating_season_start_time_step] = min(heat_sp_sched.schedule) - 1e6
-        hum_sp_sched.schedule[CONFIG.heating_season_end_time_step: CONFIG.heating_season_start_time_step] = 0.
+        heat_sp_sched.schedule[CONFIG.heating_season_end_time_step: CONFIG.heating_season_start_time_step] = -100
+        hum_sp_sched.schedule[CONFIG.heating_season_end_time_step: CONFIG.heating_season_start_time_step] = -100
 
-        cool_sp_sched.schedule[:CONFIG.cooling_season_start_time_step] = max(cool_sp_sched.schedule) + 1e6
-        cool_sp_sched.schedule[CONFIG.cooling_season_end_time_step:] = max(cool_sp_sched.schedule) + 1e6
+        cool_sp_sched.schedule[:CONFIG.cooling_season_start_time_step] = 150
+        cool_sp_sched.schedule[CONFIG.cooling_season_end_time_step:] = 150
 
         dehum_sp_sched.schedule[:CONFIG.cooling_season_start_time_step] = 1.5
         dehum_sp_sched.schedule[CONFIG.cooling_season_end_time_step:] = 1.5
