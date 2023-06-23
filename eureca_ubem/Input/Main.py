@@ -32,7 +32,7 @@ city_geojson.loads_calculation()
 city_geojson.simulate(print_single_building_results=True)
 
 # materials_file = os.path.join(".","total envelope types.xlsx")
-# city_model_file = os.path.join(".","Belzoni_new_hvac.json")
+# city_model_file = os.path.join(".","PaduaRestricted.json")
 #
 # start = tm.time()
 # # Creation of the City object exit

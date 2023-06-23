@@ -2,6 +2,7 @@
 
 import math
 import os
+import json
 import concurrent.futures
 
 import pandas as pd
@@ -155,6 +156,19 @@ class City():
         if not(isinstance(self.cityjson.j['vertices'], list)):
             raise ValueError('json file vertices are not a list')
 
+        self.output_geojson = {}
+        self.output_geojson["type"] = "FeatureCollection"
+        self.output_geojson["name"] = "Output_geojson"
+        self.output_geojson["crs"] = {
+            "type": "name",
+            "properties":{
+                "name": self.cityjson.j["metadata"]["referenceSystem"]
+            }
+        }
+
+        self.output_geojson["features"] = []
+
+
         self.json_buildings= {}
         [(self.json_buildings.update({i:self.cityjson.j['CityObjects'][i]})) for i in self.cityjson.j['CityObjects'] if self.cityjson.j['CityObjects'][i]['type']=='Building']
         self.buildings_objects = {}
@@ -260,12 +274,31 @@ class City():
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
             self.buildings_objects[bd_key] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone], model=self.building_model)
+            geojson_feature = self.buildings_objects[bd_key].get_geojson_feature_parser()
+            geojson_feature["properties"]["Name"] = name
+            geojson_feature["properties"]["id"] = name
+            geojson_feature["properties"]["new_id"] = name
+            geojson_feature["properties"]["End Use"] = self.buildings_info[bd_key]["End Use"]
+            geojson_feature["properties"]["Envelope"] = self.buildings_info[bd_key]["Envelope"]
+            geojson_feature["properties"]["Heating System"] = self.buildings_info[bd_key]["Heating System"]
+            geojson_feature["properties"]["Cooling System"] = self.buildings_info[bd_key]["Cooling System"]
+            geojson_feature["properties"]["Height"] = max_height - min_height
+            geojson_feature["properties"]["Floors"] = n_floors
+            geojson_feature["properties"]["ExtWallCoeff"] = 1.
+            geojson_feature["properties"]["VolCoeff"] = 1.
+
+            self.output_geojson["features"].append(geojson_feature)
+
 
         self.geometric_preprocessing()
+        # with open(os.path.join("output_geojson.geojson"), 'w') as outfile:
+        #     json.dump(self.output_geojson, outfile)
+        self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
     def buildings_creation_from_geojson(self, json_path):
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
         self.buildings_info = {}
@@ -534,8 +567,8 @@ class City():
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
         bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
         bd_summary.drop(["Name"], axis = 1, inplace = True)
-        self.cityjson.set_index("new_id", drop=True, inplace = True)
-        new_geojson = pd.concat([self.cityjson,bd_summary],axis=1)
+        self.output_geojson.set_index("new_id", drop=True, inplace = True)
+        new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
