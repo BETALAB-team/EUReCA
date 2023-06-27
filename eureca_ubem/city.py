@@ -2,6 +2,7 @@
 
 import math
 import os
+import json
 import concurrent.futures
 
 import pandas as pd
@@ -155,6 +156,19 @@ class City():
         if not(isinstance(self.cityjson.j['vertices'], list)):
             raise ValueError('json file vertices are not a list')
 
+        self.output_geojson = {}
+        self.output_geojson["type"] = "FeatureCollection"
+        self.output_geojson["name"] = "Output_geojson"
+        self.output_geojson["crs"] = {
+            "type": "name",
+            "properties":{
+                "name": self.cityjson.j["metadata"]["referenceSystem"]
+            }
+        }
+
+        self.output_geojson["features"] = []
+
+
         self.json_buildings= {}
         [(self.json_buildings.update({i:self.cityjson.j['CityObjects'][i]})) for i in self.cityjson.j['CityObjects'] if self.cityjson.j['CityObjects'][i]['type']=='Building']
         self.buildings_objects = {}
@@ -260,12 +274,31 @@ class City():
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
             self.buildings_objects[bd_key] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone], model=self.building_model)
+            geojson_feature = self.buildings_objects[bd_key].get_geojson_feature_parser()
+            geojson_feature["properties"]["Name"] = name
+            geojson_feature["properties"]["id"] = name
+            geojson_feature["properties"]["new_id"] = name
+            geojson_feature["properties"]["End Use"] = self.buildings_info[bd_key]["End Use"]
+            geojson_feature["properties"]["Envelope"] = self.buildings_info[bd_key]["Envelope"]
+            geojson_feature["properties"]["Heating System"] = self.buildings_info[bd_key]["Heating System"]
+            geojson_feature["properties"]["Cooling System"] = self.buildings_info[bd_key]["Cooling System"]
+            geojson_feature["properties"]["Height"] = max_height - min_height
+            geojson_feature["properties"]["Floors"] = n_floors
+            geojson_feature["properties"]["ExtWallCoeff"] = 1.
+            geojson_feature["properties"]["VolCoeff"] = 1.
+
+            self.output_geojson["features"].append(geojson_feature)
+
 
         self.geometric_preprocessing()
+        # with open(os.path.join("output_geojson.geojson"), 'w') as outfile:
+        #     json.dump(self.output_geojson, outfile)
+        self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
     def buildings_creation_from_geojson(self, json_path):
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
         self.buildings_info = {}
@@ -273,6 +306,7 @@ class City():
         # Extrusion from the footprint operation
         for i in self.cityjson.index:
             id = str(self.cityjson.loc[i]['id']) + "_" + str(i[1])
+            self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
@@ -474,7 +508,7 @@ class City():
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
 
-    def simulate(self):
+    def simulate(self, print_single_building_results = False):
         import time
         start = time.time()
         # parallel simulation commented
@@ -491,19 +525,52 @@ class City():
         final_results = {}
 
         index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
+        district_hourly_results = pd.DataFrame(0., index = index, columns = [
+            "Gas consumption [Nm3]",
+            "Electric consumption [Wh]",
+            "Oil consumption [L]",
+            "Wood consumption [kg]",
+        ])
+        n_buildings = len(self.buildings_objects)
+        counter = 0
         for bd_id, building_info in self.buildings_info.items():
+            if counter%10 == 0:
+                print(f"{counter} buildings simulated over {n_buildings}")
+            counter += 1
+
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
-            results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            info["Name"] = self.buildings_objects[bd_id].name
+            if print_single_building_results:
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+            else:
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
             monthly = results.resample("M").sum()
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
+            oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
+            wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
             for i in gas_consumption.index:
                 info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                 info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
-            final_results[self.buildings_objects[bd_id].name] = info
+                info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+            final_results[bd_id] = info
+            district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
+            district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
+            district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
+            district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
+                                                                    + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
+                                                                    + results["Appliances electric consumption [Wh]"].iloc[:,0]
 
-        pd.DataFrame.from_dict(final_results,orient="index").to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+
+        bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
+        bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        bd_summary.drop(["Name"], axis = 1, inplace = True)
+        self.output_geojson.set_index("new_id", drop=True, inplace = True)
+        new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
+        new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
