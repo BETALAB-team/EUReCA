@@ -1,0 +1,9 @@
+The procedure follows this guide https://medium.datadriveninvestor.com/python-documentation-using-sphinx-f6dc87e1286b
+
+
+In the root folder do the following
+
+1. sphinx-apidoc -o docs/source/reference modules
+2. sphinx-apidoc -o docs/source/reference funcs
+3. cd .\docs\ 
+4. ./make html
