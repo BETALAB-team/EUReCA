@@ -7,3 +7,5 @@ In the root folder do the following
 2. sphinx-apidoc -o docs/source/reference funcs
 3. cd .\docs\ 
 4. ./make html
+
+
