@@ -2,7 +2,7 @@
 
 The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.
 
-This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua
+This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua.
 
 ## Python environment set up
 The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.
