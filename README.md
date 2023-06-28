@@ -5,8 +5,7 @@ The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua
 
 ## Python environment set up
-The tool is distributed via the GitHub repository, and it relies on the [eureca-building](https://github.com/BETALAB-team/eureca-building) library, an additional repository that must be installed before running eureca.
-As first step, you must create a new conda or venv environment. You can name it eureca.
+The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.
 
 > conda create -n eureca python 3.9
 
@@ -14,14 +13,13 @@ and activate it:
 
 > conda activate eureca
 
-After creating the environment, follow the instruction in the [eureca-building](https://github.com/BETALAB-team/eureca-building) page to install the auxiliary library.
 Then clone the following package in a separate folder:
 
 > git clone https://github.com/BETALAB-team/EUReCA.git
 
 and install it in the same environement:
 
-> pip install -e ./eureca-ubem
+> pip install -e *your_path_to_the_folder/eureca-ubem*
 
 ## Preparing and run a simulation
 ### Input files

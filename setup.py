@@ -20,9 +20,15 @@ setup(
     description='Package to simulate urban building energy performace with lumped capacitance models',
     long_description=open('README.md').read(),
     install_requires=[
+        "numpy",
+        "pandas",
+        "pyclipper",
+        "scipy",
+        "openpyxl",
+        "xlrd",
+        "pvlib",
         "shapely",
         "geopandas",
         "cjio",
-        "eureca-building",
     ],
 )
