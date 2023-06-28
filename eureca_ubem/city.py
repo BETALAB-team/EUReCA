@@ -296,6 +296,19 @@ class City():
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
     def buildings_creation_from_geojson(self, json_path):
+        '''
+        Function to create buildings from geojson file.
+
+        Parameters
+        ----------
+        json_path : str
+            Path to geojson file.
+
+        Returns
+        -------
+        None.
+
+        '''
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
         self.output_geojson = self.cityjson
