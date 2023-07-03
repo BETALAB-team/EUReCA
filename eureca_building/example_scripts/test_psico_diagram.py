@@ -55,8 +55,8 @@ weather_file = WeatherFile(epw_path,
 
 
 fig, ax = plt.subplots()
-ax.set_ylabel("Specific Humidity [g_v/kg_da]")
-ax.set_xlabel("Temperature [°C]")
+ax.set_ylabel("Specific Humidity [" + "$g_{v}/kg_{da}$"+"]")
+ax.set_xlabel("Temperature ["+"$°C$"+"]")
 ax.set_xlim(-10,45)
 ax.set_ylim(0,30)
 ax.set_title("Psychrometric chart")
@@ -81,7 +81,7 @@ for h in np.arange(0.,200.,10.):
     x = (h - 1.006*t)/(1.86*t+2501)*1000
     ax.plot(t,x, 'k:', linewidth=0.3)
     if y_text < 30.:
-        ax.text(x_text, y_text, f"{h:.1f} [kJ/kg_da]", backgroundcolor = "white", fontsize = 6)
+        ax.text(x_text, y_text, f"{h:.0f}"+ " ["+"$kJ/kg_{da}$"+"]", backgroundcolor = "white", fontsize = 6)
     x_text += 3
     y_text += 2.7
 
