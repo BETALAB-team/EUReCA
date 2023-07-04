@@ -244,6 +244,9 @@ class AirHandlingUnit:
         T_ext = weather.hourly_data['out_air_db_temperature'][t]
         x_ext = weather.hourly_data['out_air_specific_humidity'][t]
 
+        self._chart_T_ext, self._chart_x_ext = T_ext, x_ext
+        self._chart_T_zone, self._chart_x_zone = T_int, x_int
+
         AHU_operation = self.ahu_operation.schedule[t]
         self.T_sup = self.supply_temperature.schedule[t]
         self.x_sup = self.supply_specific_humidity.schedule[t]
@@ -359,6 +362,13 @@ class AirHandlingUnit:
                 self.AHU_demand = self.preh_deu_Dem + self.sat_Dem + self.posth_Dem
                 self.AHU_demand_sens = self.preh_deu_Dem_sens + self.sat_Dem_sens + self.posth_Dem_sens
                 self.AHU_demand_lat = self.preh_deu_Dem_lat + self.sat_Dem_lat + self.posth_Dem_lat
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_ph, self.x_ph
+                self._chart_T_as,       self._chart_x_as =          self.T_as, self.x_as
+                self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
                 
                 
                 # Cooling mode
@@ -402,6 +412,13 @@ class AirHandlingUnit:
                 self.AHU_demand = self.preh_deu_Dem + self.posth_Dem
                 self.AHU_demand_sens = self.preh_deu_Dem_sens + self.posth_Dem_sens
                 self.AHU_demand_lat = self.preh_deu_Dem_lat + self.posth_Dem_lat
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_de, self.x_de
+                self._chart_T_as,       self._chart_x_as =          self.T_de, self.x_de
+                self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
                 
 
             elif AHU_operation == 0:
@@ -428,6 +445,13 @@ class AirHandlingUnit:
                 self.AHU_demand = 0
                 self.AHU_demand_sens = 0
                 self.AHU_demand_lat = 0
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_mix, self.x_mix
+                self._chart_T_as,       self._chart_x_as =          self.T_mix, self.x_mix
+                self._chart_T_posth,    self._chart_x_posth =       self.T_mix, self.x_mix
             
             else:
                 print('AHUOnOff value not allowed')
@@ -475,6 +499,13 @@ class AirHandlingUnit:
                 self.AHU_demand = m_vent*self.cp_air*(self.T_sup-self.T_as)
                 self.AHU_demand_sens = self.AHU_demand
                 self.AHU_demand_lat = 0
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_ph, self.x_ph
+                self._chart_T_as,       self._chart_x_as =          self.T_as, self.x_as
+                self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
 
     
             elif AHU_operation == -1:
@@ -524,6 +555,13 @@ class AirHandlingUnit:
                 self.AHU_demand = m_vent*(self.h_sup - self.h_mix)
                 self.AHU_demand_sens = self.AHU_demand
                 self.AHU_demand_lat = 0
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_de, self.x_de
+                self._chart_T_as,       self._chart_x_as =          self.T_de, self.x_de
+                self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
                 
                 
             elif AHU_operation == 0:
@@ -550,17 +588,24 @@ class AirHandlingUnit:
                 self.AHU_demand = 0
                 self.AHU_demand_sens = 0
                 self.AHU_demand_lat = 0
+
+                # Conditions for chart
+                self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
+                self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_mix, self.x_mix
+                self._chart_T_as,       self._chart_x_as =          self.T_mix, self.x_mix
+                self._chart_T_posth,    self._chart_x_posth =       self.T_mix, self.x_mix
             
             else:
                 sys.exit('AHUOnOff value not allowed at time step: '+str(t))
 
     def properties(self):
         return f"""
-HR :\tT {self.T_hr:.1f} °C,\tx {self.x_hr:.5f} kg/kg,\th {self.h_hr:.1f} J/kg
-MIX:\tT {self.T_mix:.1f} °C,\tx {self.x_mix:.5f} kg/kg,\th {self.h_mix:.1f} J/kg
-PRE:\tT {self.T_ph:.1f} °C,\tx {self.x_ph:.5f} kg/kg,\th {self.h_ph:.1f} J/kg
-AS :\tT {self.T_as:.1f} °C,\tx {self.x_as:.5f} kg/kg,\th {self.h_as:.1f} J/kg
-SUP:\tT {self.T_sup:.1f} °C,\tx {self.x_sup:.5f} kg/kg,\th {self.h_sup:.1f} J/kg
+HR :\tT {self._chart_T_hr:.1f} °C,\tx {self._chart_x_hr:.5f} kg/kg,\th {self.h_hr:.1f} J/kg
+MIX:\tT {self._chart_T_mix:.1f} °C,\tx {self._chart_x_mix:.5f} kg/kg,\th {self.h_mix:.1f} J/kg
+PRE:\tT {self._chart_T_preh_deu:.1f} °C,\tx {self._chart_x_preh_deu:.5f} kg/kg,\th {self.h_ph:.1f} J/kg
+AS :\tT {self._chart_T_as:.1f} °C,\tx {self._chart_x_as:.5f} kg/kg,\th {self.h_as:.1f} J/kg
+SUP:\tT {self._chart_T_posth:.1f} °C,\tx {self._chart_x_posth:.5f} kg/kg,\th {self.h_sup:.1f} J/kg
 
 AHU_SENS:\t{self.AHU_demand_sens} W
 AHU_LAT:\t{self.AHU_demand_lat} W
@@ -617,3 +662,68 @@ AHU_TOT:\t{self.AHU_demand} W
         else:
             sat_cond = True
         return sat_cond, psat
+
+    def _psychro_plot(self):
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError("To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
+        fig, ax = plt.subplots()
+        ax.set_ylabel("Specific Humidity [" + "$g_{v}/kg_{da}$" + "]")
+        ax.set_xlabel("Temperature [" + "$°C$" + "]")
+        ax.set_xlim(-10, 45)
+        ax.set_ylim(0, 30)
+        ax.set_title("Psychrometric chart")
+        t = np.arange(-10, 46, 1)
+        p_sat = 6.1094 * np.exp(17.625 * t / (t + 243.04)) * 100
+        for ur in np.arange(0.1, 1.1, 0.1):
+            p = p_sat * ur
+            sh = 0.622 * (p / (101325 - p)) * 1000
+            ax.plot(t, sh, 'k-', linewidth=0.3)
+            x_text = min([t[-1] - 5, 35])
+            y_text = min([sh[-1] - 2, 28])
+
+        ax.text(27.7, 26.9, f"100%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(30.5, 23.7, f"80%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(32.5, 20., f"60%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(34.5, 14.5, f"40%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(35.8, 8, f"20%", backgroundcolor="white", fontsize=6, ma="center")
+
+        x_text, y_text = -9., 3.5
+
+        for h in np.arange(0., 200., 10.):
+            x = (h - 1.006 * t) / (1.86 * t + 2501) * 1000
+            ax.plot(t, x, 'k:', linewidth=0.3)
+            if y_text < 30.:
+                ax.text(x_text, y_text, f"{h:.0f}" + " [" + "$kJ/kg_{da}$" + "]", backgroundcolor="white", fontsize=6)
+            x_text += 3
+            y_text += 2.7
+
+        self._psychro_chart = (fig, ax)
+
+    def print_psychro_chart(self):
+        if not hasattr(self, '_psychro_chart'):
+            self._psychro_plot()
+
+        fig, ax = self._psychro_chart
+
+        self.values = np.array([
+        [self._chart_T_ext, self._chart_x_ext*1000],
+        [self._chart_T_hr, self._chart_x_hr*1000],
+        [self._chart_T_mix, self._chart_x_mix*1000],
+        [self._chart_T_preh_deu, self._chart_x_preh_deu*1000],
+        [self._chart_T_as, self._chart_x_as*1000],
+        [self._chart_T_posth, self._chart_x_posth*1000]])
+
+        self.values_tz = np.array([
+        [self._chart_T_zone, self._chart_x_zone*1000],
+        [self._chart_T_mix, self._chart_x_mix*1000]
+        ])
+
+        ax.plot(self.values[:,0], self.values[:,1], 'r-o', fillstyle="none")
+        ax.plot(self.values_tz[:,0], self.values_tz[:,1], 'k--o',linewidth = 0.6,  fillstyle="none")
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError("To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
+        plt.show()
