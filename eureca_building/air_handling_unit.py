@@ -1,3 +1,14 @@
+"""
+This module includes the class to manage the Air Handling Unit
+"""
+
+__author__ = "Enrico Prataviera"
+__credits__ = ["Enrico Prataviera"]
+__license__ = "MIT"
+__version__ = "0.1"
+__maintainer__ = "Enrico Prataviera"
+
+
 '''IMPORTING MODULES'''
 
 import sys
@@ -18,15 +29,9 @@ from eureca_building.exceptions import (
 #%%---------------------------------------------------------------------------------------------------
 # AHU class
 class AirHandlingUnit:
+    '''This class manages the air handling unit.
+    Some general variables are set as class variables while the __init__ memorizes the inputs
     '''
-    This class manages the air handling unit.
-    Some general variables are set as class variables while the __init__ method
-    creates just the name
-
-    Methods:
-        init
-        air_handling_unit_calc
-    '''   
     
     # Class Variables
     cp_air = air_properties["specific_heat"]         # [J/(kg K)]
@@ -48,35 +53,41 @@ class AirHandlingUnit:
                  thermal_zone,
                  tag: str = None,
                  ):
-        """
+        """Air Handling Unit Constructor: creates the AHU object and memorizes the attributes (using properties set methods tho check types)
 
-        Args:
-            name: str
-                name of the Air Handling Unit
-            mechanical_vent: MechanicalVentilation
-                ventialation object to define air flow rate
-            supply_temperature: Schedule
-                Schedule object
-            supply_specific_humidity: Schedule
-                Schedule object
-            ahu_operation: Schedule
-                Schedule object to define opeartion (-1 cooling, 1 heating, 0 fan mode)
-            humidity_control: bool
-                whether do humidification/dehumidification
-            sensible_heat_recovery_eff: float
-                sensible heat recovery efficiency, must be between 0 and 1
-            latent_heat_recovery_eff: float
-                sensible heat recovery efficiency, must be between 0 and 1
-            outdoor_air_ratio: float
-                outdoor air fraction, must be between 0 and 1
-            weather: Weather
-                Weather object
-            thermal_zone: ThermalZone
-                ThermalZone object
-            tag: str
+        Parameters
+        ----------
+        name : str
+            name of the Air Handling Unit
+        mechanical_vent : MechanicalVentilation
+            ventialation object to define air flow rate
+        supply_temperature : Schedule
+            Schedule object
+        supply_specific_humidity : Schedule
+            Schedule object
+        ahu_operation : Schedule
+            Schedule object to define opeartion (-1 cooling, 1 heating, 0 fan mode)
+        humidity_control : bool
+            whether do humidification/dehumidification
+        sensible_heat_recovery_eff : float
+            sensible heat recovery efficiency, must be between 0 and 1
+        latent_heat_recovery_eff : float
+            sensible heat recovery efficiency, must be between 0 and 1
+        outdoor_air_ratio : float
+            outdoor air fraction, must be between 0 and 1
+        weather : Weather
+            Weather object
+        thermal_zone: ThermalZone
+            ThermalZone object
+        tag: str
+            possible tags
 
-        returns:
-            None
+        Raises
+        ------
+        TypeError
+            checks the input type
+        ValueError
+            checks the input type
         """
         
         # Check input data type
@@ -222,20 +233,24 @@ class AirHandlingUnit:
                                T_int,
                                x_int,
                                ):
-        
-        '''
-        Solution for the single time step of the Air Handling Unit
-        
-        Parameters:
-            t: timestep: int [-]
-            weather: Weather
-            T_int: zone internal temperature: float [°C]
-            x_int: zone internal specific humidity: float [kg_v/kg_da]
+        """Solution of the time step calculation. It uses outdoor conditions (from WeatherFile), and zone conditions (from zone)
 
-        Returns:
-            None
-        '''       
-        
+        Parameters
+        ----------
+        t : int
+            timestep: int [-]
+        weather : WeatherFile
+            WeatherFile object
+        T_int : float
+            zone internal temperature: float [°C]
+        x_int : float
+            zone internal specific humidity: float [kg_v/kg_da]
+
+        Returns
+        -------
+
+        """
+
         # Check input data type 
         
         if not isinstance(t, int):
@@ -600,6 +615,8 @@ class AirHandlingUnit:
                 sys.exit('AHUOnOff value not allowed at time step: '+str(t))
 
     def properties(self):
+        """ Just a function to print the memorized conditions
+        """
         return f"""
 HR :\tT {self._chart_T_hr:.1f} °C,\tx {self._chart_x_hr:.5f} kg/kg,\th {self.h_hr:.1f} J/kg
 MIX:\tT {self._chart_T_mix:.1f} °C,\tx {self._chart_x_mix:.5f} kg/kg,\th {self.h_mix:.1f} J/kg
@@ -632,7 +649,8 @@ AHU_TOT:\t{self.AHU_demand} W
 
         Returns
         -------
-        Boolean, Saturation Pressure [Pa].
+        tuple
+            boolean (wheter saturation is reached), and Saturation Pressure [Pa].
 
         '''
 
@@ -664,6 +682,8 @@ AHU_TOT:\t{self.AHU_demand} W
         return sat_cond, psat
 
     def _psychro_plot(self):
+        """ Just a function to get a psychrometric chart (internal use only)
+        """
         try:
             import matplotlib.pyplot as plt
         except ModuleNotFoundError:
@@ -702,6 +722,8 @@ AHU_TOT:\t{self.AHU_demand} W
         self._psychro_chart = (fig, ax)
 
     def print_psychro_chart(self):
+        """ Just a function to print the psychrometric chart with current transformations
+        """
         if not hasattr(self, '_psychro_chart'):
             self._psychro_plot()
 

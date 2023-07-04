@@ -1,5 +1,5 @@
 """
-This module includes functions to model a 3D surface
+This module includes functions to manage the 2C model from the Standard VDI 6007
 """
 
 __author__ = "Enrico Prataviera"
@@ -17,24 +17,29 @@ import numpy as np
 # %% Useful functions for VDI 6007 calculations
 
 def impedence_parallel(R, C, T_RA=5.):
-    '''
-    equivComplexRes Given two vectors (thermal resistances r and thermal
-    capacitances c) of length m (number of walls of the same type, ie either
+    '''Given two vectors (thermal resistances R and thermal
+    capacitances C) of length m (number of walls of the same type, ie either
     IW or AW), calculates the equivalent complex thermal resistance Zeq
     according to T_RA (period in days)
 
     Parameters
     ----------
-        R : np.array
-            np.array with the surfaces resistances
-        C: np.array
-            np.array with the surfaces capacitances
-        T_RA: float
-            Reference time (number of days)
+    R : numpy.array
+        numpy.array with the surfaces resistances
+    C: numpy.array
+        numpy.array with the surfaces capacitances
+    T_RA: float
+        Reference time (number of days)
 
     Returns
     -------
-    tuple of floats: the equivalent resistance anc capacitance
+    tuple
+        tuple of floats: the equivalent resistance anc capacitance
+
+    Raises
+    ------
+    TypeError
+        if not numpy arrays or floats
     '''
 
     # Check input data type
@@ -66,22 +71,27 @@ def impedence_parallel(R, C, T_RA=5.):
 
 
 def tri2star(T1, T2, T3):
-    '''
-    #tri2star Transforms three resistances in triangular connection into
-    #three resistances in star connection
+    '''Transforms three resistances in triangular connection into
+    three resistances in star connection
 
     Parameters
     ----------
-        T1 : float
-            Resistance 1
-        T2: float
-            Resistance 2
-        T3: float
-            Resistance 3
+    T1 : float
+        Resistance 1
+    T2: float
+        Resistance 2
+    T3: float
+        Resistance 3
 
     Returns
     -------
-    tuple of floats: 3 new resistances (star connection)
+    tuple
+        tuple of floats: 3 new resistances (star connection)
+
+    Raises
+    ------
+    TypeError
+        if not or floats
     '''
 
     # Check input data type
@@ -107,24 +117,30 @@ def tri2star(T1, T2, T3):
 
 
 def long_wave_radiation(theta_a, SSW=1.):
-    '''
-    Estimation of sky and ground temperatures via vdi6007 model:
-        theta_a outdoor air temperature [°C]
-        SSW factor to count the clear non-clear sky
+    '''Estimation of sky and ground temperatures via VDI6007 model:
+    theta_a outdoor air temperature [°C]
+    SSW factor to count the clear non-clear sky
 
     Parameters
     ----------
-        theta_a : np.array
-            external temeprature [°C]
-        SSW : float
-            factor to count the clear non-clear sky renge 0-1
+    theta_a : numpy.array
+        external temperature [°C]
+    SSW : float
+        factor to count the clear non-clear sky range 0-1 (1 clear sky)
 
     Returns
     -------
-    tuple of np.array: 4 arrays, irradiance from sky vault,
-                                irradiance from ground,
-                                ground equivalent temeprature,
-                                sky equivalent temeperature
+    tuple
+        tupleof np.array:
+        irradiance from sky vault,
+        irradiance from ground,
+        ground equivalent temeprature,
+        sky equivalent temeperature
+
+    Raises
+    ------
+    TypeError
+        if not numpy array or floats
     '''
 
     # Check input data type
@@ -162,8 +178,7 @@ def long_wave_radiation(theta_a, SSW=1.):
 
 
 def loadHK(perc_rad, perc_rad_aw, perc_altro_irr, A_aw, A_raum):
-    '''
-    loadHK  -  Distribution of heat load on the nodes (surface nodes and air node) based on heat emitters
+    '''loadHK  -  Distribution of heat load on the nodes (surface nodes and air node) based on heat emitters
     of the building
         perc_rad: fraction of radiant heating/cooling surfaces on total heating/cooling load
         perc_rad_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
@@ -184,22 +199,29 @@ def loadHK(perc_rad, perc_rad_aw, perc_altro_irr, A_aw, A_raum):
 
     Parameters
     ----------
-        perc_rad (sigma_fhk): float
-            percentage of heat flow by radiant floors
-        perc_rad_aw (sigma_fhk_aw): float
-            percentage of radiant floors installed on AW walls
-        perc_altro_irr (sigma_rad_str): float
-            percentage of radiant load (out of total which is rad+conv) by other types of heat emitters (e.g.: fan-coils, radiators)
-        A_aw : float
-            sum of the exterior opaque building components
-        A_raum : float
-            sum of internal partitions (all IW components) and exterior opaque building components
+    perc_rad : float
+        percentage of heat flow by radiant floors (sigma_fhk)
+    perc_rad_aw : float
+        percentage of radiant floors installed on AW walls (sigma_fhk_aw)
+    perc_altro_irr : float
+        percentage of radiant load (out of total which is rad+conv) by other types of heat emitters (e.g.: fan-coils, radiators) (sigma_rad_str)
+    A_aw : float
+        sum of the exterior opaque building components
+    A_raum : float
+        sum of internal partitions (all IW components) and exterior opaque building components
 
     Returns
-    tuple of float:
+    ----------
+    tuple
+        tuple of floats
         sigma_hk_iw: radiant heat load  on IW building components (on surface node IW)
         sigma_hk_aw: radiant heat load  on AW building components (on surface node AW)
         sigma_hk_kon: convective heat load (on air node)
+
+    Raises
+    ------
+    ValueError
+        if not floats
     '''
 
     # Check input data type

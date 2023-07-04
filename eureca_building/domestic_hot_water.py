@@ -1,5 +1,5 @@
 """
-This module includes functions to model natural ventilation and infiltration
+This module includes functions to model Domestic Hot Water consumptions
 """
 
 __author__ = "Enrico Prataviera"
@@ -20,6 +20,18 @@ from eureca_building.schedule import Schedule
 from eureca_building.exceptions import InvalidScheduleType
 
 def distrEventi(n,x,pdf):
+    """DEPRECATED: Not working
+
+    Parameters
+    ----------
+    n
+    x
+    pdf
+
+    Returns
+    -------
+
+    """
     y_guess=np.random.rand(int(n))
     cdf=np.cumsum(pdf)
     [cdf,index]=np.unique(cdf,1)
@@ -29,6 +41,18 @@ def distrEventi(n,x,pdf):
     return time_event
 
 def dhw_calc_calculation(volume_unit, numunits, time_step):
+    """DEPRECATED: not working
+
+    Parameters
+    ----------
+    volume_unit
+    numunits
+    time_step
+
+    Returns
+    -------
+
+    """
 
     total_days = domestic_hot_water_prop["total_days"]
     nuses = domestic_hot_water_prop["nuses"]
@@ -147,6 +171,9 @@ def dhw_calc_calculation(volume_unit, numunits, time_step):
     return volume_profile
 
 class DomesticHotWater:
+    """DomesticHotWater object
+    Class to manage all the calculations involved in the Domestic Hot Water consumption
+    """
 
     def __init__(
             self,
@@ -155,6 +182,21 @@ class DomesticHotWater:
             unit = None,
             schedule = None,
     ):
+        f"""Constructor for DomesticHotWater. Memorizes the attributes anc checks them through properties setter
+
+        Parameters
+        ----------
+        name : str
+            name of the object
+        calculation_method : str
+            Calculation method, choose from {domestic_hot_water_prop['calculatio_method']}
+        unit : str
+            Unit of the schedule, choose from {domestic_hot_water_prop['unit']}
+        schedule : Schedule
+            Schedule object, to be used in case the method is 'schedule'
+        """
+
+
         self.name = name
         self.calculation_method = calculation_method
         self.unit = unit
@@ -203,6 +245,23 @@ class DomesticHotWater:
         self._schedule = value
 
     def get_dhw_yearly_mass_flow_rate(self, area, number_of_units, weather):
+        """This function calculates the water and mass flow rate consumption, given the area of the building and the number of units (to be used when unit and/or method need them)
+
+        Parameters
+        ----------
+        area : float
+            Area of the building [m2]
+        number_of_units : int
+            Number of dwellings (for residential calculation done with UNI-TS 11300
+        weather : WeatherFile
+            WeatherFile object
+
+        Returns
+        -------
+        tuple
+            tuple of numpy.arrays
+            volume flow rate [m3/s], dhw heating demand [W]
+        """
 
         if self.calculation_method == "Schedule":
             schedule = self.schedule.schedule
