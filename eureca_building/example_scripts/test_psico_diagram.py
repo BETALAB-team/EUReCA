@@ -19,6 +19,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
+
+# font = {'family' : 'serif',
+#         "sans-serif":"'Utopia'",}
+#
+# matplotlib.rc('font', **font)
+
 #########################################################
 # Config loading
 # Loads a global config object
@@ -42,6 +49,7 @@ from eureca_building.construction_dataset import ConstructionDataset
 from eureca_building.construction import Construction
 from eureca_building.setpoints import SetpointDualBand
 from eureca_building.building import Building
+from eureca_building.domestic_hot_water import DomesticHotWater
 
 #########################################################
 # Epw loading
@@ -51,64 +59,19 @@ weather_file = WeatherFile(epw_path,
                            azimuth_subdivisions=CONFIG.azimuth_subdivisions,
                            height_subdivisions=CONFIG.height_subdivisions, )
 #########################################################
-
-
-
-fig, ax = plt.subplots()
-ax.set_ylabel("Specific Humidity [" + "$g_{v}/kg_{da}$"+"]")
-ax.set_xlabel("Temperature ["+"$°C$"+"]")
-ax.set_xlim(-10,45)
-ax.set_ylim(0,30)
-ax.set_title("Psychrometric chart")
-t = np.arange(-10,46,1)
-p_sat = 6.1094*np.exp(17.625*t/(t+243.04))*100
-for ur in np.arange(0.1,1.1,0.1):
-    p = p_sat * ur
-    sh = 0.622*(p/(101325 - p))*1000
-    ax.plot(t,sh, 'k-', linewidth=0.3)
-    x_text = min([t[-1] - 5, 35])
-    y_text = min([sh[-1] - 2, 28])
-
-ax.text(27.7, 26.9, f"100%", backgroundcolor = "white", fontsize = 6, ma="center")
-ax.text(30.5, 23.7, f"80%", backgroundcolor = "white", fontsize = 6, ma="center")
-ax.text(32.5, 20., f"60%", backgroundcolor = "white", fontsize = 6, ma="center")
-ax.text(34.5, 14.5, f"40%", backgroundcolor = "white", fontsize = 6, ma="center")
-ax.text(35.8, 8, f"20%", backgroundcolor = "white", fontsize = 6, ma="center")
-
-x_text, y_text = -9.,3.5
-
-for h in np.arange(0.,200.,10.):
-    x = (h - 1.006*t)/(1.86*t+2501)*1000
-    ax.plot(t,x, 'k:', linewidth=0.3)
-    if y_text < 30.:
-        ax.text(x_text, y_text, f"{h:.0f}"+ " ["+"$kJ/kg_{da}$"+"]", backgroundcolor = "white", fontsize = 6)
-    x_text += 3
-    y_text += 2.7
-
-
-
-
-
-
-
-
-
-
-
-
-"""
 path = os.path.join(
     "..",
     "example_scripts",
     "materials_and_construction_test.xlsx",
 )
 # Define some constructions
+
 dataset = ConstructionDataset.read_excel(path)
 roof_cs = dataset.constructions_dict[13]
 ceiling_cs = dataset.constructions_dict[17]
 floor_cs = dataset.constructions_dict[16]
-ext_wall_cs = dataset.constructions_dict[14]
-int_wall_cs = dataset.constructions_dict[18]
+ext_wall_cs = dataset.constructions_dict[70]
+int_wall_cs = dataset.constructions_dict[70]
 window_cs = dataset.windows_dict[2]
 mat_cs = dataset.materials_dict[1]
 
@@ -178,12 +141,14 @@ intceiling = SurfaceInternalMass(
 #########################################################
 # Loads
 
+ts_h = CONFIG.ts_per_hour
+delay_ts = 8760*ts_h+1-ts_h
 
 # A schedule
 people_sched = Schedule(
     "PeopleOccupancy1",
     "percent",
-    np.array(([0.1] * 7 * 2 + [0.6] * 2 * 2 + [0.4] * 5 * 2 + [0.6] * 10 * 2) * 365)[:-1],
+    np.array(([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 # Loads
@@ -220,10 +185,10 @@ pc = ElectricLoad(
 heat_t = Schedule.from_daily_schedule(
     name = "t_heat",
     schedule_type="temperature",
-    schedule_week_day=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2),
-    schedule_saturday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) -5,
-    schedule_sunday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) - 10,
-    schedule_holiday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) * 0,
+    schedule_week_day=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
+    schedule_saturday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) -5,
+    schedule_sunday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) - 10,
+    schedule_holiday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 0,
     holidays = (10,11,12,13,14),
     starting_day = 3,
 )
@@ -237,25 +202,25 @@ heat_t = Schedule.from_constant_value(
 heat_t = Schedule(
     "t_heat",
     "temperature",
-    np.array(([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) * 365)[:-1],
+    np.array(([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_t = Schedule(
     "t_cool",
     "temperature",
-    np.array(([28] * 8 * 2 + [26] * 2 * 2 + [28] * 4 * 2 + [26] * 10 * 2) * 365)[:-1],
+    np.array(([28] * 8 * ts_h + [26] * 2 * ts_h + [28] * 4 * ts_h + [26] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 heat_h = Schedule(
     "h_heat",
     "dimensionless",
-    np.array(([0.1] * 7 * 2 + [0.3] * 2 * 2 + [.1] * 5 * 2 + [.3] * 10 * 2) * 365)[:-1],
+    np.array(([0.1] * 7 * ts_h + [0.3] * 2 * ts_h + [.1] * 5 * ts_h + [.3] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_h = Schedule(
     "h_cool",
     "dimensionless",
-    np.array(([.9] * 8 * 2 + [.5] * 2 * 2 + [.9] * 4 * 2 + [.5] * 10 * 2) * 365)[:-1],
+    np.array(([.9] * 8 * ts_h + [.5] * 2 * ts_h + [.9] * 4 * ts_h + [.5] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 t_sp = SetpointDualBand(
@@ -276,7 +241,7 @@ h_sp = SetpointDualBand(
 infiltration_sched = Schedule(
     "inf_sched",
     "dimensionless",
-    np.array(([.3] * 8 * 2 + [.5] * 2 * 2 + [.3] * 4 * 2 + [.5] * 10 * 2) * 365)[:-1],
+    np.array(([.3] * 8 * ts_h + [.5] * 2 * ts_h + [.3] * 4 * ts_h + [.5] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 inf_obj = Infiltration(
@@ -292,7 +257,7 @@ inf_obj = Infiltration(
 vent_sched = Schedule(
     "vent_sched",
     "dimensionless",
-    np.array(([.0] * 8 * 2 + [1] * 2 * 2 + [0] * 4 * 2 + [1] * 10 * 2) * 365)[:-1],
+    np.array(([.0] * 8 * ts_h + [1] * 2 * ts_h + [0] * 4 * ts_h + [1] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 vent_obj = MechanicalVentilation(
@@ -305,21 +270,43 @@ vent_obj = MechanicalVentilation(
 T_supply_sched = Schedule(
     "T_supply_sched",
     "temperature",
-    np.array(([23.] * 8 * 2 + [23.] * 2 * 2 + [23.] * 4 * 2 + [23.] * 10 * 2) * 365)[:-1],
+    np.array(([23.] * 8 * ts_h + [23.] * 2 * ts_h + [23.] * 4 * ts_h + [23.] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 x_supply_sched = Schedule(
     "x_supply_sched",
     "dimensionless",
-    np.array(([0.0101] * 8 * 2 + [0.0101] * 2 * 2 + [0.0101] * 4 * 2 + [0.0101] * 10 * 2) * 365)[:-1]*0.7,
+    np.array(([0.0101] * 8 * ts_h + [0.0101] * 2 * ts_h + [0.0101] * 4 * ts_h + [0.0101] * 10 * ts_h) * 365)[:delay_ts]*0.7,
 )
 
-availability_sched = np.array(([0] * 8 * 2 + [1] * 2 * 2 + [0] * 4 * 2 + [1] * 10 * 2) * 365)[:-1]
-availability_sched[120*24*2:273*24*2] = -1*availability_sched[120*24*2:273*24*2]
+availability_sched = np.array(([0] * 8 * ts_h + [1] * 2 * ts_h + [0] * 4 * ts_h + [1] * 10 * ts_h) * 365)[:delay_ts]
+availability_sched[120*24 * ts_h:273*24 * ts_h] = -1*availability_sched[120*24*ts_h:273*24*ts_h]
 ahu_availability_sched = Schedule(
     "ahu_availability_sched",
     "availability",
     availability_sched,
+)
+
+
+# DHW
+
+dhw_flow_rate = Schedule(
+    "dhw_flow_rate",
+    "mass_flow_rate",
+    np.array(([.5] * 8 * ts_h  + [.0] * 2 * ts_h  + [.5] * 4 * ts_h  + [.0] * 10 * ts_h ) * 365)[:delay_ts] * 10,
+)
+
+dhw_1 = DomesticHotWater(
+    "dhw_1",
+    calculation_method="Schedule",
+    unit = "L/(m2 h)",
+    schedule=dhw_flow_rate,
+
+)
+
+dhw_2 = DomesticHotWater(
+    "dhw_2",
+    calculation_method="UNI-TS 11300-2",
 )
 
 
@@ -329,8 +316,6 @@ ahu_availability_sched = Schedule(
 zones = []
 
 for i in range(1):
-    print(i)
-
     # Create zone
     tz1 = ThermalZone(
         name="Zone 1",
@@ -346,7 +331,7 @@ for i in range(1):
     tz1.add_internal_load(lights, pc)
 
     # IHG preprocessing
-    tz_loads = tz1.extract_convective_radiative_latent_load()
+    tz_loads = tz1.extract_convective_radiative_latent_electric_load()
     tz1.calculate_zone_loads_ISO13790(weather_file)
     # tz1._plot_ISO13790_IHG()
 
@@ -369,7 +354,7 @@ for i in range(1):
     ahu_availability_sched,
     True,
     0.5,
-    0.5,
+    0.4,
     0.9,
     weather_file,
     tz1,
@@ -378,10 +363,39 @@ for i in range(1):
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model = "1C")
     heating_peak_load = tz1.design_heating_load(-5.)
 
-    bd = Building("Bd 1", thermal_zones_list=[tz1], model = "1C")
-    start = time.time()
-    bd.set_hvac_system("CondensingBoiler", "SplitAirConditioner")
+    tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+
+    bd = Building("Bd 1", thermal_zones_list=[tz1], model = "2C")
+    bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
-    df_res = bd.simulate(weather_file, output_folder="Results")
-    print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
-"""
+    # for t in range(9000, 9434):
+    #     bd.solve_timestep(t, weather_file)
+    #
+    # for t in range(9000, 9434):
+    #     ahu.air_handling_unit_calc(t,weather_file,tz1.zone_air_temperature,tz1.zone_air_spec_humidity,)
+
+    # for t in range(9000, 9450):
+    #     bd.solve_timestep(t, weather_file)
+    #
+    # for t in range(9000, 9450):
+    #     ahu.air_handling_unit_calc(t,weather_file,tz1.zone_air_temperature,tz1.zone_air_spec_humidity,)
+    #
+    # for t in range(2000, 2206):
+    #     bd.solve_timestep(t, weather_file)
+    #
+    # for t in range(2000, 2206):
+    #     ahu.air_handling_unit_calc(t,weather_file,tz1.zone_air_temperature,tz1.zone_air_spec_humidity,)
+    #
+    for t in range(2000, 2124):
+        bd.solve_timestep(t, weather_file)
+
+    for t in range(2000, 2124):
+        ahu.air_handling_unit_calc(t,weather_file,tz1.zone_air_temperature,tz1.zone_air_spec_humidity,)
+
+
+    tz1.air_handling_unit.print_psychro_chart()
+    print(ahu.values)
+
+
+    # df_res = bd.simulate(weather_file, output_folder="Results")
+    # print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
