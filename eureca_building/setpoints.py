@@ -25,8 +25,7 @@ from eureca_building.exceptions import (
 # https://realpython.com/python-interface/
 
 class Setpoint:
-    """
-    Internal Gain Class
+    """Setpoint class
     """
 
     def __init__(
@@ -35,16 +34,16 @@ class Setpoint:
             setpoint_type: str,
             tag: str = None,
     ):
-        f"""
-        Parent class for some inherited SetpointObjects
+        f"""Parent class for some inherited SetpointObjects
 
-        Args:
-            name: str
-                name
-            setpoint_type: float
-                type from : {setpoint_prop.keys()}
-            tag: str
-                a tag to define the type of internal load
+        Parameters
+        ----------
+        name : str
+            name
+        setpoint_type : float
+            type from: {setpoint_prop.keys()}
+        tag : str, default None
+            a tag to define the type of internal load
         """
         self.name = name
         self.setpoint_type = setpoint_type
@@ -65,13 +64,13 @@ class Setpoint:
                 f"Setpoint {self.name}, {value} schedule_type not allowed. Chose from: {setpoint_prop.keys()}")
         self._setpoint_type = value
 
-    def get_convective_load(self, *args, **kwarg) -> np.array:
-        raise NotImplementedError(
-            f"""
-You must override the get_convective_load method for each class inherited from InternalLoad
-Return value must be a np.array
-"""
-        )
+#     def get_convective_load(self, *args, **kwarg) -> np.array:
+#         raise NotImplementedError(
+#             f"""
+# You must override the get_convective_load method for each class inherited from InternalLoad
+# Return value must be a np.array
+# """
+#         )
 
 
 class SetpointDualBand(Setpoint):
@@ -81,6 +80,23 @@ class SetpointDualBand(Setpoint):
                  schedule_lower: Schedule,
                  schedule_upper: Schedule,
                  tag: str = None, ):
+        f"""Inherited from the Setpoint class. Takes two schedules (a lower and upper boundary), to create a dual band setpoint
+        Uses properties to check if lower and upper boundaries intersect
+        
+        Parameters
+        ----------
+        name : str
+            name
+        setpoint_type : float
+            type from: {setpoint_prop.keys()}
+        schedule_lower : eureca_building.Schedule
+            Schedule object to define the lower boundary
+        schedule_upper : eureca_building.Schedule
+            Schedule object to define the upper boundary
+        tag : str, default None
+            a tag to define the type of internal load
+            
+        """
         super().__init__(name, setpoint_type, tag)
         self.schedule_lower = schedule_lower
         self.schedule_upper = schedule_upper
