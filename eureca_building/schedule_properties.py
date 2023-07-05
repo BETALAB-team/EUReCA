@@ -1,3 +1,8 @@
+"""
+This file includes dictionaries to define each schedule and internal heat gains type
+and their properties using a JSON/Dictionary structure
+"""
+
 __author__ = "Enrico Prataviera"
 __credits__ = ["Enrico Prataviera"]
 __license__ = "MIT"
@@ -7,11 +12,6 @@ __maintainer__ = "Enrico Prataviera"
 
 import numpy as np
 
-
-"""
-This dictionary defines for each schedule type 
-the properties using a JSON/Dictionary structure
-"""
 schedule_types = {
     "unit_type": [
         "dimensionless",

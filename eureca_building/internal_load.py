@@ -1,5 +1,5 @@
 """
-This module includes functions to model internal gains
+This module includes functions and classes to model internal heat gains
 """
 
 __author__ = "Enrico Prataviera"
@@ -29,8 +29,7 @@ from eureca_building.exceptions import (
 # https://realpython.com/python-interface/
 
 class InternalLoad:
-    """
-    Internal Gain Class
+    """Internal Gain Class: parent class to set some common things
     """
 
     def __init__(
@@ -40,18 +39,20 @@ class InternalLoad:
             schedule: Schedule,
             tag: str = None,
     ):
-        """
-        Parent class for some inherited InternalLoads
+        """Parent class for some inherited InternalLoads.
+        It load the input and checks them throughout properties setter
 
-        Args:
-            name: str
-                name
-            nominal_value: float
-                the value to be multiplied by the schedule
-            schedule: Schedule
-                Schedule object
-            tag: str
-                a tag to define the type of internal load
+        Parameters
+        ----------
+        name : str
+            name
+        nominal_value : float
+            the value to be multiplied by the schedule
+        schedule : eureca_building.Schedule
+            Schedule object
+        tag : str
+            a tag to define the type of internal load
+
         """
         self.name = name
         self.nominal_value = nominal_value
@@ -142,6 +143,14 @@ class InternalLoad:
         self._fraction_convective = float(value)
 
     def get_convective_load(self, *args, **kwarg) -> np.array:
+        """Just an empty method to raise an NotImplementedError Exception. This way any inherited class implements it
+
+        Parameters
+        ----------
+        args
+        kwarg
+
+        """
         raise NotImplementedError(
             f"""
 You must override the get_convective_load method for each class inherited from InternalLoad
@@ -150,6 +159,14 @@ Return value must be a np.array
         )
 
     def get_radiant_load(self, *args, **kwarg) -> np.array:
+        """Just an empty method to raise an NotImplementedError Exception. This way any inherited class implements it
+
+        Parameters
+        ----------
+        args
+        kwarg
+
+        """
         raise NotImplementedError(
             f"""
 You must override the get_radiant_load method for each class inherited from InternalLoad
@@ -158,6 +175,14 @@ Return value must be a np.array
         )
 
     def get_latent_load(self, *args, **kwarg) -> np.array:
+        """Just an empty method to raise an NotImplementedError Exception. This way any inherited class implements it
+
+        Parameters
+        ----------
+        args
+        kwarg
+
+        """
         raise NotImplementedError(
             f"""
 You must override the get_latent_load method for each class inherited from InternalLoad
@@ -166,15 +191,19 @@ Return value must be a np.array
         )
 
     def get_loads(self, *args, **kwargs) -> list:
-        """
-        Return the convective, radiant, latent load np.array
-        If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
+        """Return the convective, radiant, latent, electric load (numpy.array)
+        If the calculation method is specific (W/m2 or px/m2) the area must be passed as kwarg (example area=12.5)
 
-        Returns:
-            [np.array, np.array, np.array]:
-                the schedules: convective [W], radiant [W], vapour [kg_vap/s]
+        Parameters
+        ----------
+        area : float
+            Area in m2. pass it as kwarg: load_obj.get_loads(area = 12.5)
+
+        Parameters
+        ----------
+        tuple
+            [numpy.array, numpy.array, numpy.array, numpy.array]
+            the schedules: convective [W], radiant [W], vapour [kg_vap/s], electric [W]
 
         """
         if "area" not in kwargs.keys():
@@ -201,29 +230,29 @@ class People(InternalLoad):
             metabolic_rate: float = 110,
             tag: str = None,
     ):
-        f"""
-        Inherited from InternalLoad class
+        f"""Inherited from InternalLoad class. CHecks the values throughout propeties setter methods
         The sum of radiant and convective fraction must be 1
         
-        Args:
-            name: str
-                name
-            nominal_value: float
-                the value to be multiplied by the schedule
-            unit: str
-                define the unit from the list {internal_loads_prop["people"]["unit"]}
-            schedule: Schedule
-                Schedule object
-            fraction_latent: float
-                latent fraction (between 0 and 1)
-            fraction_radiant: float
-                radiant fraction of the sensible part (between 0 and 1)
-            fraction_convective: float
-                convective fraction of the sensible part (between 0 and 1)
-            metabolic_rate: float
-                Metabolic rate [W/px]
-            tag: str
-                Tag string to define the type of load
+        Parameters
+        ----------
+        name : str
+            name
+        nominal_value : float
+            the value to be multiplied by the schedule
+        unit : str
+            define the unit from the list {internal_loads_prop["people"]["unit"]}
+        schedule : eureca_building.Schedule
+            Schedule object
+        fraction_latent : float, default 0.55
+            latent fraction (between 0 and 1)
+        fraction_radiant : float, default 0.3
+            radiant fraction of the sensible part (between 0 and 1)
+        fraction_convective : float, default 0.7
+            convective fraction of the sensible part (between 0 and 1)
+        metabolic_rate : float, default 110
+            Metabolic rate [W/px]
+        tag : str, default None
+            Tag string to define the type of load
         """
         super().__init__(name, nominal_value, schedule, tag=tag)
         self.unit = unit
@@ -271,14 +300,13 @@ class People(InternalLoad):
         self._metabolic_rate = value
 
     def _get_absolute_value_nominal(self, area=None):
-        """
-        Returns occupancy nominal value in W
-        Args:
-            area: None
-                [m2]: must be provide if the load is specific
+        """Memorizes the occupancy nominal value in W
 
-        Returns:
-            float
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
         """
         if self._calculation_method == "floor_area":
             if area == None:
@@ -297,15 +325,18 @@ class People(InternalLoad):
         self.nominal_value_absolute = area * px_w_converter * self.nominal_value
 
     def get_convective_load(self, area=None):
-        """
-        Return the convective load np.array
+        """Returns the convective load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -316,15 +347,18 @@ class People(InternalLoad):
         return convective_fraction * self.nominal_value_absolute * self.schedule.schedule
 
     def get_radiant_load(self, area=None):
-        """
-        Return the radiant load np.array
+        """Returns the radiant load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provide if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -335,15 +369,18 @@ class People(InternalLoad):
         return radiant_fraction * self.nominal_value_absolute * self.schedule.schedule
 
     def get_latent_load(self, area=None):
-        """
-        Return the latent load np.array
+        """Return the latent load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [kg_vap/s]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -355,15 +392,18 @@ class People(InternalLoad):
         return self.schedule.schedule * vapour_nominal_value_kg_s
 
     def get_electric_load(self, area=None):
-        """
-        Return the electric consumption load np.array
+        """Return the electric consumption load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -386,29 +426,30 @@ class ElectricLoad(InternalLoad):
             number_of_people: float = None,
             tag: str = None,
     ):
-        f"""
-        Inherited from InternalLoad class
+        f"""Inherited from InternalLoad class. Uses properties set methods to check types 
         The sum of radiant and convective fraction must be 1
 
-        Args:
-            name: str
-                name
-            nominal_value: float
-                the value to be multiplied by the schedule
-            unit: str
-                define the unit from the list {internal_loads_prop["people"]["unit"]}
-            schedule: Schedule
-                Schedule object
-            fraction_to_zone: float
-                fraction that is actually counted as Heat Load for the zone (between 0 and 1)
-            fraction_radiant: float
-                radiant fraction of the sensible part (between 0 and 1)
-            fraction_convective: float
-                convective fraction of the sensible part (between 0 and 1)
-            number_of_people: float
-                if the unit is W/px then this number must be passed
-            tag: str
-                Tag string to define the type of load
+        Parameters
+        ----------
+        name : str
+            name
+        nominal_value : float
+            the value to be multiplied by the schedule
+        unit : str
+            define the unit from the list {internal_loads_prop["people"]["unit"]}
+        schedule : eureca_building.Schedule
+            Schedule object
+        fraction_to_zone : float, default 1.
+            fraction that is actually counted as Heat Load for the zone (between 0 and 1)
+        fraction_radiant : float, default 0.3
+            radiant fraction of the sensible part (between 0 and 1)
+        fraction_convective : float, default 0.7
+            convective fraction of the sensible part (between 0 and 1)
+        number_of_people : float, default None
+            if the unit is W/px then this number must be passed
+        tag : str, default None
+            Tag string to define the type of load
+            
         """
         super().__init__(name, nominal_value, schedule, tag=tag)
         self.unit = unit
@@ -455,14 +496,13 @@ class ElectricLoad(InternalLoad):
         self._number_of_people = value
 
     def _get_absolute_value_nominal(self, area=None):
-        """
-        Returns electric load nominal value in W
-        Args:
-            area: None
-                [m2]: must be provided if the load is specific
+        """Memorizes the electric load nominal value in W
 
-        Returns:
-            float
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
         """
         if self._calculation_method == "floor_area":
             if area == None:
@@ -487,15 +527,18 @@ class ElectricLoad(InternalLoad):
         self.nominal_value_absolute = number_of_people * area * self.nominal_value
 
     def get_convective_load(self, area=None):
-        """
-        Return the convective load np.array
-        If the calculation method is specific (W/m2) the area must be passed
-        Args:
-            area: None
+        """Returns the convective load numpy.array
+        If the calculation method is specific (W/m2 or px/m2) the area must be passed
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -506,15 +549,18 @@ class ElectricLoad(InternalLoad):
         return convective_fraction * self.nominal_value_absolute * self.schedule.schedule
 
     def get_radiant_load(self, area=None):
-        """
-        Return the radiant load np.array
+        """Returns the radiant load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provide if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -525,29 +571,35 @@ class ElectricLoad(InternalLoad):
         return radiant_fraction * self.nominal_value_absolute * self.schedule.schedule
 
     def get_latent_load(self, area=None):
-        """
-        Return the latent load np.array
+        """Return the latent load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [kg_vap/s]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         return self.schedule.schedule * 0
 
     def get_electric_load(self, area=None):
-        """
-        Return the electric consumption load np.array
+        """Return the electric consumption load numpy.array
         If the calculation method is specific (W/m2 or px/m2) the area must be passed
-        Args:
-            area: None
 
-        Returns:
-            np.array:
-                the schedule [W]
+        Parameters
+        ----------
+        area : float, default None
+            Area of the zone in [m2]: must be provided if the load is specific
+
+        Returns
+        ----------
+        numpy.array
+            the schedule [W]
 
         """
         # try:
@@ -570,29 +622,29 @@ class Lights(ElectricLoad):
             number_of_people: float = None,
             tag: str = None,
     ):
-        f"""
-        Inherited from ElectricLoad class
-        This is just a wrapper for an EletricLoad object as thehy are similar
+        f"""Inherited from ElectricLoad class. Uses properties set methods to check types 
+        This is just a wrapper for an EletricLoad object as they are similar
 
-        Args:
-            name: str
-                name
-            nominal_value: float
-                the value to be multiplied by the schedule
-            unit: str
-                define the unit from the list {internal_loads_prop["people"]["unit"]}
-            schedule: Schedule
-                Schedule object
-            fraction_to_zone: float
-                fraction that is actually counted as Heat Load for the zone (between 0 and 1)
-            fraction_radiant: float
-                radiant fraction of the sensible part (between 0 and 1)
-            fraction_convective: float
-                convective fraction of the sensible part (between 0 and 1)
-            number_of_people: float
-                if the unit is W/px then this number must be passed
-            tag: str
-                Tag string to define the type of load
+        Parameters
+        ----------
+        name : str
+            name
+        nominal_value : float
+            the value to be multiplied by the schedule
+        unit : str
+            define the unit from the list {internal_loads_prop["people"]["unit"]}
+        schedule : Schedule
+            Schedule object
+        fraction_to_zone : float, default 1.
+            fraction that is actually counted as Heat Load for the zone (between 0 and 1)
+        fraction_radiant : float, default 0.3
+            radiant fraction of the sensible part (between 0 and 1)
+        fraction_convective : float, default 0.7
+            convective fraction of the sensible part (between 0 and 1)
+        number_of_people : float, default None
+            if the unit is W/px then this number must be passed
+        tag : str, default None
+            Tag string to define the type of load
         """
         super().__init__(
             name,

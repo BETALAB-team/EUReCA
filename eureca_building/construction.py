@@ -1,5 +1,5 @@
 """
-This module includes classfor the typical construction
+This module includes class for the typical construction
 """
 
 __author__ = "Enrico Prataviera"
@@ -25,33 +25,7 @@ from eureca_building.units import units
 
 
 class Construction(object):
-    """
-    Defines stratigraphies class
-    and calculates all the stratigraphy parameter
-    U,k_int,k_est
-
-    Methods
-    -------
-    __init__(self,
-        name,
-        materials_list: list of materials codes
-
-    ISO13790params calculates the params for the 1C thermal network:
-        no input requested
-    vdi6007params calculates the params for the 2C thermal network:
-        no input requested
-
-    vdi6007surfaceParams calculates some params for a specific surface:
-        area: area of the surface [m2]
-        Asim: flag to indicate if the surface is either assimmetric or not
-        (vdi). boolean True or False
-
-    Methods:
-        init
-        ISO13790params
-        vdi6007params
-        vdi6007surfaceParams
-        printInfo
+    """Class to model constructions and calculate all the construction parameters: U, k_int, k_est
     """
 
     # Class attributes
@@ -66,21 +40,16 @@ class Construction(object):
     def __init__(
             self, name: str, materials_list: list, construction_type: str = "ExtWall"
     ):
-        """
-        Initializes an Construction object
+        """Initializes the Construction object
 
-        Attributes
-            ----------
-            name: string
-                name
-            materials_list: list
-                list of Materials or AirGapMaterials objects (Outside -> Inside)
-            construction_type: string
-                Choose from ["ExtWall", "Roof", "GroundFloor", "IntWall", "IntCeiling"]
-
-        Returns
-        -------
-        None.
+        Parameters
+        ----------
+        name : string
+            name
+        materials_list : list
+            list of Materials or AirGapMaterials objects (Outside -> Inside)
+        construction_type : string
+            Choose from ["ExtWall", "Roof", "GroundFloor", "IntWall", "IntCeiling"]
 
         """
 
@@ -154,16 +123,7 @@ class Construction(object):
         self._VDI6007_params()
 
     def _ISO13790_params(self):
-        """
-        Calculates ISO13790 params
-
-        Parameters
-            ----------
-            None.
-
-        Returns
-        -------
-        None.
+        """Calculates ISO13790 params: k_int, k_est
         """
 
         # Set some parameters from the standard
@@ -220,50 +180,41 @@ class Construction(object):
         self.k_mean = (self.k_int + self.k_est) / 2
 
     def _VDI6007_params(self):
-        """
-        Calculates vdi6007 params
+        """Calculates vdi6007 params
 
         Section 6.3
 
-        # vdi6007params Calculates the parameters (thermal resistance and thermal
-        # capacitance) associated with the building envelope LP according to the 2-c
-        # model of standard VDI 6007
+        vdi6007params Calculates the parameters (thermal resistance and thermal
+        capacitance) associated with the building envelope LP according to the 2C
+        model of standard VDI 6007
 
-        # Inputs
-        #   Matrix LP describes building envelope; each row is a building element.
-        #   Columns are thickness (s), thermal conductivity (cond), density (rho) 
-        #   and specific heat (cp)
-        #   Total surface area S of wall with building envelope LP
-        #   Flag 'asim' indicates whether building component LP is asimmetrically
-        #   loaded (asim = 1) or not (asim = 0) because in the first case C1_korr 
-        #   must be considered instead of C1
+        Inputs (already attributes of the class)
+          Matrix LP describes building envelope; each row is a building element.
+          Columns are thickness (s), thermal conductivity (cond), density (rho)
+          and specific heat (cp)
+          Total surface area S of wall with building envelope LP
+          Flag 'asim' indicates whether building component LP is asimmetrically
+          loaded (asim = 1) or not (asim = 0) because in the first case C1_korr
+          must be considered instead of C1
 
-        # Subscripts
-        # AW external walls and internal walls facing unheated areas
-        # IW internal walls
+        Subscripts
+        AW external walls and internal walls facing unheated areas
+        IW internal walls
 
-        # Period T_bt 
-        # T_bt = 7 days for a single building component; 
-        # T_bt = 2 days for building components where thermal storage masses are 
-        # thermally covered on the room side (eg suspended ceilings)
-        # Calculation are conducted with both periods, then the resulting
-        # parameters R1 and C1 are compared and the right T_bt is chosen according
-        # to the criterion given in the standard
+        Period T_bt
+        T_bt = 7 days for a single building component;
+        T_bt = 2 days for building components where thermal storage masses are
+        thermally covered on the room side (eg suspended ceilings)
+        Calculation are conducted with both periods, then the resulting
+        parameters R1 and C1 are compared and the right T_bt is chosen according
+        to the criterion given in the standard
 
-        # Outputs
-        #    R1 - dynamic rhermal resistance [K/W]
-        #    C1 - dynamic thermal capacity [K/W]
-        #    Rw - static specific thermal resistance [(m2 K) / W]
+        Outputs
+           R1 - dynamic rhermal resistance [K/W]
+           C1 - dynamic thermal capacity [K/W]
+           Rw - static specific thermal resistance [(m2 K) / W]
 
-        # Determine thermal resistance R and thermal capacitance of layers
-
-        Parameters
-            ----------
-            None.
-
-        Returns
-        -------
-        None.
+        Determine thermal resistance R and thermal capacitance of layers, which are memorized as attributes
         """
 
         R = self.thermal_resistances  # layers thermal resistance [m2 K / W]
@@ -341,21 +292,21 @@ class Construction(object):
             self._A1n_t7 = np.matmul(self._A1n_t7, Z_t7[:, :, t])
 
     def _VDI6007_surface_params(self, sup, asim):
-        """
-        Calculates vdi6007 params
+        """Calculates vdi6007 params, those which are calculated using the area of the surface
 
         Section 6.4
 
         Parameters
-            ----------
-            sup : float
-                area of the surface.
-            asim: boolean
-                Is the surface non-adiabatic? True/False
+        ----------
+        sup : float
+            area of the surface [m2]
+        asim : boolean
+            Is the surface non-adiabatic? True/False
 
         Returns
         -------
-        R1,C1: tuple of floats
+        tuple
+            R1,C1: tuple of floats
             Resistance and capacitance R1 and C1
         """
 
@@ -440,6 +391,8 @@ class Construction(object):
         return R1, C1
 
     def __str__(self):
+        """Just a print method
+        """
         return f"""
 Construction: {self.name}
     construction type: {self.construction_type}
@@ -449,21 +402,34 @@ Construction: {self.name}
 
     @classmethod
     def from_U_value(cls, name:str, u_value: float, weight_class:str = "Medium", construction_type:str ="ExtWall"):
-        """
+        """This is a class method to create Construction object just from the U-value and weight class
+        It creates just an equivalent material to reach the U-value
 
-        Args:
-            name: string
-                name
-            u_value: float
-                u valuea of the construction
-            weight_class: str
-                class of weight from the following list: ["Very heavy", "Heavy, "Medium, "Light", "Very light"]
-            construction_type: string
-                Choose from ["ExtWall", "Roof", "GroundFloor", "IntWall", "IntCeiling"]
+        For specific heat and density, the following assumptions are considered
 
-        Returns:
-            None
+        According to A.2.3 ISO 13786
+                Am [m²]	Cm [J/K]	k [J/(m² K)]	Depth penetration [m]	Spc heat [J/kg K]	rho [kg/m3]
+        Very light	2.5	80000		32000		    0.1			            1000			    453
+        Light		2.5	110000		44000		    0.1			            1000			    622
+        Medium		2.5	165000		66000		    0.1			            1000			    933
+        Heavy		3	260000		86666.66667	    0.1			            1000			    1226
+        Very heavy	3.5	370000		105714.2857	    0.1			            1000	            1495
 
+        Parameters
+        ----------
+        name : string
+            name
+        u_value : float
+            u value of the construction [W/(m2 K)]
+        weight_class : str
+            class of weight from the following list: ["Very heavy", "Heavy, "Medium, "Light", "Very light"]
+        construction_type : string
+            Choose from ["ExtWall", "Roof", "GroundFloor", "IntWall", "IntCeiling"]
+
+        Returns
+        ----------
+        Construction
+            Construction object from these values
         """
 
         # Hypothesis 30 cm

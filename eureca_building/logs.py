@@ -1,5 +1,5 @@
 """
-function for logs
+Module that is called at the begin of the simulation to set the log file trough the logging library
 """
 
 __author__ = "Enrico Prataviera"

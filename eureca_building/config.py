@@ -1,5 +1,5 @@
 """
-This module includes classes and functions to manage weather file
+This module includes classes and functions to manage the CONFIG varible (the variable with simulation settings)
 """
 
 __author__ = "Enrico Prataviera"
@@ -20,6 +20,46 @@ DEFAULT_CONFIG_FILE = os.path.join(".", "eureca_building", "default_config.ini")
 
 
 def load_config(file: str = None):
+    """Function to load the config file, json file suggested
+
+    Examples
+    ----------
+    '
+    {
+      "DEFAULT": {},
+      "model": {
+        "name": "example_model"
+      },
+      "simulation settings": {
+        "time steps per hour": "2",
+        "simulation reference year" : "2023",
+        "start date": "01-01 00:00",
+        "final date": "12-31 23:00",
+        "heating season start": "11-15 23:00",
+        "heating season end": "04-15 23:00",
+        "cooling season start": "06-01 23:00",
+        "cooling season end": "09-30 23:00"
+      },
+      "solar radiation settings": {
+        "do solar radiation calculation": "False",
+        "height subdivisions": "4",
+        "azimuth subdivisions": "8",
+        "urban shading tolerances": "80.,100.,80."
+      }
+    }
+    '
+
+    Parameters
+    ----------
+    file : str
+        string path to the file to load
+
+    Returns
+    -------
+    Config
+        Config object from Config class
+
+    """
     global CONFIG
     try:
         if file.endswith('ini'):
@@ -44,12 +84,7 @@ def load_config(file: str = None):
 
 # %% ---------------------------------------------------------------------------------------------------
 class Config(configparser.ConfigParser):
-    """
-    This class is a container for config settings.
-
-    Methods:
-        to_json
-        from_json
+    """Inherited from configparser.ConfigParser. This class is a container for config settings.
     """
 
     @property
@@ -67,6 +102,14 @@ class Config(configparser.ConfigParser):
         self._ts_per_hour = value
 
     def read(self, file):
+        """Method to create the object from the config.ini file
+
+        Parameters
+        ----------
+        file_path : str
+            file to load the config from
+
+        """
         super().read(file)
         # Generic config settings
         self.ts_per_hour = int(self['simulation settings']['time steps per hour'])
@@ -116,6 +159,19 @@ class Config(configparser.ConfigParser):
 
     @classmethod
     def from_json(cls, file_path):
+        """Class method to create the object from the config.json file
+
+        Parameters
+        ----------
+        file_path : str
+            file to load the config from
+
+        Returns
+        -------
+        Config
+            config object
+
+        """
         config_dict = cls()
         try:
 
@@ -173,6 +229,14 @@ class Config(configparser.ConfigParser):
         return config_dict
 
     def to_json(self, file_path):
+        """Method to print parameetrs to json
+
+        Parameters
+        ----------
+        file_path : str
+            file to print on
+
+        """
         with open(file_path, "w") as outfile:
             json.dump(self, outfile, indent=4, )
 
