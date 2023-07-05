@@ -1,4 +1,4 @@
-'''IMPORTING MODULES'''
+'''This module manages the air handling units'''
 
 import sys
 import logging
@@ -26,7 +26,9 @@ class AirHandlingUnit:
     Methods:
         init
         air_handling_unit_calc
-    '''   
+    ''' 
+      
+
     
     # Class Variables
     cp_air = air_properties["specific_heat"]         # [J/(kg K)]
@@ -46,38 +48,48 @@ class AirHandlingUnit:
                  outdoor_air_ratio: float,
                  weather: WeatherFile,
                  thermal_zone,
-                 tag: str = None,
-                 ):
-        """
+                 tag: str = None):
+        '''Initializes the AirHandlingUnit class.
+        
 
-        Args:
-            name: str
-                name of the Air Handling Unit
-            mechanical_vent: MechanicalVentilation
-                ventialation object to define air flow rate
-            supply_temperature: Schedule
-                Schedule object
-            supply_specific_humidity: Schedule
-                Schedule object
-            ahu_operation: Schedule
-                Schedule object to define opeartion (-1 cooling, 1 heating, 0 fan mode)
-            humidity_control: bool
-                whether do humidification/dehumidification
-            sensible_heat_recovery_eff: float
-                sensible heat recovery efficiency, must be between 0 and 1
-            latent_heat_recovery_eff: float
-                sensible heat recovery efficiency, must be between 0 and 1
-            outdoor_air_ratio: float
-                outdoor air fraction, must be between 0 and 1
-            weather: Weather
-                Weather object
-            thermal_zone: ThermalZone
-                ThermalZone object
-            tag: str
+        Parameters
+        ----------
+        name : str
+            Name of the Air Handling Unit.
+        mechanical_vent : MechanicalVentilation
+            Ventilation object to define air flow rate.
+        supply_temperature : Schedule
+            Schedule object with supply temperature of mechanical ventilation system.
+        supply_specific_humidity : Schedule
+            Schedule object with specific humidity of mechanical ventilation system.
+        ahu_operation : Schedule
+            Schedule object to define operation (-1 cooling, 1 heating, 0 fan mode).
+        humidity_control : bool
+            Boolean to consider (True) or not (False) humidification/dehumidification.
+        sensible_heat_recovery_eff : float
+            Efficiency of sensible heat recovery, must be between 0 and 1.
+        latent_heat_recovery_eff : float
+            Efficiency of latent heat recovery, must be between 0 and 1.
+        outdoor_air_ratio : float
+            Outdoor air fraction, must be between 0 and 1.
+        weather : WeatherFile
+            Weather object.
+        thermal_zone : ThermalZone
+            ThermalZone object.
+        tag : str, optional
+            DESCRIPTION. The default is None.
 
-        returns:
-            None
-        """
+        Raises
+        ------
+        TypeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        '''
+
         
         # Check input data type
 
@@ -222,19 +234,33 @@ class AirHandlingUnit:
                                T_int,
                                x_int,
                                ):
+        '''Solution for the single time step of the Air Handling Unit
         
-        '''
-        Solution for the single time step of the Air Handling Unit
-        
-        Parameters:
-            t: timestep: int [-]
-            weather: Weather
-            T_int: zone internal temperature: float [°C]
-            x_int: zone internal specific humidity: float [kg_v/kg_da]
 
-        Returns:
-            None
-        '''       
+        Parameters
+        ----------
+        t : int
+            Timestep [-].
+        weather : WeatherObject
+            Weather object.
+        T_int : float
+            Zone internal temperature [°C].
+        x_int : TYPE
+            Zone internal specific humidity [kg_v/kg_da].
+         : TYPE
+            DESCRIPTION.
+
+        Raises
+        ------
+        TypeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
         
         # Check input data type 
         
