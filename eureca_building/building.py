@@ -22,47 +22,22 @@ from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_s
 from eureca_building.exceptions import SimulationError
 # %% Building class
 class Building:
-<<<<<<< HEAD
-    '''
-    This class is a wrapper for ThermalZone objects and HVAC objects
-    '''
-    
-
-    def __init__(self, name: str, thermal_zones_list:list,  model:str = "2C"):
-        '''
-        Initialization of the Building class 
-=======
     """This class is a wrapper for ThermalZone objects and HVAC objects
     """
 
     def __init__(self, name: str, thermal_zones_list:list,  model:str = "2C"):
         """Constructor of the building class. Memorizes the attributes by means of properties setter.
         Checks also the validity of some attributes
->>>>>>> c926b43ae5d98d0db604d84282fb1835ba6d976c
 
         Parameters
         ----------
         name : str
-<<<<<<< HEAD
-            Name of the building.
-        thermal_zones_list : list
-            List of ThermalZone objects.
-        model : str, optional
-            Model to be used: "1C" or "2C". The default is "2C".
-
-        Returns
-        -------
-        None.
-
-        '''
-=======
             Name of the building
         thermal_zone : list
             list of ThermalZone ibjects objects
         model : str, default 2C
             model to be used: 1C or 2C
         """
->>>>>>> c926b43ae5d98d0db604d84282fb1835ba6d976c
 
         self.name = name
         self._thermal_zones_list = thermal_zones_list
