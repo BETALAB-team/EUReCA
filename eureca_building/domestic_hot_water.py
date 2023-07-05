@@ -189,7 +189,7 @@ class DomesticHotWater:
         name : str
             name of the object
         calculation_method : str
-            Calculation method, choose from {domestic_hot_water_prop['calculatio_method']}
+            Calculation method, choose from {domestic_hot_water_prop['calculation_method']}
         unit : str
             Unit of the schedule, choose from {domestic_hot_water_prop['unit']}
         schedule : Schedule
