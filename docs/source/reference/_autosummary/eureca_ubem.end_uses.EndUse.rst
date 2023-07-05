@@ -1,4 +1,4 @@
-eureca\_ubem.end\_uses.EndUse
+﻿eureca\_ubem.end\_uses.EndUse
 =============================
 
 .. currentmodule:: eureca_ubem.end_uses
@@ -16,7 +16,27 @@ eureca\_ubem.end\_uses.EndUse
 
    .. autosummary::
    
+      ~EndUse.__delattr__
+      ~EndUse.__dir__
+      ~EndUse.__eq__
+      ~EndUse.__format__
+      ~EndUse.__ge__
+      ~EndUse.__getattribute__
+      ~EndUse.__gt__
+      ~EndUse.__hash__
       ~EndUse.__init__
+      ~EndUse.__init_subclass__
+      ~EndUse.__le__
+      ~EndUse.__lt__
+      ~EndUse.__ne__
+      ~EndUse.__new__
+      ~EndUse.__reduce__
+      ~EndUse.__reduce_ex__
+      ~EndUse.__repr__
+      ~EndUse.__setattr__
+      ~EndUse.__sizeof__
+      ~EndUse.__str__
+      ~EndUse.__subclasshook__
       ~EndUse.load_daily_sched
       ~EndUse.rescale_df
    
@@ -28,6 +48,10 @@ eureca\_ubem.end\_uses.EndUse
 
    .. autosummary::
    
+      ~EndUse.__dict__
+      ~EndUse.__doc__
+      ~EndUse.__module__
+      ~EndUse.__weakref__
       ~EndUse.air_handling_unit_system
       ~EndUse.domestic_hot_water
       ~EndUse.heat_gains

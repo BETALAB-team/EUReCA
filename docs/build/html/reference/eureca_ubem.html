@@ -84,6 +84,24 @@
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_ubem.end_uses.</span></span><span class="sig-name descname"><span class="pre">EndUse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes the vectors of the AHU</p>
+<dl class="simple">
+<dt>Parameters</dt><dd><dl class="simple">
+<dt>name<span class="classifier">string</span></dt><dd><p>name of the archetype</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.air_handling_unit_system">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">air_handling_unit_system</span></span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.air_handling_unit_system" title="Permalink to this definition"></a></dt>
@@ -192,6 +210,25 @@ Each object of EnvelopeType contains several informations about stratigraphies</
 <dt class="sig sig-object py" id="eureca_ubem.envelope_types.EnvelopeType.init">
 <span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.envelope_types.EnvelopeType.init" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.envelope_types.EnvelopeType.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">roof</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><span class="pre">Construction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_floor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><span class="pre">Construction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">interior_ceiling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><span class="pre">Construction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_wall</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><span class="pre">Construction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">interior_wall</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><span class="pre">Construction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="eureca_building.html#eureca_building.window.SimpleWindow" title="eureca_building.window.SimpleWindow"><span class="pre">SimpleWindow</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.envelope_types.EnvelopeType.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Create an envelope type</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em><em>,</em>) – Name</p></li>
+<li><p><strong>roof</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – roof construction obj</p></li>
+<li><p><strong>ground_floor</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – ground_floor construction obj</p></li>
+<li><p><strong>interior_ceiling</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – interior_ceiling construction obj</p></li>
+<li><p><strong>external_wall</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – external_wall construction obj</p></li>
+<li><p><strong>interior_wall</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – interior_wall construction obj</p></li>
+<li><p><strong>window</strong> (<a class="reference internal" href="eureca_building.html#eureca_building.construction.Construction" title="eureca_building.construction.Construction"><em>Construction</em></a>) – window construction obj</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

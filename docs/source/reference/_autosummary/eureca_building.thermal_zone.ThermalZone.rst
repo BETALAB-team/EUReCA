@@ -1,4 +1,4 @@
-eureca\_building.thermal\_zone.ThermalZone
+﻿eureca\_building.thermal\_zone.ThermalZone
 ==========================================
 
 .. currentmodule:: eureca_building.thermal_zone
@@ -16,7 +16,29 @@ eureca\_building.thermal\_zone.ThermalZone
 
    .. autosummary::
    
+      ~ThermalZone._ISO13790_params
+      ~ThermalZone._VDI6007_params
+      ~ThermalZone.__delattr__
+      ~ThermalZone.__dir__
+      ~ThermalZone.__eq__
+      ~ThermalZone.__format__
+      ~ThermalZone.__ge__
+      ~ThermalZone.__getattribute__
+      ~ThermalZone.__gt__
+      ~ThermalZone.__hash__
       ~ThermalZone.__init__
+      ~ThermalZone.__init_subclass__
+      ~ThermalZone.__le__
+      ~ThermalZone.__lt__
+      ~ThermalZone.__ne__
+      ~ThermalZone.__new__
+      ~ThermalZone.__reduce__
+      ~ThermalZone.__reduce_ex__
+      ~ThermalZone.__repr__
+      ~ThermalZone.__setattr__
+      ~ThermalZone.__sizeof__
+      ~ThermalZone.__str__
+      ~ThermalZone.__subclasshook__
       ~ThermalZone.add_air_handling_unit
       ~ThermalZone.add_domestic_hot_water
       ~ThermalZone.add_humidity_setpoint
@@ -48,6 +70,14 @@ eureca\_building.thermal\_zone.ThermalZone
 
    .. autosummary::
    
+      ~ThermalZone.__dict__
+      ~ThermalZone.__doc__
+      ~ThermalZone.__module__
+      ~ThermalZone.__weakref__
+      ~ThermalZone._air_thermal_capacity
+      ~ThermalZone._net_floor_area
+      ~ThermalZone._surface_list
+      ~ThermalZone._volume
       ~ThermalZone.air_handling_unit
       ~ThermalZone.humidity_setpoint
       ~ThermalZone.humidity_setpoint_mode

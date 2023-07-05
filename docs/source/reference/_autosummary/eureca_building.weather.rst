@@ -1,4 +1,4 @@
-eureca\_building.weather
+﻿eureca\_building.weather
 ========================
 
 .. automodule:: eureca_building.weather
@@ -8,6 +8,14 @@ eureca\_building.weather
    
 
    
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:                                          
+   
+      _TskyCalc
+      _get_irradiance
    
    
 

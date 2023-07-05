@@ -15,6 +15,15 @@ import sys
 import pathlib
 import sphinx_rtd_theme
 
+
+def skip(app, what, name, obj, would_skip, options):
+    if name == "__init__":
+        return False
+    return would_skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
+
 sys.path.insert(0, os.path.abspath('.'))
 # sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 
@@ -73,6 +82,8 @@ html_static_path = ['_static']
 # autosectionlabel_prefix_document = True
 
 autosummary_generate = True
+
+
 
 
 
