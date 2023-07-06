@@ -84,6 +84,14 @@ class ThermalZone(object):
         self.domestic_hot_water_list = []
         self.design_heating_system_power = 1e20  # W
         self.design_cooling_system_power = -1e20  # W
+        self.heating_sigma = {
+            '1C': [0., 1.],
+            '2C': [0., 0., 1.],
+        } # Default convective load
+        self.cooling_sigma = {
+            '1C': [0., 1.],
+            '2C': [0., 0., 1.],
+        }  # Default convective load
         self.reset_init_values()
 
     @property
@@ -1310,12 +1318,6 @@ Thermal zone {self.name} 2C params:
         G_OA_mec_vent = self.air_handling_unit.air_flow_rate_kg_S[t] # kg/s supply air
         H_ve_mec_vent = G_OA_mec_vent * air_properties['specific_heat']  # W/K
 
-        # TODO: how to manage radiative convective loads?
-        sigma = {
-            '1C': [0., 1.],
-            '2C': [0., 0., 1.],
-        }[model]
-
         H_ve = [H_ve_mec_vent, H_ve_nat_vent]
 
         # Set points
@@ -1346,7 +1348,7 @@ Thermal zone {self.name} 2C params:
                     T_ext,
                     T_sup,
                     phi_load,
-                    sigma=sigma,
+                    sigma=[0.5,0.5],
                     phi_HC_set=0.)
             elif model == '2C':
                 Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
@@ -1356,7 +1358,7 @@ Thermal zone {self.name} 2C params:
                     T_ext_eq,
                     T_sup,
                     phi_load,
-                    sigma=sigma,
+                    sigma=[0.25,0.25,0.5],
                     phi_HC_set=0.)
 
             # Check if heating mode and heating calc
@@ -1369,7 +1371,7 @@ Thermal zone {self.name} 2C params:
                         T_ext,
                         T_sup,
                         phi_load,
-                        sigma=sigma,
+                        sigma=self.heating_sigma[model],
                         T_set=T_set_heat)
                 elif model == '2C':
                     Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
@@ -1379,7 +1381,7 @@ Thermal zone {self.name} 2C params:
                         T_ext_eq,
                         T_sup,
                         phi_load,
-                        sigma=sigma,
+                        sigma=self.heating_sigma[model],
                         T_set=T_set_heat)
                 if pot > P_max:
                     # If the system reaches the maximum power
@@ -1390,7 +1392,7 @@ Thermal zone {self.name} 2C params:
                             T_ext,
                             T_sup,
                             phi_load,
-                            sigma=sigma,
+                            sigma=self.heating_sigma[model],
                             phi_HC_set=P_max)
                     elif model == '2C':
                         Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
@@ -1400,7 +1402,7 @@ Thermal zone {self.name} 2C params:
                             T_ext_eq,
                             T_sup,
                             phi_load,
-                            sigma=sigma,
+                            sigma=self.heating_sigma[model],
                             phi_HC_set=P_max)
 
             # Check if cooling mode and cooling calc
@@ -1413,7 +1415,7 @@ Thermal zone {self.name} 2C params:
                         T_ext,
                         T_sup,
                         phi_load,
-                        sigma=sigma,
+                        sigma=self.cooling_sigma[model],
                         T_set=T_set_cool)
                 elif model == '2C':
                     Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
@@ -1423,7 +1425,7 @@ Thermal zone {self.name} 2C params:
                         T_ext_eq,
                         T_sup,
                         phi_load,
-                        sigma=sigma,
+                        sigma=self.cooling_sigma[model],
                         T_set=T_set_cool)
                 if pot < P_min:
                     # If the system reaches the maximum cooling power
@@ -1434,7 +1436,7 @@ Thermal zone {self.name} 2C params:
                             T_ext,
                             T_sup,
                             phi_load,
-                            sigma=sigma,
+                            sigma=self.cooling_sigma[model],
                             phi_HC_set=P_min)
                     elif model == '2C':
                         Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
@@ -1444,7 +1446,7 @@ Thermal zone {self.name} 2C params:
                             T_ext_eq,
                             T_sup,
                             phi_load,
-                            sigma=sigma,
+                            sigma=self.cooling_sigma[model],
                             phi_HC_set=P_min)
 
             # LATENT HEAT LOAD CALCULATION
@@ -1571,7 +1573,7 @@ Thermal zone {self.name} 2C params:
                                          weather.hourly_data['out_air_db_temperature'][t],
                                          26.,
                                          [self.phi_ia[t], self.phi_st[t], self.phi_m[t]],
-                                         sigma = [0., 1.],
+                                         sigma = self.cooling_sigma["1C"],
                                          T_set = self._temperature_setpoint.schedule_upper.schedule.min(),
                                          )
                 if pot < sensible_max_cooling_load:
@@ -1586,7 +1588,7 @@ Thermal zone {self.name} 2C params:
                     self.theta_eq_tot[t],
                     26.,
                     [self.Q_il_kon_I[t], self.Q_il_str_aw[t], self.Q_il_str_iw[t]],
-                    sigma=[0., 0., 1.],
+                    sigma=self.cooling_sigma["2C"],
                     T_set=self._temperature_setpoint.schedule_upper.schedule.min()
                 )
                 if pot < sensible_max_cooling_load:

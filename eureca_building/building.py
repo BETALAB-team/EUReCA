@@ -119,6 +119,11 @@ class Building:
         if not isinstance(self.cooling_system, System):
             raise TypeError((f"Building {self.name}, cooling system does not comply with System class. The cooling system class must be created using System interface"))
 
+        # This overrides the convective and radiative fraction to zone
+        for tz in self._thermal_zones_list:
+            tz.heating_sigma = self.heating_system.sigma
+            tz.cooling_sigma = self.cooling_system.sigma
+
     def set_hvac_system_capacity(self, weather_object):
         f"""
 

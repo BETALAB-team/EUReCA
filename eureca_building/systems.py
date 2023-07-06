@@ -123,7 +123,15 @@ class IdealLoad(System):
     '''
 
     def __init__(self, *args, **kwargs):
-        pass
+
+        self.convective_fraction = 0.5
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
     def set_system_capacity(self, design_power, weather):
         pass
@@ -172,6 +180,15 @@ class CondensingBoiler(System):
         self.theta_a_test = 20  # [°C]
         self.PCI_natural_gas = fuels_pci["Natural Gas"]  # Wh/Nm3
         self.system_info = systems_info_dict["CondensingBoiler"]
+
+        self.convective_fraction = 0.5
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
         # Vectors initialization
         # self.phi_gn_i_Px = np.zeros(l)  # [kW]
@@ -346,6 +363,15 @@ class TraditionalBoiler(System):
         self.theta_a_test = 20  # [°C]
         self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
         self.system_info = systems_info_dict["TraditionalBoiler"]
+
+        self.convective_fraction = 0.5
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
         # Vectors initialization
         # self.phi_gn_i_Px = np.zeros(l)  # [kW]
@@ -534,6 +560,15 @@ class SplitAirCooler(System):
         self.W_aux_gn = 0.04  # [kW/kW_cond]
         self.Conversion_fac = 2.17
         self.system_info = systems_info_dict["SplitAirCooler"]
+
+        self.convective_fraction = 1.
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
         # Vectors initialization
         # self.W_el = np.zeros(l)  # [kWe]
@@ -763,6 +798,15 @@ class ChillerAirtoWater(System):
         self.Conversion_fac = 2.17
         self.system_info = systems_info_dict["ChillerAirtoWater"]
 
+        self.convective_fraction = 0.5
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
+
         # Vectors initialization
         # self.W_el = np.zeros(l)  # [kWe]
         # self.W_aux = np.zeros(l)  # [kWe]
@@ -986,6 +1030,16 @@ class SplitAirConditioner(System):
         self.T_int_rif = 27  # [°C]
         self.W_aux_gn = 0.04  # [kW/kW_cond]
         self.system_info = systems_info_dict["SplitAirConditioner"]
+
+        self.convective_fraction = 1.
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
+
         # self.W_el = np.zeros(l)  # [kWe]
         # self.W_aux = np.zeros(l)  # [kWe]
         # self.H_waste = np.zeros(l)  # [kW]
@@ -1141,14 +1195,25 @@ class Heating_EN15316(System):
             self.emitter_type = info_heating[2]
             self.emission_control_efficiency = systems_info_dict["EN_15316_emission_control_heating_efficiency"]["Efficiency [-]"][self.emitter_type]
             self.distribution_efficiency = systems_info_dict["EN_15316_distribution_heating_efficiency"]["Efficiency [-]"][self.distribution_type]
+            self.convective_fraction = systems_info_dict["EN_15316_emission_control_heating_efficiency"]["Convective fraction [-]"][self.emitter_type]
         except IndexError:
+            # Stove
             self.distribution_type = None
             self.emitter_type = None
             self.emission_control_efficiency = 1.
             self.distribution_efficiency = 1.
+            self.convective_fraction = 0.5
 
         self.generation_efficiency_profile = systems_info_dict["EN_15316_generation_heating_efficiency"].loc[self.generation_type]
         self.generation_auxiliary_electric_load_profile = systems_info_dict["EN_15316_generation_heating_auxiliary_electric_load"].loc[self.generation_type]
+
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
         # Input Data
         # self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
@@ -1258,14 +1323,24 @@ class Cooling_EN15316(System):
             self.emitter_type = info_cooling[2]
             self.emission_control_efficiency = systems_info_dict["EN_15316_emission_control_cooling_efficiency"]["Efficiency [-]"][self.emitter_type]
             self.distribution_efficiency = systems_info_dict["EN_15316_distribution_cooling_efficiency"]["Efficiency [-]"][self.distribution_type]
+            self.convective_fraction = systems_info_dict["EN_15316_emission_control_cooling_efficiency"]["Convective fraction [-]"][self.emitter_type]
         except IndexError:
             self.distribution_type = None
             self.emitter_type = None
             self.emission_control_efficiency = 1.
             self.distribution_efficiency = 1.
+            self.convective_fraction = 1.
 
         self.generation_seasonal_performance_factor = systems_info_dict["EN_15316_generation_cooling_seasonal_performance_factor"]["SPF [-]"].loc[self.generation_type]
         self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_seasonal_performance_factor
+
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
 
     def set_system_capacity(self, design_power, weather):
         '''

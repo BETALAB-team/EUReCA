@@ -60,11 +60,11 @@ Size [kW]	EER_100 [-]	EER_75 [-]	EER_50 [-]	EER_25 [-]
 
 "EN_15316_emission_control_heating_efficiency":
 """
-Type	Efficiency [-]
-High Temp Radiator	0.820
-Low Temp Radiator	0.882
-Fan coil	0.862
-Radiant surface	0.857
+Type	Efficiency [-]	Convective fraction [-]
+High Temp Radiator	0.820	0.65
+Low Temp Radiator	0.882	0.6
+Fan coil	0.862	1
+Radiant surface	0.857	0.5
 """,
 "EN_15316_distribution_heating_efficiency":
 """
@@ -92,10 +92,10 @@ A-W Heat Pump	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
 """,
 "EN_15316_emission_control_cooling_efficiency":
 """
-Type	Efficiency [-]
-Fan coil	0.748
-Radiant surface	0.777
-Split system	0.842
+Type	Efficiency [-]	Convective fraction [-]
+Fan coil	0.748	1
+Radiant surface	0.777	0.5
+Split system	0.842	1
 """,
 "EN_15316_distribution_cooling_efficiency":
 """
@@ -116,7 +116,7 @@ All	0.97
 """,
 }
 
-# import abc
+# # import abc
 # import os
 # import io
 # import logging
