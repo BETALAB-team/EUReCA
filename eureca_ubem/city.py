@@ -360,6 +360,8 @@ class City():
             build_surf.append(tuple(pavimento))
             build_surf.append(tuple(soffitto))
 
+            area_of_int_rings = np.array(area_of_int_rings).sum()
+
             # TODO: implement volume and external wall multiplication coefficients
             self.rh_net = 1.
             self.rh_gross = 1.
@@ -376,6 +378,9 @@ class City():
 
                 if surface.surface_type != "GroundFloor":
                     self.__city_surfaces.append(surface)
+
+                if surface.surface_type in ["GroundFloor","Roof"]:
+                    surface.reduce_area(area_of_int_rings)
 
                 # TODO: Update wwr calculation
                 # TODO: reduce area of internal rings
