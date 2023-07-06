@@ -42,6 +42,7 @@ eureca_building/example_scripts/domestic_hotwater_example.py
 eureca_building/example_scripts/VDI_bestests.py
 eureca_building/example_scripts/logging.log
 eureca_building.egg-info/
+eureca_building/test/__pycache__/
 .idea/
 build/
 dist/
