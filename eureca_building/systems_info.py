@@ -64,7 +64,7 @@ Type	Efficiency [-]	Convective fraction [-]
 High Temp Radiator	0.820	0.65
 Low Temp Radiator	0.882	0.6
 Fan coil	0.862	1
-Radiant surface	0.857	0.5
+Radiant surface	0.857	0.35
 """,
 "EN_15316_distribution_heating_efficiency":
 """
@@ -94,7 +94,7 @@ A-W Heat Pump	0.	0.	0.	0.	0.	0.	0.	0.	0.	0.
 """
 Type	Efficiency [-]	Convective fraction [-]
 Fan coil	0.748	1
-Radiant surface	0.777	0.5
+Radiant surface	0.777	0.35
 Split system	0.842	1
 """,
 "EN_15316_distribution_cooling_efficiency":
