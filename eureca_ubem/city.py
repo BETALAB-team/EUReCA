@@ -383,7 +383,6 @@ class City():
                     surface.reduce_area(area_of_int_rings)
 
                 # TODO: Update wwr calculation
-                # TODO: reduce area of internal rings
 
                 if surface.surface_type == "ExtWall":
                     surface._wwr = 0.125
@@ -587,8 +586,6 @@ class City():
             # bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
-
-        # TODO: wrap up building results
 
     def geometric_preprocessing(self):
         
