@@ -2,6 +2,7 @@
 This module includes classes and functions to solve the window system
 """
 
+
 __author__ = "Enrico Prataviera"
 __credits__ = ["Enrico Prataviera"]
 __license__ = "MIT"
@@ -21,18 +22,8 @@ from eureca_building.units import units, window_material_limits
 
 class SimpleWindow(object):
 
-    """
-    Defines the simple window model with all its characteristics
+    """Defines the simple window model with all its characteristics
     and apply the simple glazing model to estimates the curve of SHGC(theta)
-    
-    __init__: 
-        list of properties: list of the properties of the window
-
-    simpleGlazingModel generates the profiles of SHGC. No input
-    
-    Methods:
-        init
-        simpleGlazingModel
     """
 
     def __init__(
@@ -45,8 +36,7 @@ class SimpleWindow(object):
         shading_coef_int: float = 0.05,
         shading_coef_ext: float = 0.05,
     ):
-        """
-        init method. Stores the data
+        """init method. Stores the data and checks them
 
         Parameters
         ----------
@@ -56,19 +46,14 @@ class SimpleWindow(object):
             u_value [W/(m2 K)].
         solar_heat_gain_coef : float
             [-].
-        visible_transmittance : float, optional
+        visible_transmittance : float, default 0.9
             [-]. The default is 0.9.
-        frame_factor : float, optional
+        frame_factor : float, , default 0.9
             [-]. The default is 0.9.
-        shading_coef_int : float, optional
+        shading_coef_int : float, default 0.05
             [-]. The default is 0.05.
-        shading_coef_ext : float, optional
+        shading_coef_ext : float, default 0.05
             [-]. The default is 0.05.
-
-        Returns
-        -------
-        None.
-
         """
 
         self.name = name
@@ -243,37 +228,27 @@ class SimpleWindow(object):
         self._shading_coef_ext = value
 
     def simpleGlazingModel(self):
-
-        """
-        Description
+        """Description:
         This function implement the simplified model for glazing that is used in energy plus
         The output variables are:
-        -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC 
-            in function of the incident angle  from 0� to 90�, with a 10� step 
+        -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC
+            in function of the incident angle  from 0� to 90�, with a 10� step
         -   the solar transmittance, reflectance and absorption at normal incident;
         -   the equivalent conductivity [W/m K] of the glazing material;
         -   the equivalent thickness [m] of the glazing layer;
         -   the visible reflectance on the front side and back side;
         -   the inward flowing fraction;
-        
+
         ---------ATTENTION-----------
         For some combinations of variable SHGC and U the curves are not
-        physically possible,(reflectance > 1). 
-        For this reason it is necessary to manipulate the final reflectance and transmittance 
+        physically possible,(reflectance > 1).
+        For this reason it is necessary to manipulate the final reflectance and transmittance
         vectors to manage the curves.
         It is also necessary to force the absolute reflectance to be 1 and the
         absolute transmittance to be 0 for the perpendicular incidence.
-        
-        
+
+
         Controlling input variable
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        None        
         """
 
         if self.u_value < 0:
@@ -1172,6 +1147,12 @@ class SimpleWindow(object):
         )
 
     def __str__(self):
+        """Just a beauty print of the properties
+
+        Returns
+        ----------
+        str
+        """
         return f"""
 SimpleWindow: {self.name}
     U-value: {self.u_value} {units["U_value"]}
