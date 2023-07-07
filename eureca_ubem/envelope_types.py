@@ -1,5 +1,4 @@
-"""
-This module includes a container class for envelope types
+"""This module includes a container class for envelope types
 """
 
 __author__ = "Enrico Prataviera"
@@ -26,11 +25,13 @@ def load_envelopes(path):
 
     Parameters
     ----------
-    path : string
+    path : str
         Path containing the string of the Buildings_Envelopes.xlsx
+
     Returns
     -------
-    envelopes_dict: dictionary with EnvelopeType objects
+    dict
+        Dictionary with eureca_ubem.EnvelopeType objects
 
     '''
 
@@ -66,12 +67,8 @@ def load_envelopes(path):
 # %% EnvelopeType class
 
 class EnvelopeType(object):
-    '''
-    Definition of the EnvelopeType class
+    '''Definition of the EnvelopeType class
     Each object of EnvelopeType contains several informations about stratigraphies
-
-    Methods:
-        init
     '''
 
     def __init__(self,
@@ -83,24 +80,23 @@ class EnvelopeType(object):
                  interior_wall: Construction,
                  window: SimpleWindow,
                  ):
-        """
-        Create an envelope type
+        """Create an envelope type. Just a container of some constructions objects
 
         Parameters
         ----------
-        name: str,
+        name : str
             Name
-        roof: Construction
+        roof : eureca_building.construction.Construction
             roof construction obj
-        ground_floor: Construction
+        ground_floor: eureca_building.construction.Construction
             ground_floor construction obj
-        interior_ceiling: Construction
+        interior_ceiling: eureca_building.construction.Construction
             interior_ceiling construction obj
-        external_wall: Construction
+        external_wall: eureca_building.construction.Construction
             external_wall construction obj
-        interior_wall: Construction
+        interior_wall: eureca_building.construction.Construction
             interior_wall construction obj
-        window: Construction
+        window: eureca_building.construction.Construction
             window construction obj
         """
 

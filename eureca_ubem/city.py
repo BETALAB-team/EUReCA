@@ -25,21 +25,7 @@ from eureca_ubem.envelope_types import load_envelopes
 #%% City class
 
 class City():
-    
-    '''
-    This class manages the city via json input file: geojson or cityjson
-    
-    Methods
-        init
-        printInfo
-        create_urban_canyon
-        shading_effect
-        paramsandloads
-        designdays
-        cityplants
-        citysim
-        complexmerge
-        
+    '''This class manages the city simulation via json input file: geojson or cityjson
     '''
     
     # class variables
@@ -59,25 +45,24 @@ class City():
                  building_model = "2C",
                  shading_calculation = False,
                  ):
-
-        """
+        """Creates the city from all the input files
 
         Parameters
         ----------
-        city_model: str
+        city_model : str
             path to the json/cityjson file
-        envelope_types_file: str
+        envelope_types_file : str
             path to the envelope_types file
-        end_uses_types_file: str
+        end_uses_types_file : str
             path to the end_uses file
-        epw_weather_file:: str
+        epw_weather_file : str
             path to the epw weather file
-        output_folder: str
+        output_folder : str
             folder to save results
-        building_model: str
+        building_model : str, default "2C"
             1C or 2C string
-        shading_calculation: bool
-            whether to do or not the shading calculation
+        shading_calculation : bool, default False
+            whether to do or not the mutual shading calculation
         """
 
         self.__city_surfaces = []  # List of all the external surfaces of a city
@@ -129,19 +114,13 @@ class City():
         self._building_model = value
 
     def buildings_creation_from_cityjson(self,json_path):
-        
-        '''
-        This method creates the city from the json file
+        '''This method creates the city from the json file (CityJSON 3D)
         
         Parameters
         ----------
         json_path : str
             path of the cityJSON file
-        
-        Returns
-        -------
-        None
-        
+
         '''
 
         # Case of cityJSON file availability:
@@ -296,17 +275,12 @@ class City():
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
     def buildings_creation_from_geojson(self, json_path):
-        '''
-        Function to create buildings from geojson file.
+        '''Function to create buildings from geojson file (2D file).
 
         Parameters
         ----------
         json_path : str
             Path to geojson file.
-
-        Returns
-        -------
-        None.
 
         '''
         # Case of GeoJSON file availability:
@@ -464,14 +438,7 @@ class City():
         self.geometric_preprocessing()
 
     def loads_calculation(self):
-
-        '''
-        This method does the internal and solar calculation, as well as the set of set points and ventialtion and systems
-
-        Returns
-        -------
-        None
-
+        '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
 
         for bd_id, building_info in self.buildings_info.items():
@@ -522,6 +489,14 @@ class City():
             building_obj.set_hvac_system_capacity(self.weather_file)
 
     def simulate(self, print_single_building_results = False):
+        """Simulation of the whole city, and memorization and stamp of results.
+
+        Parameters
+        ----------
+        print_single_building_results : bool, default False
+            If True, the prints a file with time step results for each building.
+            USE CAREFULLY: It might fill a lot of disk space
+        """
         import time
         start = time.time()
         # parallel simulation commented
@@ -599,20 +574,8 @@ class City():
         # TODO: wrap up building results
 
     def geometric_preprocessing(self):
-        
-        '''
-        This method firstly reduces the area of coincidence surfaces. This first part must be done to get consistent results
-        This method takes into account the shading effect between buildings surfaces
-        
-        Parameters
-        ----------
-        shading_calculation: bool
-            if True runs the shading calculation
-
-        Returns
-        -------
-        None
-        
+        '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
+        Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
         '''
 
         toll_az = CONFIG.urban_shading_tolerances[0]

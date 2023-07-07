@@ -1,5 +1,4 @@
-"""
-This module includes a container class for schedule end-uses
+"""This module includes a container class for schedule end-uses
 """
 
 __author__ = "Enrico Prataviera"
@@ -27,19 +26,19 @@ from eureca_building.domestic_hot_water import DomesticHotWater
 #%% Useful functions to create the schedule EndUses
 
 def load_schedules(path):
-    '''
-    Archetype loading in case you use daily schedules
-    This function takes the path of the excel file constining the schedules and loads it
-    Works for the daily schedule (see file ScheduleSemp.xlsx in /Input/
+    '''Schedule type loading in case you use daily schedules
+    This function takes the path to the spreadsheet consisting of the schedules and loads; it
+    Works for the daily schedule (see file ScheduleSemp.xlsx in eureca_ubem/Input/)
     
     Parameters
     ----------
     path : string
-        Path containing the string of the file_schedule.xlsx
+        Path to the spreadsheet to read file_schedule.xlsx
 
     Returns
     -------
-    archetypes: dictionary with archetype_key/Archetype(object) data
+    dict
+        dictionary with EndUse_key/ eureca_ubem.end_uses.EndUse objects
     '''
     
     # Check input data type  
@@ -65,21 +64,17 @@ def load_schedules(path):
 #%% EndUse class
 
 class EndUse:
+    """This class builds up the loads and schedules for different type of buildings
+    """
 
     def __init__(self,name):
-    
-        '''
-        Initializes the vectors of the AHU
+        '''Creates the object with many dictionaries to store various loads and schedules
         
         Parameters
-            ----------
-            name : string
-                name of the archetype
-                
-        Returns
-        -------
-        None.
-        
+        ----------
+        name : str
+            name of the archetype
+
         '''    
         
         # Check input data type
@@ -120,9 +115,6 @@ class EndUse:
         }
         '''
         Take care of units!!!
-        All formula referes to the complex schedule file units, 
-        Simple schedule file has different units which are converted in the loadSchedSemp method
-        (vapuor flow rates)
         '''
 
     @property
@@ -222,24 +214,23 @@ class EndUse:
 
     @classmethod
     def load_daily_sched(cls, name, daily_df_from_excel, scalar_df_from_excel, holidays):
-        '''
-        Used for daily_schedules.xlsx Excel file
+        '''Class method to create the EndUse object from the spreadsheet page
 
         Parameters
-            ----------
-            name: str
-                name
-            daily_df_from_excel : pandas DataFrame
-                DataFrame from the end_use
-            scalar_df_from_excel : pandas dataframe
-                This series includes some additional data about the archetype (Sensible and
-                                                                               Latent AHU recovery,
-                                                                               Convective fraction of internal gains)
+        ----------
+        name : str
+            name
+        daily_df_from_excel : pandas.DataFrame
+            DataFrame containing schedules from the end_use
+        scalar_df_from_excel : pandas.DataFrame
+            This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)
+                                                                            (Sensible and
+                                                                           Latent AHU recovery,
+                                                                           Convective fraction of internal gains)
 
         Returns
         -------
-        EndUse.
-
+        eureca_ubem.eund_uses.EndUse
         '''
 
         # Each schedule is set to a different attribute of the class
@@ -636,17 +627,19 @@ class EndUse:
 
     @staticmethod
     def rescale_df(ts, sched_df):
-        '''
-        rescale the archetype dataframe with respect to the number of time steps per hour
+        '''Static method to rescale the schedule dataframe from the hour to the simulation time step
         
         Parameters
-            ----------
-            ts : int
-                Number of time steps per hour
+        ----------
+        ts : int
+            Number of time steps per hour
+        sched_df : pandas.DataFrame
+            DataFrame to rescale
                 
         Returns
         -------
-        None.        
+        pandas.DataFrame
+            The rescaled df
         '''   
         
         # Check input data type
