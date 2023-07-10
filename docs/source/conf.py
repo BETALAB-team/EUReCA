@@ -49,7 +49,8 @@ extensions = ['sphinx_rtd_theme',
               'sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx.ext.napoleon',
-              'myst_parser']
+              #'myst_parser',
+              ]
 
 # Napoleon settings
 napoleon_google_docstring = True
