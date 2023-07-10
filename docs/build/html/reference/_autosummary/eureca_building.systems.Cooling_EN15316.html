@@ -119,38 +119,20 @@
 <dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_building.systems.</span></span><span class="sig-name descname"><span class="pre">Cooling_EN15316</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="../eureca_building.html#eureca_building.systems.System" title="eureca_building.systems.System"><code class="xref py py-class docutils literal notranslate"><span class="pre">System</span></code></a></p>
-<p>Class TraditionalBoiler
-This method considers a generic Traditional Boiler as the heating system
-of the entire building following UNI-TS 11300:2 - 2008</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.init" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.set">
-<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.set" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.solve">
-<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.solve" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
+<p>Class Cooling_EN15316. This method considers a generic cooling system as the heating system
+of the entire building following EN 15316.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>init. Set some attributes for the method</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>system_type<span class="classifier">string</span></dt><dd><p>string that sets the heating system</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>init method. Set some attributes are set
+The cooling_system_key label must be passed as kwargs. Example:
+Cooling_EN15316(cooling_system_key = “A-W chiller, Centralized, Radiant surface”)</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>kwargs</strong> – kwargs must include {cooling_system_key : string_of_cooling_system}</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -183,7 +165,7 @@ of the entire building following UNI-TS 11300:2 - 2008</p>
 <td><p>Return hash(self).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.Cooling_EN15316.__init__" title="eureca_building.systems.Cooling_EN15316.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(*args, **kwargs)</p></td>
-<td><p>init.</p></td>
+<td><p>init method.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
 <td><p>This method is called when a class is subclassed.</p></td>
@@ -222,10 +204,10 @@ of the entire building following UNI-TS 11300:2 - 2008</p>
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.Cooling_EN15316.set_system_capacity" title="eureca_building.systems.Cooling_EN15316.set_system_capacity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_system_capacity</span></code></a>(design_power, weather)</p></td>
-<td><p>Sets system design power</p></td>
+<td><p>'Choice of system size based on estimated nominal Power</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.Cooling_EN15316.solve_system" title="eureca_building.systems.Cooling_EN15316.solve_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_system</span></code></a>(heat_flow, weather, t, T_int, ...)</p></td>
-<td><p>This method allows to calculate Traditional Boiler losses following the Standard UNI-TS 11300:2 - 2008</p></td>
+<td><p>This method allows to calculate the system power for each time step</p></td>
 </tr>
 </tbody>
 </table>
@@ -270,17 +252,15 @@ of the entire building following UNI-TS 11300:2 - 2008</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>init. Set some attributes for the method</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>system_type<span class="classifier">string</span></dt><dd><p>string that sets the heating system</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>init method. Set some attributes are set
+The cooling_system_key label must be passed as kwargs. Example:
+Cooling_EN15316(cooling_system_key = “A-W chiller, Centralized, Radiant surface”)</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>kwargs</strong> – kwargs must include {cooling_system_key : string_of_cooling_system}</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -288,19 +268,13 @@ of the entire building following UNI-TS 11300:2 - 2008</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.set_system_capacity">
 <span class="sig-name descname"><span class="pre">set_system_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design_power</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.set_system_capacity" title="Permalink to this definition"></a></dt>
-<dd><p>Sets system design power</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>design_power<span class="classifier">float</span></dt><dd><p>Design Heating power  [W]</p>
-</dd>
-<dt>Weather<span class="classifier">WeatherFile</span></dt><dd><p>WeatherFile object</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>‘Choice of system size based on estimated nominal Power</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>design_power</strong> (<em>float</em>) – Design Heating power  [W]</p></li>
+<li><p><strong>Weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – WeatherFile object</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -308,26 +282,16 @@ of the entire building following UNI-TS 11300:2 - 2008</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.systems.Cooling_EN15316.solve_system">
 <span class="sig-name descname"><span class="pre">solve_system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">heat_flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.Cooling_EN15316.solve_system" title="Permalink to this definition"></a></dt>
-<dd><p>This method allows to calculate Traditional Boiler losses following
-the Standard UNI-TS 11300:2 - 2008</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>heat_flow<span class="classifier">float</span></dt><dd><p>required power  [W]</p>
-</dd>
-<dt>Weather<span class="classifier">WeatherFile</span></dt><dd><p>WeatherFile object</p>
-</dd>
-<dt>t<span class="classifier">int</span></dt><dd><p>Simulation time step</p>
-</dd>
-<dt>T_int<span class="classifier">float</span></dt><dd><p>Zone temperature [°]</p>
-</dd>
-<dt>RH_int<span class="classifier">float</span></dt><dd><p>Zone relative humidity [%]</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>This method allows to calculate the system power for each time step</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>heat_flow</strong> (<em>float</em>) – required power  [W]</p></li>
+<li><p><strong>Weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – WeatherFile object</p></li>
+<li><p><strong>t</strong> (<em>int</em>) – Simulation time step</p></li>
+<li><p><strong>T_int</strong> (<em>float</em>) – Zone temperature [°]</p></li>
+<li><p><strong>RH_int</strong> (<em>float</em>) – Zone relative humidity [%]</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

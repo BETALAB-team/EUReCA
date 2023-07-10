@@ -115,23 +115,21 @@
 <dt class="sig sig-object py" id="eureca_building.ventilation.NaturalVentilation">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_building.ventilation.</span></span><span class="sig-name descname"><span class="pre">NaturalVentilation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nominal_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../eureca_building.html#eureca_building.schedule.Schedule" title="eureca_building.schedule.Schedule"><span class="pre">Schedule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surfaces_with_opening</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><span class="pre">WeatherFile</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.ventilation.NaturalVentilation" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.Ventilation" title="eureca_building.ventilation.Ventilation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ventilation</span></code></a></p>
+<p>Inheritaded from the Ventilation class</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.ventilation.NaturalVentilation.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nominal_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../eureca_building.html#eureca_building.schedule.Schedule" title="eureca_building.schedule.Schedule"><span class="pre">Schedule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surfaces_with_opening</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><span class="pre">WeatherFile</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.ventilation.NaturalVentilation.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>VentilationObject</p>
+<dd><p>Init method. Call the Ventilation super() init and then store few more input</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – str
-name</p></li>
-<li><p><strong>unit</strong> – str
-value of the unit: [“Vol/h”, “kg/s”, “kg/(m2 s)”, “m3/s”, “m3/(m2 s)”]</p></li>
-<li><p><strong>nominal_value</strong> – float
-the value to be multiplied by the schedule</p></li>
-<li><p><strong>schedule</strong> – Schedule
-Schedule object</p></li>
-<li><p><strong>tag</strong> – str
-a tag to define the type of internal load</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – name</p></li>
+<li><p><strong>unit</strong> (<em>str</em>) – value of the unit: [“Vol/h”, “kg/s”, “kg/(m2 s)”, “m3/s”, “m3/(m2 s)”]</p></li>
+<li><p><strong>nominal_value</strong> (<em>float</em>) – the value to be multiplied by the schedule</p></li>
+<li><p><strong>schedule</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.schedule.Schedule" title="eureca_building.schedule.Schedule"><em>eureca_building.schedule.Schedule</em></a>) – Schedule object with a fractional schedule</p></li>
+<li><p><strong>tag</strong> (<em>str</em><em>, </em><em>default None</em>) – a tag to define the type of internal load</p></li>
+<li><p><strong>surfaces_with_opening</strong> (<em>list</em>) – list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes</p></li>
+<li><p><strong>weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – Weather object</p></li>
 </ul>
 </dd>
 </dl>
@@ -165,7 +163,7 @@ a tag to define the type of internal load</p></li>
 <td><p>Return hash(self).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.NaturalVentilation.__init__" title="eureca_building.ventilation.NaturalVentilation.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(name, unit, nominal_value, schedule)</p></td>
-<td><p>VentilationObject</p></td>
+<td><p>Init method.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
 <td><p>This method is called when a class is subclassed.</p></td>
@@ -204,13 +202,13 @@ a tag to define the type of internal load</p></li>
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_absolute_value_nominal</span></code>()</p></td>
-<td><p>Returns natural ventilation opening nominal value in a value from 0 to 1 :param area: None              [m2]: must be provided if the load is area specific :param volume: None                [m3]: must be provided if the load is volume specific</p></td>
+<td><p>Returns natural ventilation nominal value in kg/s.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_get_windows_opening</span></code>()</p></td>
-<td><p>Calc the windows opening from the input schedule in 0-1 range :returns: np.array</p></td>
+<td><p>Calc the windows opening from the input schedule in 0-1 range</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.NaturalVentilation.define_pressure_coef" title="eureca_building.ventilation.NaturalVentilation.define_pressure_coef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">define_pressure_coef</span></code></a>(weather, ...)</p></td>
-<td><p></p></td>
+<td><p>TODO : Per Giacomo compila la documentazione</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.NaturalVentilation.get_air_flow_rate" title="eureca_building.ventilation.NaturalVentilation.get_air_flow_rate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_air_flow_rate</span></code></a>()</p></td>
 <td><p>Not implemented for Natural Ventilation</p></td>
@@ -219,7 +217,7 @@ a tag to define the type of internal load</p></li>
 <td><p>Not implemented for Natural Ventilation</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.NaturalVentilation.get_timestep_ventilation_mass_flow" title="eureca_building.ventilation.NaturalVentilation.get_timestep_ventilation_mass_flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_timestep_ventilation_mass_flow</span></code></a>(ts, ...)</p></td>
-<td><p></p></td>
+<td><p>TODO : Per Giacomo compila la documentazione</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.ventilation.NaturalVentilation.get_vapour_flow_rate" title="eureca_building.ventilation.NaturalVentilation.get_vapour_flow_rate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_vapour_flow_rate</span></code></a>()</p></td>
 <td><p>Not implemented for Natural Ventilation</p></td>
@@ -255,20 +253,31 @@ a tag to define the type of internal load</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nominal_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schedule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../eureca_building.html#eureca_building.schedule.Schedule" title="eureca_building.schedule.Schedule"><span class="pre">Schedule</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surfaces_with_opening</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><span class="pre">WeatherFile</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>VentilationObject</p>
+<dd><p>Init method. Call the Ventilation super() init and then store few more input</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – str
-name</p></li>
-<li><p><strong>unit</strong> – str
-value of the unit: [“Vol/h”, “kg/s”, “kg/(m2 s)”, “m3/s”, “m3/(m2 s)”]</p></li>
-<li><p><strong>nominal_value</strong> – float
-the value to be multiplied by the schedule</p></li>
-<li><p><strong>schedule</strong> – Schedule
-Schedule object</p></li>
-<li><p><strong>tag</strong> – str
-a tag to define the type of internal load</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – name</p></li>
+<li><p><strong>unit</strong> (<em>str</em>) – value of the unit: [“Vol/h”, “kg/s”, “kg/(m2 s)”, “m3/s”, “m3/(m2 s)”]</p></li>
+<li><p><strong>nominal_value</strong> (<em>float</em>) – the value to be multiplied by the schedule</p></li>
+<li><p><strong>schedule</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.schedule.Schedule" title="eureca_building.schedule.Schedule"><em>eureca_building.schedule.Schedule</em></a>) – Schedule object with a fractional schedule</p></li>
+<li><p><strong>tag</strong> (<em>str</em><em>, </em><em>default None</em>) – a tag to define the type of internal load</p></li>
+<li><p><strong>surfaces_with_opening</strong> (<em>list</em>) – list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes</p></li>
+<li><p><strong>weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – Weather object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_building.ventilation.NaturalVentilation.define_pressure_coef">
+<span class="sig-name descname"><span class="pre">define_pressure_coef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weather</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surfaces_with_opening</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.ventilation.NaturalVentilation.define_pressure_coef" title="Permalink to this definition"></a></dt>
+<dd><p>TODO : Per Giacomo compila la documentazione</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>weather</strong> (<em>eureca_building.weathe.WeatherFile</em>) – WeatherFile object</p></li>
+<li><p><strong>surfaces_with_opening</strong> (<em>list</em>) – list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes</p></li>
 </ul>
 </dd>
 </dl>
@@ -284,6 +293,21 @@ a tag to define the type of internal load</p></li>
 <dt class="sig sig-object py" id="eureca_building.ventilation.NaturalVentilation.get_flow_rate">
 <span class="sig-name descname"><span class="pre">get_flow_rate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.ventilation.NaturalVentilation.get_flow_rate" title="Permalink to this definition"></a></dt>
 <dd><p>Not implemented for Natural Ventilation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_building.ventilation.NaturalVentilation.get_timestep_ventilation_mass_flow">
+<span class="sig-name descname"><span class="pre">get_timestep_ventilation_mass_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_zone</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.ventilation.NaturalVentilation.get_timestep_ventilation_mass_flow" title="Permalink to this definition"></a></dt>
+<dd><p>TODO : Per Giacomo compila la documentazione</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ts</strong> (<em>int</em>) – time step of simulation</p></li>
+<li><p><strong>t_zone</strong> (<em>float</em>) – zone temperature [°C]</p></li>
+<li><p><strong>weather</strong> (<em>eureca_building.weathe.WeatherFile</em>) – WeatherFile object</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

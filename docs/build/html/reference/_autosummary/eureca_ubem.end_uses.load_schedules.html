@@ -91,18 +91,18 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.load_schedules">
 <span class="sig-prename descclassname"><span class="pre">eureca_ubem.end_uses.</span></span><span class="sig-name descname"><span class="pre">load_schedules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.load_schedules" title="Permalink to this definition"></a></dt>
-<dd><p>Archetype loading in case you use daily schedules
-This function takes the path of the excel file constining the schedules and loads it
-Works for the daily schedule (see file ScheduleSemp.xlsx in /Input/</p>
+<dd><p>Schedule type loading in case you use daily schedules
+This function takes the path to the spreadsheet consisting of the schedules and loads; it
+Works for the daily schedule (see file ScheduleSemp.xlsx in eureca_ubem/Input/)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>string</em>) – Path containing the string of the file_schedule.xlsx</p>
+<dd class="field-odd"><p><strong>path</strong> (<em>string</em>) – Path to the spreadsheet to read file_schedule.xlsx</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>archetypes</strong></p>
+<dd class="field-even"><p>dictionary with EndUse_key/ eureca_ubem.end_uses.EndUse objects</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dictionary with archetype_key/Archetype(object) data</p>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>

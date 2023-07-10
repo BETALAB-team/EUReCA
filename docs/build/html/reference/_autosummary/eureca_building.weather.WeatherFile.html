@@ -116,28 +116,20 @@
 <p>This class is a container for all weather data.
 It processes the epw file to extract arrays of temperature, wind, humidity etc……</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.weather.WeatherFile.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.weather.WeatherFile.init" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.weather.WeatherFile.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epw</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irradiances_calculation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth_subdivisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_subdivisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urban_shading_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[80.0,</span> <span class="pre">100.0,</span> <span class="pre">80.0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.weather.WeatherFile.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>initialize weather obj
-It processes the epw file to extract arrays of temperature, wind, humidity etc……</p>
+<dd><p>Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc……</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>epw_name</strong> (<em>str</em>) – path of the epw file.</p></li>
-<li><p><strong>year</strong> (<em>int</em>) – the year of simulation. it is used only to create a pd.DataFrame.</p></li>
-<li><p><strong>time_steps</strong> (<em>int</em>) – number of time steps in a hour.</p></li>
-<li><p><strong>azimuth_subdivisions</strong> (<em>int</em>) – number of the different direction (azimuth) solar radiation will be calculated</p></li>
-<li><p><strong>height_subdivisions</strong> (<em>int</em>) – number of the different direction (solar height) solar radiation will be calculated</p></li>
-<li><p><strong>urban_shading_tol</strong> (<em>list of 3 floats</em>) – list of the tolerances for urban shading calc (azimuth, distance, theta)</p></li>
+<li><p><strong>year</strong> (<em>int</em><em>, </em><em>default None</em>) – the year of simulation. it is used only to create a pd.DataFrame.</p></li>
+<li><p><strong>time_steps</strong> (<em>int</em><em>, </em><em>default 1</em>) – number of time steps in a hour.</p></li>
+<li><p><strong>irradiances_calculation</strong> (<em>bool</em><em>, </em><em>default False</em>) – Whether to do or not the irradiances calculation</p></li>
+<li><p><strong>azimuth_subdivisions</strong> (<em>int</em><em>, </em><em>default 8</em>) – number of the different direction (azimuth) solar radiation will be calculated</p></li>
+<li><p><strong>height_subdivisions</strong> (<em>int</em><em>, </em><em>default 3</em>) – number of the different direction (solar height) solar radiation will be calculated</p></li>
+<li><p><strong>urban_shading_tol</strong> (<em>list</em><em>, </em><em>default</em><em> [</em><em>80.</em><em>,</em><em>100.</em><em>,</em><em>80.</em><em>]</em>) – list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)</p></li>
 </ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -170,7 +162,7 @@ It processes the epw file to extract arrays of temperature, wind, humidity etc�
 <td><p>Return hash(self).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile.__init__" title="eureca_building.weather.WeatherFile.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(epw[, year, time_steps, ...])</p></td>
-<td><p>initialize weather obj It processes the epw file to extract arrays of temperature, wind, humidity etc......</p></td>
+<td><p>Initialize weather obj.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
 <td><p>This method is called when a class is subclassed.</p></td>
@@ -209,7 +201,7 @@ It processes the epw file to extract arrays of temperature, wind, humidity etc�
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile.irradiances_calculation" title="eureca_building.weather.WeatherFile.irradiances_calculation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">irradiances_calculation</span></code></a>()</p></td>
-<td><p></p></td>
+<td><p>Internal method to tun the irrandiances calculation</p></td>
 </tr>
 </tbody>
 </table>
@@ -233,23 +225,26 @@ It processes the epw file to extract arrays of temperature, wind, humidity etc�
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epw</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">irradiances_calculation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth_subdivisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height_subdivisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">urban_shading_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[80.0,</span> <span class="pre">100.0,</span> <span class="pre">80.0]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>initialize weather obj
-It processes the epw file to extract arrays of temperature, wind, humidity etc……</p>
+<dd><p>Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc……</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>epw_name</strong> (<em>str</em>) – path of the epw file.</p></li>
-<li><p><strong>year</strong> (<em>int</em>) – the year of simulation. it is used only to create a pd.DataFrame.</p></li>
-<li><p><strong>time_steps</strong> (<em>int</em>) – number of time steps in a hour.</p></li>
-<li><p><strong>azimuth_subdivisions</strong> (<em>int</em>) – number of the different direction (azimuth) solar radiation will be calculated</p></li>
-<li><p><strong>height_subdivisions</strong> (<em>int</em>) – number of the different direction (solar height) solar radiation will be calculated</p></li>
-<li><p><strong>urban_shading_tol</strong> (<em>list of 3 floats</em>) – list of the tolerances for urban shading calc (azimuth, distance, theta)</p></li>
+<li><p><strong>year</strong> (<em>int</em><em>, </em><em>default None</em>) – the year of simulation. it is used only to create a pd.DataFrame.</p></li>
+<li><p><strong>time_steps</strong> (<em>int</em><em>, </em><em>default 1</em>) – number of time steps in a hour.</p></li>
+<li><p><strong>irradiances_calculation</strong> (<em>bool</em><em>, </em><em>default False</em>) – Whether to do or not the irradiances calculation</p></li>
+<li><p><strong>azimuth_subdivisions</strong> (<em>int</em><em>, </em><em>default 8</em>) – number of the different direction (azimuth) solar radiation will be calculated</p></li>
+<li><p><strong>height_subdivisions</strong> (<em>int</em><em>, </em><em>default 3</em>) – number of the different direction (solar height) solar radiation will be calculated</p></li>
+<li><p><strong>urban_shading_tol</strong> (<em>list</em><em>, </em><em>default</em><em> [</em><em>80.</em><em>,</em><em>100.</em><em>,</em><em>80.</em><em>]</em>) – list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_building.weather.WeatherFile.irradiances_calculation">
+<span class="sig-name descname"><span class="pre">irradiances_calculation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.weather.WeatherFile.irradiances_calculation" title="Permalink to this definition"></a></dt>
+<dd><p>Internal method to tun the irrandiances calculation</p>
 </dd></dl>
 
 </dd></dl>

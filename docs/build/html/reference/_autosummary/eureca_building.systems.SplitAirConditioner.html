@@ -137,48 +137,15 @@ N. Mahdavi, J. H. Braslavsky and C. Perfumo,
 in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
 doi: 10.1109/TSG.2016.2592522.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.init" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.setCondensingBoiler">
-<span class="sig-name descname"><span class="pre">setCondensingBoiler</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.setCondensingBoiler" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.solveSystem">
-<span class="sig-name descname"><span class="pre">solveSystem</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.solveSystem" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>init. Set some attributes for the method</p>
-<p>Berend Jan Christiaan van Putten, Nariman Mahdavi, Julio H. Braslavsky,
-An Analytical Model for Demand Response of Variable-Speed Air Conditioners,
-IFAC-PapersOnLine,
-Volume 51, Issue 28,
-2018,
-Pages 426-431,
-ISSN 2405-8963,
-<a class="reference external" href="https://doi.org/10.1016/j.ifacol.2018.11.740">https://doi.org/10.1016/j.ifacol.2018.11.740</a>.
-(<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S2405896318334608">https://www.sciencedirect.com/science/article/pii/S2405896318334608</a>)</p>
-<p><a class="reference external" href="https://ieeexplore.ieee.org/document/7515217">https://ieeexplore.ieee.org/document/7515217</a>
-N. Mahdavi, J. H. Braslavsky and C. Perfumo,
-“Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,”
-in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
-doi: 10.1109/TSG.2016.2592522.</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>system_type<span class="classifier">string</span></dt><dd><p>string that sets the heating system</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>init method. Set some attributes for the method</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -211,7 +178,7 @@ doi: 10.1109/TSG.2016.2592522.</p>
 <td><p>Return hash(self).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.SplitAirConditioner.__init__" title="eureca_building.systems.SplitAirConditioner.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(*args, **kwargs)</p></td>
-<td><p>init.</p></td>
+<td><p>init method.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
 <td><p>This method is called when a class is subclassed.</p></td>
@@ -250,7 +217,7 @@ doi: 10.1109/TSG.2016.2592522.</p>
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.SplitAirConditioner.set_system_capacity" title="eureca_building.systems.SplitAirConditioner.set_system_capacity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_system_capacity</span></code></a>(design_power, weather)</p></td>
-<td><p>Choise of system size based on estimated nominal Power for air conditioner WITHOUT inverter</p></td>
+<td><p>Choice of system size based on estimated nominal Power for air conditioner WITHOUT inverter</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.SplitAirConditioner.solve_system" title="eureca_building.systems.SplitAirConditioner.solve_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solve_system</span></code></a>(heat_flow, weather, t, T_int, ...)</p></td>
 <td><p>This method allows to calculate from literature: Split Air Cooler condensing power</p></td>
@@ -298,31 +265,13 @@ doi: 10.1109/TSG.2016.2592522.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>init. Set some attributes for the method</p>
-<p>Berend Jan Christiaan van Putten, Nariman Mahdavi, Julio H. Braslavsky,
-An Analytical Model for Demand Response of Variable-Speed Air Conditioners,
-IFAC-PapersOnLine,
-Volume 51, Issue 28,
-2018,
-Pages 426-431,
-ISSN 2405-8963,
-<a class="reference external" href="https://doi.org/10.1016/j.ifacol.2018.11.740">https://doi.org/10.1016/j.ifacol.2018.11.740</a>.
-(<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S2405896318334608">https://www.sciencedirect.com/science/article/pii/S2405896318334608</a>)</p>
-<p><a class="reference external" href="https://ieeexplore.ieee.org/document/7515217">https://ieeexplore.ieee.org/document/7515217</a>
-N. Mahdavi, J. H. Braslavsky and C. Perfumo,
-“Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,”
-in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
-doi: 10.1109/TSG.2016.2592522.</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>system_type<span class="classifier">string</span></dt><dd><p>string that sets the heating system</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>init method. Set some attributes for the method</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -330,19 +279,13 @@ doi: 10.1109/TSG.2016.2592522.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.set_system_capacity">
 <span class="sig-name descname"><span class="pre">set_system_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design_power</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.set_system_capacity" title="Permalink to this definition"></a></dt>
-<dd><p>Choise of system size based on estimated nominal Power for air conditioner WITHOUT inverter</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>design_power<span class="classifier">float</span></dt><dd><p>Design Heating power  [W]</p>
-</dd>
-<dt>Weather<span class="classifier">WeatherFile</span></dt><dd><p>WeatherFile object</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Choice of system size based on estimated nominal Power for air conditioner WITHOUT inverter</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>design_power</strong> (<em>float</em>) – Design Heating power  [W]</p></li>
+<li><p><strong>Weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – WeatherFile object</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -351,38 +294,15 @@ doi: 10.1109/TSG.2016.2592522.</p>
 <dt class="sig sig-object py" id="eureca_building.systems.SplitAirConditioner.solve_system">
 <span class="sig-name descname"><span class="pre">solve_system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">heat_flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weather</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RH_int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.systems.SplitAirConditioner.solve_system" title="Permalink to this definition"></a></dt>
 <dd><p>This method allows to calculate from literature: Split Air Cooler condensing power</p>
-<p>Berend Jan Christiaan van Putten, Nariman Mahdavi, Julio H. Braslavsky,
-An Analytical Model for Demand Response of Variable-Speed Air Conditioners,
-IFAC-PapersOnLine,
-Volume 51, Issue 28,
-2018,
-Pages 426-431,
-ISSN 2405-8963,
-<a class="reference external" href="https://doi.org/10.1016/j.ifacol.2018.11.740">https://doi.org/10.1016/j.ifacol.2018.11.740</a>.
-(<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S2405896318334608">https://www.sciencedirect.com/science/article/pii/S2405896318334608</a>)</p>
-<p><a class="reference external" href="https://ieeexplore.ieee.org/document/7515217">https://ieeexplore.ieee.org/document/7515217</a>
-N. Mahdavi, J. H. Braslavsky and C. Perfumo,
-“Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,”
-in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
-doi: 10.1109/TSG.2016.2592522.</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>heat_flow<span class="classifier">float</span></dt><dd><p>required power  [W]</p>
-</dd>
-<dt>Weather<span class="classifier">WeatherFile</span></dt><dd><p>WeatherFile object</p>
-</dd>
-<dt>t<span class="classifier">int</span></dt><dd><p>Simulation time step</p>
-</dd>
-<dt>T_int<span class="classifier">float</span></dt><dd><p>Zone temperature [°]</p>
-</dd>
-<dt>RH_int<span class="classifier">float</span></dt><dd><p>Zone relative humidity [%]</p>
-</dd>
-</dl>
-</dd>
-</dl>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>heat_flow</strong> (<em>float</em>) – required power  [W]</p></li>
+<li><p><strong>Weather</strong> (<a class="reference internal" href="../eureca_building.html#eureca_building.weather.WeatherFile" title="eureca_building.weather.WeatherFile"><em>eureca_building.weather.WeatherFile</em></a>) – WeatherFile object</p></li>
+<li><p><strong>t</strong> (<em>int</em>) – Simulation time step</p></li>
+<li><p><strong>T_int</strong> (<em>float</em>) – Zone temperature [°]</p></li>
+<li><p><strong>RH_int</strong> (<em>float</em>) – Zone relative humidity [%]</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

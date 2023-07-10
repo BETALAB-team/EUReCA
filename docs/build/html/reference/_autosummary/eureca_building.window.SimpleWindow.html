@@ -112,39 +112,21 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Defines the simple window model with all its characteristics
 and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
-<dl class="simple">
-<dt>__init__:</dt><dd><p>list of properties: list of the properties of the window</p>
-</dd>
-</dl>
-<p>simpleGlazingModel generates the profiles of SHGC. No input</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.window.SimpleWindow.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.window.SimpleWindow.init" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eureca_building.window.SimpleWindow.simpleGlazingModel">
-<span class="sig-name descname"><span class="pre">simpleGlazingModel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.window.SimpleWindow.simpleGlazingModel" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_building.window.SimpleWindow.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_heat_gain_coef</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visible_transmittance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_coef_int</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_coef_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.window.SimpleWindow.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>init method. Stores the data</p>
+<dd><p>init method. Stores the data and checks them</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> (<em>str</em>) – name.</p></li>
 <li><p><strong>u_value</strong> (<em>float</em>) – u_value [W/(m2 K)].</p></li>
 <li><p><strong>solar_heat_gain_coef</strong> (<em>float</em>) – [-].</p></li>
-<li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.05.</p></li>
-<li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.05.</p></li>
+<li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
+<li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 </ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -210,13 +192,13 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <td><p>Size of object in memory, in bytes.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__str__</span></code>()</p></td>
-<td><p>Return str(self).</p></td>
+<td><p>Just a beauty print of the properties</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__subclasshook__</span></code></p></td>
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#id0" title="eureca_building.window.SimpleWindow.simpleGlazingModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simpleGlazingModel</span></code></a>()</p></td>
-<td><p>Description This function implement the simplified model for glazing that is used in energy plus The output variables are: -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC     in function of the incident angle  from 0� to 90�, with a 10� step -   the solar transmittance, reflectance and absorption at normal incident; -   the equivalent conductivity [W/m K] of the glazing material; -   the equivalent thickness [m] of the glazing layer; -   the visible reflectance on the front side and back side; -   the inward flowing fraction;</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.window.SimpleWindow.simpleGlazingModel" title="eureca_building.window.SimpleWindow.simpleGlazingModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simpleGlazingModel</span></code></a>()</p></td>
+<td><p>Description: This function implement the simplified model for glazing that is used in energy plus The output variables are: -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC     in function of the incident angle  from 0� to 90�, with a 10� step -   the solar transmittance, reflectance and absorption at normal incident; -   the equivalent conductivity [W/m K] of the glazing material; -   the equivalent thickness [m] of the glazing layer; -   the visible reflectance on the front side and back side; -   the inward flowing fraction;</p></td>
 </tr>
 </tbody>
 </table>
@@ -258,29 +240,26 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_heat_gain_coef</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visible_transmittance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_coef_int</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_coef_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>init method. Stores the data</p>
+<dd><p>init method. Stores the data and checks them</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> (<em>str</em>) – name.</p></li>
 <li><p><strong>u_value</strong> (<em>float</em>) – u_value [W/(m2 K)].</p></li>
 <li><p><strong>solar_heat_gain_coef</strong> (<em>float</em>) – [-].</p></li>
-<li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.05.</p></li>
-<li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>optional</em>) – [-]. The default is 0.05.</p></li>
+<li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
+<li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 </ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">simpleGlazingModel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id1" title="Permalink to this definition"></a></dt>
-<dd><p>Description
+<dt class="sig sig-object py" id="eureca_building.window.SimpleWindow.simpleGlazingModel">
+<span class="sig-name descname"><span class="pre">simpleGlazingModel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.window.SimpleWindow.simpleGlazingModel" title="Permalink to this definition"></a></dt>
+<dd><p>Description:
 This function implement the simplified model for glazing that is used in energy plus
 The output variables are:
 -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC</p>
@@ -302,14 +281,6 @@ vectors to manage the curves.
 It is also necessary to force the absolute reflectance to be 1 and the
 absolute transmittance to be 0 for the perpendicular incidence.</p>
 <p>Controlling input variable</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>None</strong> – </p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
-</dd>
-</dl>
 </dd></dl>
 
 </dd></dl>

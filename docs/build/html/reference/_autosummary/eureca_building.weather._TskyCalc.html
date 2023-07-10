@@ -117,17 +117,17 @@ Martin Berdhal model used by TRNSYS</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>T_ext</strong> (<em>np.array column</em>) – External Temperature [°C]</p></li>
-<li><p><strong>T_dp</strong> (<em>dataframe column</em>) – External dew point temperature [°C]</p></li>
-<li><p><strong>P</strong> (<em>dataframe column</em>) – External pressure [Pa]</p></li>
-<li><p><strong>n_opaque</strong> (<em>dataframe column</em>) – Opaque sky covering [-]</p></li>
+<li><p><strong>T_ext</strong> (<em>numpy.array</em>) – External Temperature [°C]</p></li>
+<li><p><strong>T_dp</strong> (<em>pandas.DataFrame</em>) – External dew point temperature [°C]. It must be a pandas.DataFrame column</p></li>
+<li><p><strong>P</strong> (<em>pandas.DataFrame</em>) – External pressure [Pa]. It must be a pandas.DataFrame column</p></li>
+<li><p><strong>n_opaque</strong> (<em>pandas.DataFrame</em>) – Opaque sky covering [-]. It must be a pandas.DataFrame column</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>dTer</strong></p>
+<dd class="field-even"><p>Average temperature difference between External air temperature and Apparent sky temperature [°C]</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int, Average temperature difference between External air temperature and Apparent sky temperature [°C]</p>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>

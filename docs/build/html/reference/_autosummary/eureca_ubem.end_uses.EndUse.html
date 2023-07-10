@@ -92,20 +92,14 @@
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_ubem.end_uses.</span></span><span class="sig-name descname"><span class="pre">EndUse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class builds up the loads and schedules for different type of buildings</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>Initializes the vectors of the AHU</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>name<span class="classifier">string</span></dt><dd><p>name of the archetype</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Creates the object with many dictionaries to store various loads and schedules</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – name of the archetype</p>
 </dd>
 </dl>
 </dd></dl>
@@ -138,7 +132,7 @@
 <td><p>Return hash(self).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.__init__" title="eureca_ubem.end_uses.EndUse.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(name)</p></td>
-<td><p>Initializes the vectors of the AHU</p></td>
+<td><p>Creates the object with many dictionaries to store various loads and schedules</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
 <td><p>This method is called when a class is subclassed.</p></td>
@@ -177,10 +171,10 @@
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.load_daily_sched" title="eureca_ubem.end_uses.EndUse.load_daily_sched"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_daily_sched</span></code></a>(name, daily_df_from_excel, ...)</p></td>
-<td><p>Used for daily_schedules.xlsx Excel file</p></td>
+<td><p>Class method to create the EndUse object from the spreadsheet page</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.rescale_df" title="eureca_ubem.end_uses.EndUse.rescale_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rescale_df</span></code></a>(ts, sched_df)</p></td>
-<td><p>rescale the archetype dataframe with respect to the number of time steps per hour</p></td>
+<td><p>Static method to rescale the schedule dataframe from the hour to the simulation time step</p></td>
 </tr>
 </tbody>
 </table>
@@ -200,7 +194,7 @@
 <td><p>list of weak references to the object (if defined)</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.air_handling_unit_system" title="eureca_ubem.end_uses.EndUse.air_handling_unit_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">air_handling_unit_system</span></code></a></p></td>
-<td><p>Take care of units!!! All formula referes to the complex schedule file units, Simple schedule file has different units which are converted in the loadSchedSemp method (vapuor flow rates)</p></td>
+<td><p>Take care of units!!!</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.domestic_hot_water" title="eureca_ubem.end_uses.EndUse.domestic_hot_water"><code class="xref py py-obj docutils literal notranslate"><span class="pre">domestic_hot_water</span></code></a></p></td>
 <td><p></p></td>
@@ -219,17 +213,10 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
-<dd><p>Initializes the vectors of the AHU</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>name<span class="classifier">string</span></dt><dd><p>name of the archetype</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Creates the object with many dictionaries to store various loads and schedules</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – name of the archetype</p>
 </dd>
 </dl>
 </dd></dl>
@@ -237,34 +224,31 @@
 <dl class="py property">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.air_handling_unit_system">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">air_handling_unit_system</span></span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.air_handling_unit_system" title="Permalink to this definition"></a></dt>
-<dd><p>Take care of units!!!
-All formula referes to the complex schedule file units,
-Simple schedule file has different units which are converted in the loadSchedSemp method
-(vapuor flow rates)</p>
+<dd><p>Take care of units!!!</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.load_daily_sched">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_daily_sched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">daily_df_from_excel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalar_df_from_excel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holidays</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.load_daily_sched" title="Permalink to this definition"></a></dt>
-<dd><p>Used for daily_schedules.xlsx Excel file</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>name: str</dt><dd><p>name</p>
-</dd>
-<dt>daily_df_from_excel<span class="classifier">pandas DataFrame</span></dt><dd><p>DataFrame from the end_use</p>
-</dd>
-<dt>scalar_df_from_excel<span class="classifier">pandas dataframe</span></dt><dd><dl class="simple">
-<dt>This series includes some additional data about the archetype (Sensible and</dt><dd><p>Latent AHU recovery,
+<dd><p>Class method to create the EndUse object from the spreadsheet page</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – name</p></li>
+<li><p><strong>daily_df_from_excel</strong> (<em>pandas.DataFrame</em>) – DataFrame containing schedules from the end_use</p></li>
+<li><p><strong>scalar_df_from_excel</strong> (<em>pandas.DataFrame</em>) – <dl>
+<dt>This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)</dt><dd><blockquote>
+<div><p>(Sensible and</p>
+</div></blockquote>
+<p>Latent AHU recovery,
 Convective fraction of internal gains)</p>
 </dd>
 </dl>
+</p></li>
+</ul>
 </dd>
-</dl>
-</dd>
-</dl>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>EndUse.</p>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>eureca_ubem.eund_uses.EndUse</p>
 </dd>
 </dl>
 </dd></dl>
@@ -272,17 +256,19 @@ Convective fraction of internal gains)</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.rescale_df">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rescale_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sched_df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.rescale_df" title="Permalink to this definition"></a></dt>
-<dd><p>rescale the archetype dataframe with respect to the number of time steps per hour</p>
-<dl class="simple">
-<dt>Parameters</dt><dd><dl class="simple">
-<dt>ts<span class="classifier">int</span></dt><dd><p>Number of time steps per hour</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<dd><p>Static method to rescale the schedule dataframe from the hour to the simulation time step</p>
 <dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ts</strong> (<em>int</em>) – Number of time steps per hour</p></li>
+<li><p><strong>sched_df</strong> (<em>pandas.DataFrame</em>) – DataFrame to rescale</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The rescaled df</p>
+</dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>None.</p>
+<dd class="field-odd"><p>pandas.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
