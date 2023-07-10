@@ -1,5 +1,5 @@
 """
-This module includes classes and fuction to implement materials properties
+This module includes classes and functions to implement materials properties
 """
 
 __author__ = "Enrico Prataviera"
@@ -13,38 +13,7 @@ from eureca_building.units import units, material_limits
 
 
 class Material:
-    """
-    A class used to define the material
-
-    ...
-
-    Attributes
-    ----------
-    name : str
-        name
-    thick : float
-        thickness
-    cond : float
-        conductivity
-    spec_heat : float
-        spec_heat
-    dens : float
-        density
-    nodes_number : int
-        number of nodes to dicretize the material
-
-    Methods
-    -------
-    __init__(self,
-        name,
-        thick: float = 0.100,
-        cond: float = 1.00,
-        spec_heat: float = 1000.0,
-        dens: float = 1000.0,
-        starting_temperature : float = 20.0,
-        nodes_number: int = None)
-
-        Creates the material and checks the properties 
+    """Class used to define the material. Creates the material and checks the properties
     """
 
     name: str
@@ -69,28 +38,22 @@ class Material:
         dens: float = 1000.0,
         thermal_absorptance: float = 0.9,
     ):
-        """
-        Define the material and check the properties
+        """Define the material and check the properties, using setter methods
 
         Parameters
         ----------
         name : str
             name
-        thick : float
+        thick : float, default 0.1
             thickness
-        cond : float
+        cond : float, default 1.
             conductivity
-        spec_heat : float
+        spec_heat : float, default 1000.
             spec_heat
-        dens : float
+        dens : float, default 1000.
             density
-        thermal_absorptance : float
+        thermal_absorptance : float, default 0.9
             thermal absorptance  [-]
-
-        Returns
-        -------
-        None
-
 
         Raises
         -------
@@ -237,16 +200,29 @@ class Material:
         self._thermal_absorptance = value
 
     def calc_capacity(self):
+        """Thermal capacity calculation (thickness * density * specific_heat)
+        """
         self.capacity = self.thick * self.dens * self.spec_heat
 
     def calc_resistance(self):
+        """Thermal capacity calculation (thickness / conductivity)
+        """
         self.thermal_resistance = self.thick / self.cond
 
     def calc_params(self):
+        """Runs self.calc_capacity() and self.calc_resistance()
+        """
         self.calc_capacity()
         self.calc_resistance()
 
     def __str__(self):
+        """Return a beautiful parsed str of the properties
+
+        Returns
+        -------
+        str
+            A string to print properties
+        """
         return f"""
 Material: {self.name}
     thickness: {self.thick} {units["length"]}
@@ -256,28 +232,8 @@ Material: {self.name}
 
 
 class AirGapMaterial:
-    """
-    A class used to define the air gap material
-
-    ...
-
-    Attributes
-    ----------
-    name : str
-        name
-    thick : float
-        thickness
-    thermal_resistance : float
-        thermal_resistance
-
-    Methods
-    -------
-    __init__(self,
-        name,
-        thick: float = 0.100,
-        thermal_resistance: float = 1.00)
-        Creates the material and checks the properties
-    """
+    """A class used to define the air gap material
+<    """
 
     name: str
     thick: float = 0.100  # Thickness [m]
@@ -291,22 +247,16 @@ class AirGapMaterial:
     def __init__(
         self, name: str, thick: float = 0.100, thermal_resistance: float = 1.00
     ):
-        """
-        Define the material and check the properties
+        """Defines the material and check the properties. Checks properties values using setter methods
 
         Parameters
         ----------
         name : str
             name
-        thick : float
+        thick : float, default 0.1
             thickness
-        thermal_resistance : float
+        thermal_resistance : float, default 1.
             thermal_resistance
-
-        Returns
-        -------
-        None
-
 
         Raises
         -------
@@ -375,6 +325,14 @@ class AirGapMaterial:
         self._thermal_resistance = value
 
     def __str__(self):
+        """Return a beautiful parsed str of the properties
+
+        Returns
+        -------
+        str
+            A string to print properties
+        """
         return f"""
 AirGapMaterial: {self.name}
+    thickness: {self.thick} {units["length"]}
     thermal resistance: {self.thermal_resistance} {units["thermal_resistance"]}"""

@@ -32,7 +32,7 @@ for k,v in systems_info.items():
 class System(metaclass=abc.ABCMeta):
     """
     Father class for HVAC systems classes
-    Defines an interface
+    Defines an interface to force inherited class to implement mandatory methods
     """
 
     gas_consumption = 0
@@ -113,16 +113,18 @@ class System(metaclass=abc.ABCMeta):
 # %% IdealLoad class
 
 class IdealLoad(System):
+    '''Class IdealLoad is for the ideal  zone balance. This class passes all methods.
     '''
-    Class IdealLoad is for the ideal  zone balance. This actualy passes all methods.
 
-    Methods:
-        init
-        set
-        solve
-    '''
 
     def __init__(self, *args, **kwargs):
+        """IdealLoad init method. No input needed
+
+        Parameters
+        ----------
+        args
+        kwargs
+        """
 
         self.convective_fraction = 0.5
         self.sigma = {
@@ -134,24 +136,42 @@ class IdealLoad(System):
         }
 
     def set_system_capacity(self, design_power, weather):
+        """Set system capacity method.
+
+        Parameters
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        """
         pass
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+        """Solve the system power for the time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
+
+        """
         pass
 
 
 # %%---------------------------------------------------------------------------------------------------
 # %% CondensingBoiler class
 class CondensingBoiler(System):
-    '''
-    Class CondensingBoiler
-    This method considers a generic Condensing Boiler as the heating system
+    '''Class CondensingBoiler. This method considers a generic Condensing Boiler as the heating system
     of the entire building following UNI-TS 11300:2 - 2008
-
-    Methods:
-        init
-        set
-        solve
     '''
 
     gas_consumption = 0
@@ -160,17 +180,12 @@ class CondensingBoiler(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes for the method are initialized
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
         '''
 
         # Input Data
@@ -197,19 +212,14 @@ class CondensingBoiler(System):
         # self.phi_gn_i_Px_2 = np.zeros(l)  # [kW]
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Sets system design power
+        '''Sets system design power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
 
         # Choise of system size based on estimated nominal Power
@@ -251,29 +261,22 @@ class CondensingBoiler(System):
         self.FC_Pint = self.Pint / self.design_power
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Condensing Boiler losses following
-        the Standard UNI-TS 11300:2 - 2008
+        '''This method allows to calculate Condensing Boiler power and losses following
+         the Standard UNI-TS 11300:2 - 2008
 
-        Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-
-        Returns
-        -------
-        None.
-
-        '''
+         Parameters
+         ----------
+         heat_flow : float
+             required power  [W]
+         Weather : eureca_building.weather.WeatherFile
+             WeatherFile object
+         t : int
+             Simulation time step
+         T_int : float
+             Zone temperature [°]
+         RH_int : float
+             Zone relative humidity [%]
+         '''
         # Corrected efficiency and losses at nominal power
         self.eta_gn_Pn_cor = self.system_info['eta_nom [%]'][self.ID] + \
                              self.system_info['f_cor_Pn [-]'][self.ID] * (
@@ -326,15 +329,8 @@ class CondensingBoiler(System):
 # %%---------------------------------------------------------------------------------------------------
 # %% TraditionalBoiler class
 class TraditionalBoiler(System):
-    '''
-    Class TraditionalBoiler
-    This method considers a generic Traditional Boiler as the heating system
+    '''Class TraditionalBoiler. This class considers a generic Traditional Boiler as the heating system
     of the entire building following UNI-TS 11300:2 - 2008
-
-    Methods:
-        init
-        set
-        solve
     '''
 
     gas_consumption = 0
@@ -343,17 +339,12 @@ class TraditionalBoiler(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes for the method
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
         '''
 
         # Input Data
@@ -380,20 +371,16 @@ class TraditionalBoiler(System):
         # self.phi_gn_i_Px_2 = np.zeros(l)  # [kW]
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Sets system design power
+        '''Sets system design power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
+
 
         # Choise of system size based on estimated nominal Power
         Size_0 = 0
@@ -434,26 +421,21 @@ class TraditionalBoiler(System):
         self.FC_Pint = self.Pint / self.design_power
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Traditional Boiler losses following
+        '''This method allows to calculate Traditional Boiler losses following
         the Standard UNI-TS 11300:2 - 2008
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
 
         '''
         # Corrected efficiency and losses at nominal power
@@ -514,16 +496,8 @@ class TraditionalBoiler(System):
 # %% SplitAirCooler class
 
 class SplitAirCooler(System):
-    '''
-    SplitAirCooler class
-
-    This method considers a generic Split Air Conditioner as the cooling system
+    '''SplitAirCooler class. This class considers a generic Split Air Conditioner as the cooling system
     of the entire building following UNI-TS 11300:3 - 2010
-
-    Methods:
-        init
-        setCondensingBoiler
-        solveSystem
     '''
 
     gas_consumption = 0
@@ -532,18 +506,12 @@ class SplitAirCooler(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes for the method
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the cooling system
-
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
         '''
 
         # Check input data type
@@ -578,19 +546,14 @@ class SplitAirCooler(System):
         # self.eta_1 = np.zeros(l)
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Choise of system size based on estimated nominal Power
+        '''Choice of system size based on estimated nominal Power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
 
         Size_0 = 0.
@@ -646,26 +609,21 @@ class SplitAirCooler(System):
         self.pcfy = np.array([16, 18, 19, 20, 22])
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Split Air Cooler electrical power
+        '''This method allows to calculate Split Air Cooler electrical power
         following the Standard UNI-TS 11300:3 - 2010
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
         '''
 
         # Check input data type
@@ -749,17 +707,8 @@ class SplitAirCooler(System):
 # %% ChillerAirtoWater class
 
 class ChillerAirtoWater(System):
-    '''
-    ChillerAirtoWater class
-
-    This method considers a generic Air-to-water Chiller as the cooling system
+    '''ChillerAirtoWater class. This method considers a generic Air-to-water Chiller as the cooling system
     of the entire building following UNI-TS 11300:3 - 2010
-
-
-    Methods:
-        init
-        setCondensingBoiler
-        solveSystem
     '''
 
     gas_consumption = 0
@@ -768,20 +717,14 @@ class ChillerAirtoWater(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes for the method
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
         '''
+
 
         # Check input data type
 
@@ -815,19 +758,14 @@ class ChillerAirtoWater(System):
         # self.eta_1 = np.zeros(l)
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Choise of system size based on estimated nominal Power
+        '''Choice of system size based on estimated nominal Power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
 
         # Check input data type
@@ -872,27 +810,22 @@ class ChillerAirtoWater(System):
         self.pcfx = np.array([15, 20, 25, 30, 35, 40, 45])
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Air to Water Chiller electrical power
+        '''This method allows to calculates Air to Water Chiller electrical power
         following the Standard UNI-TS 11300:3 - 2010
 
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
         '''
 
         # Check input data type
@@ -955,8 +888,7 @@ class ChillerAirtoWater(System):
 # %%---------------------------------------------------------------------------------------------------
 # %% SplitAirConditioner class
 class SplitAirConditioner(System):
-    '''
-    SplitAirConditioner class
+    '''SplitAirConditioner class
 
     This method considers a generic Split Air Conditioner as the cooling system
     of the entire building following two documents of literature
@@ -976,12 +908,6 @@ class SplitAirConditioner(System):
     "Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,"
     in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
     doi: 10.1109/TSG.2016.2592522.
-
-
-    Methods:
-        init
-        setCondensingBoiler
-        solveSystem
     '''
 
     gas_consumption = 0
@@ -990,34 +916,12 @@ class SplitAirConditioner(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
-
-        Berend Jan Christiaan van Putten, Nariman Mahdavi, Julio H. Braslavsky,
-        An Analytical Model for Demand Response of Variable-Speed Air Conditioners,
-        IFAC-PapersOnLine,
-        Volume 51, Issue 28,
-        2018,
-        Pages 426-431,
-        ISSN 2405-8963,
-        https://doi.org/10.1016/j.ifacol.2018.11.740.
-        (https://www.sciencedirect.com/science/article/pii/S2405896318334608)
-
-        https://ieeexplore.ieee.org/document/7515217
-        N. Mahdavi, J. H. Braslavsky and C. Perfumo,
-        "Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,"
-        in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
-        doi: 10.1109/TSG.2016.2592522.
+        '''init method. Set some attributes for the method
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
         '''
 
         # Check input data type
@@ -1048,20 +952,14 @@ class SplitAirConditioner(System):
         # self.F = np.zeros(l)
 
     def set_system_capacity(self, design_power, weather):  # da modificare dentro il file excel di impianti
-
-        '''
-        Choise of system size based on estimated nominal Power for air conditioner WITHOUT inverter
+        '''Choice of system size based on estimated nominal Power for air conditioner WITHOUT inverter
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
 
         # Check input data type
@@ -1089,41 +987,20 @@ class SplitAirConditioner(System):
             self.f = -0.159
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate from literature: Split Air Cooler condensing power
-
-        Berend Jan Christiaan van Putten, Nariman Mahdavi, Julio H. Braslavsky,
-        An Analytical Model for Demand Response of Variable-Speed Air Conditioners,
-        IFAC-PapersOnLine,
-        Volume 51, Issue 28,
-        2018,
-        Pages 426-431,
-        ISSN 2405-8963,
-        https://doi.org/10.1016/j.ifacol.2018.11.740.
-        (https://www.sciencedirect.com/science/article/pii/S2405896318334608)
-
-        https://ieeexplore.ieee.org/document/7515217
-        N. Mahdavi, J. H. Braslavsky and C. Perfumo,
-        "Mapping the Effect of Ambient Temperature on the Power Demand of Populations of Air Conditioners,"
-        in IEEE Transactions on Smart Grid, vol. 9, no. 3, pp. 1540-1550, May 2018,
-        doi: 10.1109/TSG.2016.2592522.
+        '''This method allows to calculate from literature: Split Air Cooler condensing power
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
         '''
 
         # Check input data type
@@ -1156,15 +1033,8 @@ class SplitAirConditioner(System):
         self.electric_consumption = (self.W_el) / CONFIG.ts_per_hour
 
 class Heating_EN15316(System):
-    '''
-    Class TraditionalBoiler
-    This method considers a generic Traditional Boiler as the heating system
-    of the entire building following UNI-TS 11300:2 - 2008
-
-    Methods:
-        init
-        set
-        solve
+    '''Class Heating_EN15316. This method considers a generic heating system as the heating system
+    of the entire building following EN 15316.
     '''
 
     gas_consumption = 0
@@ -1173,17 +1043,15 @@ class Heating_EN15316(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes are set
+        The heating_system_key label must be passed as kwargs. Example:
+        Heating_EN15316(heating_system_key = "Traditional Gas Boiler, Single, Low Temp Radiator")
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
+            kwargs must include {heating_system_key : string_of_:heating_system}
         '''
 
         self.system_type = kwargs["heating_system_key"]
@@ -1219,19 +1087,14 @@ class Heating_EN15316(System):
         # self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Sets system design power
+        ''''Choice of system size based on estimated nominal Power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
 
         loads = self.generation_efficiency_profile.index
@@ -1245,27 +1108,20 @@ class Heating_EN15316(System):
         self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Traditional Boiler losses following
-        the Standard UNI-TS 11300:2 - 2008
+        '''This method allows to calculate the system power for each time step
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
-
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
         '''
         # Corrected efficiency and losses at nominal power
 
@@ -1284,15 +1140,8 @@ class Heating_EN15316(System):
             self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
 
 class Cooling_EN15316(System):
-    '''
-    Class TraditionalBoiler
-    This method considers a generic Traditional Boiler as the heating system
-    of the entire building following UNI-TS 11300:2 - 2008
-
-    Methods:
-        init
-        set
-        solve
+    '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
+    of the entire building following EN 15316.
     '''
 
     gas_consumption = 0
@@ -1301,17 +1150,15 @@ class Cooling_EN15316(System):
     oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
-        '''
-        init. Set some attributes for the method
+        '''init method. Set some attributes are set
+        The cooling_system_key label must be passed as kwargs. Example:
+        Cooling_EN15316(cooling_system_key = "A-W chiller, Centralized, Radiant surface")
 
         Parameters
-            ----------
-            system_type : string
-                string that sets the heating system
-        Returns
-        -------
-        None.
-
+        ----------
+        args
+        kwargs
+            kwargs must include {cooling_system_key : string_of_cooling_system}
         '''
 
         self.system_type = kwargs["cooling_system_key"]
@@ -1343,44 +1190,32 @@ class Cooling_EN15316(System):
         }
 
     def set_system_capacity(self, design_power, weather):
-        '''
-        Sets system design power
+        ''''Choice of system size based on estimated nominal Power
 
         Parameters
-            ----------
-            design_power : float
-                Design Heating power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-
-        Returns
-        -------
-        None.
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         '''
         pass
 
     def solve_system(self, heat_flow, weather, t, T_int, RH_int):
-        '''
-        This method allows to calculate Traditional Boiler losses following
-        the Standard UNI-TS 11300:2 - 2008
+        '''This method allows to calculate the system power for each time step
 
         Parameters
-            ----------
-            heat_flow : float
-                required power  [W]
-            Weather : WeatherFile
-                WeatherFile object
-            t : int
-                Simulation time step
-            T_int : float
-                Zone temperature [°]
-            RH_int : float
-                Zone relative humidity [%]
-
-        Returns
-        -------
-        None.
-
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
         '''
         # Corrected efficiency and losses at nominal power
 

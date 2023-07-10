@@ -39,22 +39,23 @@ from eureca_building.exceptions import (
 
 
 class ThermalZone(object):
-    """
-    Thermal zone class
+    """Thermal zone class. Manages all the models and time step solution of the sensible and latent systems
     """
 
     def __init__(self, name: str, surface_list: list, net_floor_area=None, volume=None, number_of_units: int=1):
-        """
+        """Int method. Creates the thermal zone object from a list of eureca_building.surface.Surface.
+        Checks the inputs through properties
 
-        Args:
-            name: str
-                Name of the zone
-            surface_list: list
-                list of Surface/SurfaceInternalMass objects
-            net_floor_area: float (default None)
-                footprint area of the zone in m2. If None searches for a ground floor surface
-            volume: float (default None)
-                volume of the zone in m3. If None sets 0 m3.
+        Parameters
+        ----------
+        name : str
+            Name of the zone
+        surface_list : list
+            list of eureca_building.surface.Surface or eureca_building.surface.SurfaceInternalMass objects
+        net_floor_area : float, default None
+            footprint area of the zone in m2. If None searches for a GroundFloor surface
+        volume : float, default None
+            volume of the zone in m3. If None sets 0 m3.
 
         """
         self.name = name
@@ -180,17 +181,16 @@ class ThermalZone(object):
             self.__air_thermal_capacity = abs(value)
 
     def add_temperature_setpoint(self, setpoint, mode='air'):
-        """
-        Function to associate a setpoint to the thermal zone
+        """Function to associate a setpoint objects to the thermal zone
 
-        Args:
-            setpoint: Setpoint
-                object of the class Setpoint
-            mode: str
-                setpoint mode: ['air', 'operative', 'radiant']
+        Parameters
+        ----------
+        setpoint: eureca_building.setpoint.Setpoint
+            object of the class Setpoint
+        mode: str
+            setpoint mode: ['air', 'operative', 'radiant'].
+            FOR NOW ONLY AIR IMPLEMENTED
 
-        Returns:
-            None
         """
         self.temperature_setpoint = setpoint
         self.temperature_setpoint_mode = mode
@@ -224,17 +224,13 @@ class ThermalZone(object):
         self._temperature_setpoint_mode = value
 
     def add_humidity_setpoint(self, setpoint):
-        """
-        Function to associate a humidity setpoint to the thermal zone
+        """Function to associate a humidity setpoint to the thermal zone
 
-        Args:
-            setpoint: Setpoint
-                object of the class Setpoint
-            mode: str
-                setpoint mode: ['relative_humidity']
+        Parameters
+        ----------
+        setpoint: eureca_building.setpoint.Setpoint
+            object of the class Setpoint
 
-        Returns:
-            None
         """
         self.humidity_setpoint = setpoint
         # the mode is in the SP object
@@ -270,17 +266,20 @@ class ThermalZone(object):
 
     @staticmethod
     def get_specific_humidity(air_t, air_rh, p_atm):
-        """
-        Give the specific humidity from temperature, relative humidity, and atmospheric pressure
-        Args:
-            air_t: float
-                air temperature [°C]
-            air_rh:
-                air relative humidity [-]
-            p_atm:
-                atmospheric pressure [pa]
+        """Static method. Give the specific humidity from temperature, relative humidity, and atmospheric pressure
+        
+        Parameters
+        ----------
+        air_t : float
+            air temperature [°C]
+        air_rh : float
+            air relative humidity [-]
+        p_atm : float
+            atmospheric pressure [pa]
 
-        Returns: float
+        Returns
+        ----------
+        float
             specific humidity [kg_vap/kg_da]
 
         """
@@ -299,14 +298,13 @@ class ThermalZone(object):
         return x_int, p_intsat
 
     def add_internal_load(self, *internal_load):
-        """
-        Function to associate a load to the thermal zone
+        """Function to associate a load to the thermal zone
 
-        Args:
-            internal_load: InternalLoad
+        Parameters
+        ----------
+        internal_load: eureca_building.internal_load.InternalLoad
+            As many eureca_building.internal_load.InternalLoad can be provided
 
-        Returns:
-            None
         """
         for int_load in internal_load:
             if not isinstance(int_load, InternalLoad):
@@ -316,16 +314,16 @@ class ThermalZone(object):
             self.internal_loads_list.append(int_load)
 
     def extract_convective_radiative_latent_electric_load(self):
-        """
-        From the internal loads calculates 3 arrays (len equal to 8769 * number of time steps per hour):
+        """From the internal loads calculates 3 arrays (len equal to 8769 * number of time steps per hour):
         {
         convective [W] : np.array
         radiative [W] : np.array
         latent [kg_vap/s] : np.array
         }
 
-        Returns:
-            dict
+        Returns
+        ----------
+        dict
         """
         convective = np.zeros(CONFIG.number_of_time_steps_year)
         radiant = np.zeros(CONFIG.number_of_time_steps_year)
@@ -347,14 +345,13 @@ class ThermalZone(object):
                 'electric [W]': electric}
 
     def add_infiltration(self, *infiltration):
-        """
-        Function to associate a natural ventilation object to the thermal zone
+        """Function to associate a natural ventilation object to the thermal zone
 
-        Args:
-            natural_ventilation: NaturalVentilation
+        Parameters
+        ----------
+        natural_ventilation: eureca_building.ventilation.Infiltration
+            As many eureca_building.ventilation.Infiltration can be provided
 
-        Returns:
-            None
         """
         for inf in infiltration:
             if not isinstance(inf, Infiltration):
@@ -364,19 +361,20 @@ class ThermalZone(object):
             self.infiltration_list.append(inf)
 
     def calc_infiltration(self, weather):
-        """
-        From the infiltration_list calculates 2 arrays (len equal to 8769 * number of time steps per hour):
+        """From the infiltration_list calculates 2 arrays (len equal to 8769 * number of time steps per hour):
         {
         air mass flow rate [kg/s] : np.array
         vapour mass flow rate [kg/s] : np.array
         }
 
-        Args:
-            weather: Weather
-                weather object
+        Parameters
+        ----------
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
 
-        Returns:
-            dict
+        Returns
+        ----------
+        dict
         """
         infiltration_air_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)
         infiltration_vapour_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)
@@ -390,15 +388,14 @@ class ThermalZone(object):
                 'infiltration_vapour_flow_rate [kg/s]': infiltration_vapour_flow_rate, }
 
     def add_air_handling_unit(self, ahu, weather):
-        """
-        Function to associate an air_handling_unit object to the thermal zone
+        """Function to associate an air_handling_unit object to the thermal zone
 
-        Args:
-            ahu: AirHandlingUnit
-            weather: WeatherFile object
-
-        Returns:
-            None
+        Parameters
+        ----------
+        ahu : eureca_building.air_handling_unit.AirHandlingUnit
+            AirHandlingUnit object
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         """
         self.air_handling_unit = (ahu, weather)
 
@@ -441,14 +438,14 @@ class ThermalZone(object):
 
     def add_domestic_hot_water(self, weather_obj, *dhw_obj):
         """
-        Function to associate an air_handling_unit object to the thermal zone
+        Function to associate a domestic hot water object to the thermal zone
 
-        Args:
-            dhw_obj: DomesticHotWater
-            weather_obj: WeatherFile object
-
-        Returns:
-            None
+        Parameters
+        ----------
+        dhw_obj : eureca_building.domestic_hot_water.DomesticHotWater
+            DomesticHotWater object
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
         """
         self.domestic_hot_water_volume_flow_rate = 0 # m3/s
         self.domestic_hot_water_demand = 0 # W
@@ -463,17 +460,17 @@ class ThermalZone(object):
             self.domestic_hot_water_demand += demand  # W
 
     def _ISO13790_params(self):
-        '''
-        Calculates the thermal zone parameters of the ISO 13790
+        '''Calculates the thermal zone parameters of the ISO 13790
         it does not require input
 
-        Parameters
-            ----------
-            None
-
-        Returns
-        -------
-        None.
+        Htr_is
+        Htr_w
+        Htr_ms
+        Htr_emCm
+        DenAm
+        Atot
+        Htr_op
+        UA_tot
         '''
 
         self.Htr_is = 0.
@@ -517,6 +514,13 @@ class ThermalZone(object):
         self.UA_tot = self.Htr_op + self.Htr_w
 
     def print_ISO13790_params(self):
+        """Just a beuty print of ISO 13790 parameters
+
+        Returns
+        -------
+        str
+
+        """
         return f"""
 Thermal zone {self.name} 1C params:        
         Cm: {self.Cm:.5f}
@@ -528,17 +532,20 @@ Thermal zone {self.name} 1C params:
         """
 
     def _VDI6007_params(self):
-        '''
-        Calculates the thermal zone parameters of the VDI 6007
+        '''Calculates the thermal zone parameters of the VDI 6007
         it does not require input
 
-        Parameters
-            ----------
-            None
-
-        Returns
-        -------
-        None.
+        Araum_tot
+        Aaw_tot
+        Araum_opaque
+        Aaw_opaque
+        R1AW, R1IW, C1AW, C1IW
+        RgesAW
+        RrestAW
+        RalphaStarIL, RalphaStarAW, RalphaStarIW
+        UA_tot
+        Htr_op
+        Htr_w
         '''
 
         # Creation of some arrys of variables and parameters
@@ -659,6 +666,13 @@ Thermal zone {self.name} 1C params:
         self.Htr_w = sum(HAF_v)
 
     def print_VDI6007_params(self):
+        """Just a beuty print of VDI6007 parameters
+
+        Returns
+        -------
+        str
+
+        """
         return f"""
 Thermal zone {self.name} 2C params:        
         R1AW: {self.R1AW:.10f}
@@ -672,18 +686,14 @@ Thermal zone {self.name} 2C params:
         """
 
     def calculate_zone_loads_ISO13790(self, weather):
-        '''
-        Calculates the heat gains on the three nodes of the ISO 13790 network
+        '''Calculates the heat gains (internal and solar) on the three nodes of the ISO 13790 network
         Vectorial calculation
 
         Parameters
-            ----------
-            weather : eureca_building.weather.WeatherFile
-                WeatherFile object
+        ----------
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
 
-        Returns
-        -------
-        None.
         '''
 
         # Check input data type
@@ -757,18 +767,14 @@ Thermal zone {self.name} 2C params:
         self.phi_m = self.Am / self.Atot * (phi_int['radiative [W]'] + phi_sol)
 
     def calculate_zone_loads_VDI6007(self, weather):
-        '''
-        Calculates zone loads for the vdi 6007 standard
+        '''Calculates zone loads for the vdi 6007 standard
         Also the external equivalent temperature
 
         Parameters
         ----------
-            weather : RC_classes.WeatherData.weather
-                weather obj
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile obj
 
-        Returns
-        -------
-        None
         '''
 
         # Check input data type
@@ -776,13 +782,12 @@ Thermal zone {self.name} 2C params:
         if not isinstance(weather, WeatherFile):
             raise TypeError(f'ThermalZone {self.name}, weather type is not a WeatherFile: weather type {type(weather)}')
 
-        '''
-        Eerd = Solar_gain['0.0']['0.0']['Global']*rho_ground                          #
-        Eatm = Solar_gain['0.0']['0.0']['Global']-Solar_gain['0.0']['0.0']['Direct']
 
-        T_ext vettore
+        # Eerd = Solar_gain['0.0']['0.0']['Global']*rho_ground                          #
+        # Eatm = Solar_gain['0.0']['0.0']['Global']-Solar_gain['0.0']['0.0']['Direct']
+        #
+        # T_ext vettore
 
-        '''
 
         Eatm, Eerd, theta_erd, theta_atm = long_wave_radiation(weather.hourly_data['out_air_db_temperature'])
 
@@ -872,24 +877,24 @@ Thermal zone {self.name} 2C params:
         self.Q_il_str_iw = Q_il_str_A_iw + Q_il_str_I_iw
         self.Q_il_str_aw = Q_il_str_A_aw + Q_il_str_I_aw
 
-        """
-        sigma_fhk: fraction of radiant heating/cooling surfaces on total heating/cooling load
-        sigma_fhk_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
-        sigma_hk_str: this is the radiant fraction the heating/cooling systems that are not embedded in the surfaces
-        
-        Let's say that a roof has 3 systems: 
-            1) a radiant internal ceiling (20% of the total load) 
-            2) a radiant floor (30% of the total load) in contact to the ground
-            3) a radiator working 80% convective and 20% radiant (50% of the total load)
-            
-        sigma_fhk: 0.5 
-            sum of 20% for the radiant ceiling and 30% for the radiant floor
-        sigma_fhk_aw: 0.6
-            because 0.3/(0.2+0.3) is equal to 0.6, i.e. the part of the radiant surface load 
-            associated to external surfaces
-        sigma_hk_str: 0.2
-            because the radiator is radiative for the 20%        
-        """
+
+        # sigma_fhk: fraction of radiant heating/cooling surfaces on total heating/cooling load
+        # sigma_fhk_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
+        # sigma_hk_str: this is the radiant fraction the heating/cooling systems that are not embedded in the surfaces
+        #
+        # Let's say that a roof has 3 systems:
+        #     1) a radiant internal ceiling (20% of the total load)
+        #     2) a radiant floor (30% of the total load) in contact to the ground
+        #     3) a radiator working 80% convective and 20% radiant (50% of the total load)
+        #
+        # sigma_fhk: 0.5
+        #     sum of 20% for the radiant ceiling and 30% for the radiant floor
+        # sigma_fhk_aw: 0.6
+        #     because 0.3/(0.2+0.3) is equal to 0.6, i.e. the part of the radiant surface load
+        #     associated to external surfaces
+        # sigma_hk_str: 0.2
+        #     because the radiator is radiative for the 20%
+
         # self.sigma = loadHK(sigma_fhk, sigma_fhk_aw, sigma_hk_str, self.Aaw, self.Araum)
 
     # def _plot_ISO13790_IHG(self):
@@ -913,35 +918,44 @@ Thermal zone {self.name} 2C params:
     #     }).plot(ax=ax2)
 
     def sensible_balance_1C(self, flag, Hve, T_e, T_sup_AHU, phi_load, sigma=[0., 1.], T_set=20., phi_HC_set=0.):
-        '''
-        Solves ISO 13790 network for a specific time step
+        '''Solves ISO 13790 network for a specific time step
 
         Parameters
-            ----------
-            flag : string
-                string 'Tset' or 'phiset'
-            Hve : list of positive floats
-                ventilation and infiltration heat tranfer coeff [W/K]
-            T_e: float
-                external temperature [°C]
-            T_sup_AHU: float
-                ventilation supply temperature [°C]
-            phi_load: list of three integers
-                the load on the three nodes network (ia, sm, m respectively) [W]
-            sigma: list of 2 floats
-                portion of the heating cooling load to:
-                    sigma[0]: radiant to surface
-                    sigma[1]: convective to air node
-                sum must be 1
-            T_set : float
-                setpoint temperature [°C]
-            phi_HC_set : float
-                thermal power to the ambient [W]
+        ----------
+        flag : string
+            flag to set the calculation method string 'Tset' or 'phiset'
+        Hve : list
+            list of two ositive floats. Ventilation and infiltration heat tranfer coeff [W/K]
+            [Hve_vent, Hve_inf]
+        T_e : float
+            timestep external temperature [°C]
+        T_sup_AHU : float
+            timestep ventilation supply temperature [°C]
+        phi_load : list
+            list of three floats. The load on the three nodes network (ia, sm, m respectively) [W]
+            [phi_ia, phi_sm, phi_m]
+        sigma : list, default [0., 1.]
+            list of 2 floats
+            portion of the heating/cooling load to:
+                sigma[0]: radiant to surface
+                sigma[1]: convective to air node
+            sum must be 1
+        T_set : float, default 20.
+            time step setpoint temperature [°C]
+        phi_HC_set : float, default 0.
+            time step thermal load to the ambient [W]
 
         Returns
         -------
-        np.array
-            with demand [W], T_air [°C], T_s [°C] and T_m [°C]
+        numpy.array
+            array with system load, air temperature, surfaces equivalent temperature and mass equivalent temperature
+            e.g.
+                [
+                    demand [W],
+                    T_air [°C],
+                    T_s [°C],
+                    T_m [°C]
+                ]
         '''
 
         # Check input data type
@@ -1003,35 +1017,37 @@ Thermal zone {self.name} 2C params:
 
     def sensible_balance_2C(self, flag, Hve, T_e, T_e_eq, T_sup_AHU, phi_load, sigma=[0., 0., 1.], T_set=20.,
                             phi_HC_set=0.):
-        """
-        Sensible2C solves the linear system (Y*x = q) of VDI6007 at each
+        """Sensible2C solves the linear system (Y*x = q) of VDI6007 at each
         iteration with a given setpoint temperature or
         (*)Note: if  phi_HC > 0 HEATING LOAD; phi_HC < 0 COOLING LOAD.
 
         Parameters
-            ----------
-            flag : string
-                string 'Tset' or 'phiset'
-            Hve : list of floats
-                ventilation coefficients (ventilation and infiltration) [W/K]
-            T_e: float
-                external temperature [°C]
-            T_e_eq: float
-                external equivalent temperature [°C]
-            T_sup_AHU: float
-                ventilation supply temperature [°C]
-            phi_load : list of floats
-                internal and solar gains, three components (convective, aw and iw)[W]
-            sigma: list of 3 floats
-                portion of the heating cooling load to:
-                    sigma[0]: radiant to non adiabatic
-                    sigma[1]: radiant to adiabatic
-                    sigma[2]: convective to air node
-                The sum must be 1
-            T_set : float
-                set-point of considered thermal zone [°C]
-            phi_HC_set : float
-                Thermal power entering in the system [W]
+        ----------
+        flag : string
+            string 'Tset' or 'phiset'
+        Hve : list
+            list of two ositive floats. Ventilation and infiltration heat tranfer coeff [W/K]
+            [Hve_vent, Hve_inf]
+        T_e : float
+            time step external temperature [°C]
+        T_e_eq : float
+            time step external equivalent temperature [°C]
+        T_sup_AHU : float
+            time step ventilation supply temperature [°C]
+        phi_load : list
+            list of three floats: internal and solar gains, three components (convective, aw and iw)[W]
+            [phi_conv, phi_aw, phi_iw]
+        sigma: list, default [0., 0., 1.]
+            list of 3 floats
+            portion of the heating cooling load to:
+                sigma[0]: radiant to non adiabatic
+                sigma[1]: radiant to adiabatic
+                sigma[2]: convective to air node
+            The sum must be 1
+        T_set : float, default 20.
+            time step setpoint of considered thermal zone [°C]
+        phi_HC_set : float, default  0.
+            time step Thermal load entering in the system [W]
 
         Returns
         -------
@@ -1044,6 +1060,16 @@ Thermal zone {self.name} 2C params:
             Q_hk_ges heating/cooling load for maintaining the given setpoint temperature [W]  <--- WHAT WE WILL EXTRACT AS OUTPUT outside the function
             theta_s_iw surface of IW building components [°C]
             theta_m_iw thermal mass of IW building components [°C]
+            e.g.
+                [
+                    theta_m_aw [°C],
+                    theta_s_aw [°C],
+                    theta_lu_star [°C],
+                    theta_I_lu [°C],
+                    Q_hk_ges [W]
+                    theta_s_iw [°C],
+                    theta_m_iw [°C],
+                ]
         """
 
         # Check input data type
@@ -1172,29 +1198,40 @@ Thermal zone {self.name} 2C params:
 
     def latent_balance(self, flag, G_ve, x_ext, x_sup, vapour_int_load, t_air_int, p_atm, rh_int_set=0.5,
                        phi_HC_set=0.):
-        """
+        """Solves latent balance (vapour balance) for a specific time step
 
-        Args:
-            flag: str
-                 "phiset" or "rhset"
-            G_ve: list
-                List of two floats: ventialtion and infiltration mass flow rate [kg/s]
-            x_ext: float
-                external specific humidity [kg_vap/kg_da]
-            x_sup: float
-                supply specific humidity [kg_vap/kg_da]
-            vapour_int_load: float
-                vapourmass flow rate of internal loads [kg/s]
-            t_air_int: float
-                air temperature [°C]
-            p_atm: float
-                air temperature [°C]
-            rh_int_set: float
-                relative humidity set point [-]
-            phi_HC_set: float
-                hvac latent load [W]
+        Parameters
+        ----------
+        flag : str
+             calculation mode"phiset" or "rhset"
+        G_ve : list
+            List of two floats: ventialtion and infiltration mass flow rate [kg/s]
+            [G_ve_vent, G_ve_inf]
+        x_ext : float
+            time step external specific humidity [kg_vap/kg_da]
+        x_sup : float
+            time step supply specific humidity [kg_vap/kg_da]
+        vapour_int_load : float
+            time step vapour mass flow rate of internal loads [kg/s]
+        t_air_int : float
+            time step air temperature [°C]
+        p_atm : float
+            time step air temperature [°C]
+        rh_int_set : float, default 0.5
+            relative humidity set point [-]
+        phi_HC_set : float, default 0.
+            hvac latent load [W]
 
-        Returns:
+        Returns
+        -------
+        tuple
+            array with zone specific humidity [kg_v, kg_as], zone relative humidity [-], latent demand [W]
+            e.g.
+                [
+                    zone specific humidity [kg_v, kg_as],
+                    zone relative humidity [-],
+                    latent demand [W],
+                ]
 
         """
 
@@ -1229,19 +1266,15 @@ Thermal zone {self.name} 2C params:
         return x_int, RH_int, phi_lat
 
     def reset_init_values(self, T:float = 15., X:float = 0.0105):
-        '''
-        This method allows to reset temperatures starting values
+        '''This method allows to reset temperatures starting values, for the first calculation
 
         Parameters
-            ----------
-            T: float
-                Temperature to set as temperature mass [°C]
-            X: float
-                Specific humidity [g_v/kg_as]
+        ----------
+        T : float, default 15.
+            Temperature to set as temperature mass [°C]
+        X : float, default 0.0105
+            Specific humidity [kg_v/kg_as]
 
-        Returns
-        -------
-        None.
         '''
 
         self.Ta0 = T
@@ -1249,38 +1282,26 @@ Thermal zone {self.name} 2C params:
         self.xm0 = X
 
     def reset_init_values_VDI(self):
-        '''
-        This method allows to reset temperatures starting values
-
-        Parameters
-            ----------
-            None
-
-        Returns
-        -------
-        None.
+        '''This method allows to reset temperatures starting values, according to VDI tests
+        Starting T 22 °C
+        Starting x 0.0105 kg_v/kg_as
         '''
 
         self.Ta0 = 22
         self.Tm0 = np.array([22, 22])
         self.xm0 = 0.0105
 
-    def solve_timestep(self, t, weather, model='1C'):
-        '''
-        Solves the thermal zone in the time step t
+    def solve_timestep(self, t, weather, model='2C'):
+        '''Solves the thermal zone t - time step
 
         Parameters
-            ----------
-            t : int
-                timestep of the simulation
-            weather : eureca_building.weather.WeatherFile
-                WeatherFile object
-            model : string
-                '1C' model or '2C' model
-
-        Returns
-        -------
-        None.
+        ----------
+        t : int
+            timestep of the simulation
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        model : str, default "2C"
+            '1C' model or '2C' model
         '''
 
         # Check input data type
@@ -1532,31 +1553,29 @@ Thermal zone {self.name} 2C params:
         return [air_temp,operative_temp,mean_radiant_temp], air_rel_humidity, self.Tm0, pot, lat_heat_flow
 
     def design_heating_load(self, t_ext_design):
-        """
+        """Preliminary calculation to calculate the heating design temperature.
+        Static calculation considering the product UA of all surfaces, the maximum infiltration flow rate, and the outdoor design temperature
 
-        Args:
-            t_ext_design: float
-                design temperature [°C]
-
-        Returns:
-            None
-
+        Parameters
+        ----------
+        t_ext_design : float
+            outdoor design temperature [°C]
         """
         m_ve = self.infiltration_air_flow_rate.max()
         self.design_heating_system_power = 1.3 * (self.Htr_op + self.Htr_w) * (20. - t_ext_design) + m_ve * air_properties['specific_heat'] * (20. - t_ext_design)
         return self.design_heating_system_power
 
-    def design_sensible_cooling_load(self, weather, model='1C'):
-        """
-        This method calculates the peak cooling according to the thermal load and weather of the thermal zone
+    def design_sensible_cooling_load(self, weather, model='2C'):
+        """This method calculates the peak cooling according to the thermal load and weather of the thermal zone
+        In order to do this, checks the hottest day (outdoor air temperature for 1C model, equivalent temperature for 2C, including also solar loads)
+        And runs a simulation of the two days in between this maximum (similar to Carrier method, but using the 1C or 2C method)
 
-        Args:
-            weather: Weather
-                weather object
-
-        Returns:
-            None
-
+        Parameters
+        ----------
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        model : str, default "2C"
+            '1C' model or '2C' model
         """
         self.reset_init_values(T = 27.)
         # Define point of max load
@@ -1599,6 +1618,8 @@ Thermal zone {self.name} 2C params:
         return self.design_sensible_cooling_system_power
 
     def get_zone_info(self):
+        """Just to print a beuty string of some info of the zone
+        """
         return {
             "Zone volume [m3]": self._volume,
             "Zone net floor area [m2]": self._net_floor_area,

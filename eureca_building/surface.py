@@ -38,12 +38,11 @@ from eureca_building._geometry_auxiliary_functions import (
 
 
 class Surface:
-    """
-    Class surface checks the complanarity and calculates the area.
+    """Class surface checks the complanarity and calculates the area.
     Then calculates the azimuth and tilt of the surface and set a surface
     type depending on the tilt angle
     
-    complanarity:
+    co planarity:
         https://www.geeksforgeeks.org/program-to-check-whether-4-points-in-a-3-d-plane-are-coplanar/
 
     the area is calculated from:
@@ -66,44 +65,33 @@ class Surface:
             window=None,
             n_window_layers: int = 1
     ):
-        """
-        Creates the surface object
+        """Creates the surface object. Checks all the inputs using properties setter methods
 
         Parameters
         ----------
         name : str
             Name.
-        vertices : tuple, optional
+        vertices : tuple, default ((0, 0, 0), (0, 0, 0), (0, 0, 0))
             List of vertices coordinates [m]. The default is ([0, 0, 0], [0, 0, 0], [0, 0, 0]).
-        wwr : float, optional
+        wwr : float, default None
             window to wall ratio (between  and 0 and 1). The default is 0.0.
-        subdivisions_solar_calc : dict, optional
+        subdivisions_solar_calc : dict, default None
+            Something like {
+            'azimuth_subdivisions': 8,
+            'height_subdivisions': 3,
+            }
             keys:
                 azimuth_subdivisions : int, optional
                     Number of azimuth discretization for radiation purposes. The default is 8.
                 height_subdivisions : int, optional
                     Number of height discretization for radiation purposes. The default is 3.
-        
-        surface_type : str, optional
+        surface_type : str, default None
             Type of surface 'ExtWall' or 'GroundFloor' or 'Roof'.
             If not provided autocalculate.
-
-        construction: Construction
+        construction : eureca_building.Construction
             the construction object with the materials
-
-        window: Window
+        window : eureca_building.window.SimpleWindow
             the Window object with the materials
-
-        Raises
-        ------
-        TypeError
-            DESCRIPTION.
-        ValueError
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
 
         """
 
@@ -114,15 +102,15 @@ class Surface:
         # Area calculation
 
         self._area = polygon_area(self._vertices)
-        """
-        Considering only three points in calculating the normal vector could create
-        reverse orientations if the three points are in a non-convex angle of the surface
 
-        for this reason theres an alternative way to calculate the normal,
-        implemented in function: normalAlternative
+        # Considering only three points in calculating the normal vector could create
+        # reverse orientations if the three points are in a non-convex angle of the surface
+        #
+        # for this reason theres an alternative way to calculate the normal,
+        # implemented in function: normalAlternative
+        #
+        # reference: https://stackoverflow.com/questions/32274127/how-to-efficiently-determine-the-normal-to-a-polygon-in-3d-space
 
-        reference: https://stackoverflow.com/questions/32274127/how-to-efficiently-determine-the-normal-to-a-polygon-in-3d-space
-        """
 
         self._normal = normal_versor_2(self._vertices)
 
@@ -333,6 +321,8 @@ class Surface:
         self._window = value
 
     def _set_azimuth_and_zenith(self):
+        """Internal method to calculate azimuth and zenith
+        """
 
         # set the azimuth and zenith
 
@@ -372,10 +362,26 @@ class Surface:
                         )
 
     def _calc_glazed_and_opaque_areas(self, wwr):
+        """Internal method to calculate glazed and opaque ares
+
+        Parameters
+        ----------
+        wwr : float
+            Window-to-wall ration. Number between 0 and 1
+
+        """
         self._opaque_area = (1 - wwr) * self._area
         self._glazed_area = wwr * self._area
         
     def _define_windows_layout(self, n_window_layers: int = 1):
+        """USED FOR NATURAL VENTILATION
+        Defines the windows layout (sill height, width, number, ...)
+
+        Parameters
+        ----------
+        n_window_layers : int, default 1
+            Number of rows to consider
+        """
         _h_window_default = 1.5
         if not isinstance(n_window_layers, int):
             raise TypeError(f"Surface {self.name}: number of window layers is not an integer: n_window_layers {n_window_layers}")
@@ -387,6 +393,8 @@ class Surface:
         self._a_coeff = self._discharge_coefficient_nat_vent*self._w_window   # Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate
 
     def _set_azimuth_and_zenith_solar_radiation(self):
+        """Internal method to calculate rounded azimuth and zenith
+        """
         # Azimuth and tilt approximation
 
         delta_a = 360 / (2 * self._azimuth_subdivisions)
@@ -412,6 +420,11 @@ class Surface:
             self._azimuth_round = 0
 
     def _set_auto_surface_type(self):
+        """Uses tilt to autoset surface type.
+        tilt > 150 --> GroundFloor
+        tilt < 40 --> Roof
+        else --> ExtWall
+        """
         # Set surface inclination
 
         if self._height < 40:
@@ -422,18 +435,34 @@ class Surface:
             self.surface_type = "ExtWall"
 
     def max_height(self):
+        """Calculates max height from the most high vertex
+        """
         hmax = 0
         for vert in self.__vertices:
             hmax = max(hmax, vert[2])
         return hmax
 
     def min_height(self):
+        """Calculates max height from the most low vertex
+        """
         hmin = 10000
         for vert in self.__vertices:
             hmin = min(hmin, vert[2])
         return hmin
 
     def get_VDI6007_surface_params(self, asim=None):
+        """Calculates R and C using VDI6007 method.
+
+        Parameters
+        ----------
+        asim : bool
+            Whether the surface is asimmetric (True) or not (False)
+
+        Returns
+        -------
+        tuple
+            R, C -> Thermal Resistance and Capacity
+        """
         if asim is None:
             if self.surface_type in ["ExtWall", "GroundFloor", "Roof"]:
                 asim = True
@@ -448,21 +477,27 @@ class Surface:
         return R1, C1
 
     def get_surface_external_radiative_coefficient(self):
+        """Returns the radiative heat exchange coefficient.
+
+        Returns
+        -------
+        float
+        """
         # From standard average value
         return 5 * 0.9  # W/(m2 K)
 
     def check_surface_coincidence(self, other_surface):
-        """
-        Check if two surface are coincident
+        """Check if two surface are coincident returning True or False
 
         Parameters
-            ----------
-            other_surface : eureca_building.surface.Surface
-                another surface object
+        ----------
+        other_surface : eureca_building.surface.Surface
+            another surface object
 
         Returns
         -------
-        boolean. Are the surfaces coincident? True/Flase
+        bool
+            Are the surfaces coincident? True/False
         """
 
         # Check Input data type
@@ -489,19 +524,18 @@ class Surface:
         return (flagNormal and flagPoints)
 
     def calculate_intersection_area(self, other_surface):
-        '''
-        Claculates the area between two adjacent surfaces
-
+        '''Calculates the area between two adjacent surfaces
         reference: https://stackoverflow.com/questions/39003450/transform-3d-polygon-to-2d-perform-clipping-and-transform-back-to-3d
 
         Parameters
-            ----------
-            other_surface : EUReCA.RC_classes.geometry.Surface
-                another surface object
+        ----------
+        other_surface : eureca_building.surface.Surface
+            another surface object
 
         Returns
         -------
-        float. The area [m2]
+        float
+            The intersection area [m2]
         '''
 
         # Check Input data type
@@ -531,17 +565,12 @@ class Surface:
         return area if area > 0 else 0.
 
     def reduce_area(self, area_to_reduce):
-        '''
-        Reduces the area of the surface
+        '''Reduces the area of the surface by an input area
 
         Parameters
-            ----------
-            area_to_reduce : float
-                the area to subtract [m2]
-
-        Returns
-        -------
-        None.
+        ----------
+        area_to_reduce : float
+            the area to subtract [m2] to the total area
         '''
 
         # Check Input data type
@@ -566,40 +595,24 @@ class Surface:
 
 
 class SurfaceInternalMass:
-    """
-    Class to define a surface for thermal capacity using area and surface type
+    """Class to define a surface for thermal capacity using area and surface type
     with a specific geometry
-    
-    Methods:
-        init
     """
 
     def __init__(self, name: str, area: float = 0., surface_type=None, construction=None):
-        """
-        input:
-            area: area of the internal surface
-            surfType: 'IntWall' or 'IntCeiling'
-
-        Attributes:
-            area
-            surfType
-            construction: Construction
-                the construction object with the materials
+        """It creates the SurfaceInternalMass object, like the Surface class, but without vertexes and geometry
 
         Parameters
-            ----------
-            name : string
-                name of the surface
-            area: float
-                number of azimuth subdivision [m2]
-            surface_type : string
-                string that defines the surface type.
-                'IntWall' or  'IntCeiling'  or 'IntFloor'
+        ----------
+        name : string
+            name of the surface
+        area : float, default 0.
+            area of the internal surface
+        surface_type : str, default None
+            Type of internal surface: 'IntWall' or 'IntCeiling'
+        construction : eureca_building.construction.Construction
+            The construction to be assigned to the SurfaceInternalMass
 
-        Returns
-        -------
-        None.        
-        
         """
 
         # Check input data type
@@ -659,6 +672,18 @@ class SurfaceInternalMass:
         self._construction = value
 
     def get_VDI6007_surface_params(self, asim=False):
+        """Calculates R and C using VDI6007 method.
+
+        Parameters
+        ----------
+        asim : bool
+            Whether the surface is asimmetric (True) or not (False)
+
+        Returns
+        -------
+        tuple
+            R, C -> Thermal Resistance and Capacity
+        """
         try:
             R1, C1 = self.construction._VDI6007_surface_params(self._opaque_area, asim)
         except AttributeError:

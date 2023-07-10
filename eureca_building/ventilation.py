@@ -1,5 +1,4 @@
-"""
-This module includes functions to model natural ventilation and infiltration
+"""This module includes functions to model natural ventilation and infiltration
 """
 
 __author__ = "Enrico Prataviera"
@@ -25,6 +24,15 @@ from eureca_building.exceptions import (
 
 
 def calc_neutral_plane_nat_vent(x, *data):
+    """TODO : Giacomo per favore riempi questa
+
+    Parameters
+    ----------
+    x : float?
+
+    data : tuple
+
+    """
     a,b,c,h_t,h_b = data
     y = 0.
     for i in range(len(a)):
@@ -33,8 +41,7 @@ def calc_neutral_plane_nat_vent(x, *data):
     return y
 
 class Ventilation:
-    """
-    Ventilation
+    """Ventilation class
     """
 
     def __init__(
@@ -45,20 +52,20 @@ class Ventilation:
             schedule: Schedule,
             tag: str = None,
     ):
-        """
-        VentilationObject
+        """VentilationObject creation
 
-        Args:
-            name: str
-                name
-            unit: str
-                value of the unit: ["Vol/h", "kg/s", "kg/(m2 s)", "m3/s", "m3/(m2 s)"]
-            nominal_value: float
-                the value to be multiplied by the schedule
-            schedule: Schedule
-                Schedule object
-            tag: str
-                a tag to define the type of internal load
+        Parameters
+        ----------
+        name : str
+            name
+        unit : str
+            value of the unit: ["Vol/h", "kg/s", "kg/(m2 s)", "m3/s", "m3/(m2 s)"]
+        nominal_value : float
+            the value to be multiplied by the schedule
+        schedule : eureca_building.schedule.Schedule
+            Schedule object with a fractional schedule
+        tag : str, default None
+            a tag to define the type of internal load
         """
         self.name = name
         self.unit = unit
@@ -112,16 +119,14 @@ class Ventilation:
         self._unit = value
 
     def _get_absolute_value_nominal(self, area=None, volume=None):
-        """
-        Returns ventilation nominal value in kg/s
-        Args:
-            area: None
-                [m2]: must be provided if the load is area specific
-            volume: None
-                [m3]: must be provided if the load is volume specific
+        """Returns ventilation nominal value in kg/s. This method might be overridden by a child class
 
-        Returns:
-            float
+        Parameters
+        ----------
+        area : float, default None
+            [m2]: must be provided if the load is area specific
+        volume : float, default None
+            [m3]: must be provided if the load is volume specific
         """
         air_density = air_properties['density']
         try:
@@ -142,17 +147,19 @@ class Ventilation:
             )
 
     def get_air_flow_rate(self, area=None, volume=None) -> np.array:
-        """
-        Calc the air mass flow rate in kg/s
-        Args:
-            area: float
-                area [m2]
-            volume: float
-                volume [m3]
+        """Returns ventilation air flow rate in kg/s. This method might be overridden by a child class
 
-        Returns:
-            np.array
+        Parameters
+        ----------
+        area : float, default None
+            [m2]: must be provided if the load is area specific
+        volume : float, default None
+            [m3]: must be provided if the load is volume specific
 
+        Returns
+        ----------
+        numpy.array
+            air flow rate in kg/s
         """
         # try:
         #     self.nominal_value_absolute
@@ -161,19 +168,21 @@ class Ventilation:
         return self.nominal_value_absolute * self.schedule.schedule
 
     def get_vapour_flow_rate(self, weather, area=None, volume=None) -> np.array:
-        """
-        Calc the vapour mass flow rate in kg/s
-        Args:
-            weather: Weather
-                Weather class object
-            area: float
-                area [m2]
-            volume: float
-                volume [m3]
+        """Calc the vapour mass flow rate in kg/s
 
-        Returns:
-            np.array
+        Parameters
+        ----------
+        weather : eureca_building.weather.WeatherFile
+            Weather object
+        area : float, default None
+            [m2]: must be provided if the load is area specific
+        volume : float, default None
+            [m3]: must be provided if the load is volume specific
 
+        Returns
+        ----------
+        numpy.array
+            vapour flow rate in kg/s
         """
         # try:
         #     self.nominal_value_absolute
@@ -182,17 +191,20 @@ class Ventilation:
         return self.nominal_value_absolute * self.schedule.schedule * weather.hourly_data['out_air_specific_humidity']
 
     def get_flow_rate(self, weather, *args, **kwargs) -> list:
-        """
-        Return the air and vapour flow rate from natural ventilation.
+        """Return the air and vapour flow rate from natural ventilation.
         weather object must be passed
-        Args:
-            weather: Weather
-                weather object used for outdoor specific humidity
 
-        Returns:
-            [np.array, np.array, np.array]:
-                the schedules: air flow rate [kg/s], vapour [kg/s]
+        Parameters
+        ----------
+        weather : eureca_building.weather.WeatherFile
+            Weather object
+        args
+        kwargs
 
+        Returns
+        ----------
+        tuple
+            tuple of two numpy.array (air and vapour flow rates
         """
         if "area" not in kwargs.keys():
             area = None
@@ -207,11 +219,14 @@ class Ventilation:
         return air, vapuor
 
 class Infiltration(Ventilation):
+    """This is just an inherited version of the Ventilation class, without any change
+    """
     pass
 
 
 class NaturalVentilation(Ventilation):
-    
+    """Inheritaded from the Ventilation class
+    """
     def __init__(
             self,
             name: str,
@@ -222,6 +237,25 @@ class NaturalVentilation(Ventilation):
             surfaces_with_opening: list = None,
             weather: WeatherFile = None,
     ):
+        """Init method. Call the Ventilation super() init and then store few more input
+
+        Parameters
+        ----------
+        name : str
+            name
+        unit : str
+            value of the unit: ["Vol/h", "kg/s", "kg/(m2 s)", "m3/s", "m3/(m2 s)"]
+        nominal_value : float
+            the value to be multiplied by the schedule
+        schedule : eureca_building.schedule.Schedule
+            Schedule object with a fractional schedule
+        tag : str, default None
+            a tag to define the type of internal load
+        surfaces_with_opening : list
+            list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes
+        weather : eureca_building.weather.WeatherFile
+            Weather object
+        """
         super().__init__(name,unit,nominal_value,schedule,tag)
         self._get_windows_opening()
         if (weather != None) and (surfaces_with_opening != None):
@@ -266,16 +300,12 @@ class NaturalVentilation(Ventilation):
         self._unit = value
 
     def _get_absolute_value_nominal(self):
-        """
-        Returns natural ventilation opening nominal value in a value from 0 to 1
-        Args:
-            area: None
-                [m2]: must be provided if the load is area specific
-            volume: None
-                [m3]: must be provided if the load is volume specific
+        """Returns natural ventilation nominal value in kg/s. Overrides the parent class method
 
-        Returns:
-            float
+        Parameters
+        ----------
+        args
+        kwargs
         """
         air_density = air_properties['density']
         try:
@@ -293,29 +323,27 @@ class NaturalVentilation(Ventilation):
             )
 
     def get_air_flow_rate(self):
-        """
-        Not implemented for Natural Ventilation
+        """Not implemented for Natural Ventilation
         """
         raise NotImplementedError(f"Class Natural Ventilation: get_air_flow_rate method not implmented")
 
     def get_vapour_flow_rate(self):
-        """
-        Not implemented for Natural Ventilation
+        """Not implemented for Natural Ventilation
         """
         raise NotImplementedError(f"Class Natural Ventilation: get_vapour_flow_rate method not implmented")
 
     def get_flow_rate(self):
-        """
-        Not implemented for Natural Ventilation
+        """Not implemented for Natural Ventilation
         """
         raise NotImplementedError(f"Class Natural Ventilation: get_flow_rate method not implmented")
 
     def _get_windows_opening(self) -> np.array:
-        """
-        Calc the windows opening from the input schedule in 0-1 range
-        Returns:
-            np.array
+        """Calc the windows opening from the input schedule in 0-1 range
 
+        Returns
+        ----------
+        numpy.array
+            Wiondow opening schedule [0-1]
         """
         try:
             self.nominal_value_absolute
@@ -325,6 +353,16 @@ class NaturalVentilation(Ventilation):
         return self.windows_opening
 
     def define_pressure_coef(self, weather, surfaces_with_opening):
+        """TODO : Per Giacomo compila la documentazione
+
+        Parameters
+        ----------
+        weather : eureca_building.weathe.WeatherFile
+            WeatherFile object
+        surfaces_with_opening : list
+            list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes
+
+        """
         if not isinstance(weather, WeatherFile):
             raise ValueError(f"Natural Ventilation object: weather parameter is not of WeatherFile class: {type(weather)}")
         
@@ -368,6 +406,17 @@ class NaturalVentilation(Ventilation):
             s._c_coeff = s.wind_pressure_coeff*weather.hourly_data["wind_speed"]**2   # Coeff c = wind pressure coeff * (wind speed)^2 for calculation of natural ventilation flow rate
 
     def get_timestep_ventilation_mass_flow(self, ts, t_zone, weather):
+        """TODO : Per Giacomo compila la documentazione
+
+        Parameters
+        ----------
+        ts : int
+            time step of simulation
+        t_zone : float
+            zone temperature [°C]
+        weather : eureca_building.weathe.WeatherFile
+            WeatherFile object
+        """
         # To be completed and commented
         
         a_coeff = [s._a_coeff for s in self.surfaces_with_opening]
@@ -387,8 +436,7 @@ class NaturalVentilation(Ventilation):
 
 
 class MechanicalVentilation(Ventilation):
-    """
-    Tha same as Natural/Ventilation object but different check on units
+    """The same as Natural/Ventilation object but different check on units
     """
 
     @property
@@ -406,16 +454,14 @@ class MechanicalVentilation(Ventilation):
         self._unit = value
 
     def _get_absolute_value_nominal(self, area=None, volume=None):
-        """
-        Returns ventilation nominal value in kg/s
-        Args:
-            area: None
-                [m2]: must be provided if the load is area specific
-            volume: None
-                [m3]: must be provided if the load is volume specific
+        """Calcs ventilation nominal value in kg/s. This method overrides the parent class method
 
-        Returns:
-            float
+        Parameters
+        ----------
+        area : float, default None
+            [m2]: must be provided if the load is area specific
+        volume : float, default None
+            [m3]: must be provided if the load is volume specific
         """
         air_density = air_properties['density']
         try:

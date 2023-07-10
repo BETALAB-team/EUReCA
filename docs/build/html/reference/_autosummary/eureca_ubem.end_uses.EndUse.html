@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_ubem.end_uses.EndUse &mdash; EUReCA 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="eureca_ubem.envelope_types" href="eureca_ubem.envelope_types.html" />
+    <link rel="prev" title="eureca_ubem.end_uses.load_schedules" href="eureca_ubem.end_uses.load_schedules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Model reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="eureca_ubem.html">eureca_ubem</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="eureca_ubem.end_uses.html">eureca_ubem.end_uses</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.end_uses.load_schedules.html">eureca_ubem.end_uses.load_schedules</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">eureca_ubem.end_uses.EndUse</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.envelope_types.html">eureca_ubem.envelope_types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="eureca_building.html">eureca_building</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Model reference</a></li>
+          <li class="breadcrumb-item"><a href="eureca_ubem.html">eureca_ubem</a></li>
+          <li class="breadcrumb-item"><a href="eureca_ubem.end_uses.html">eureca_ubem.end_uses</a></li>
+      <li class="breadcrumb-item active">eureca_ubem.end_uses.EndUse</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/reference/_autosummary/eureca_ubem.end_uses.EndUse.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="eureca-ubem-end-uses-enduse">
+<h1>eureca_ubem.end_uses.EndUse<a class="headerlink" href="#eureca-ubem-end-uses-enduse" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_ubem.end_uses.</span></span><span class="sig-name descname"><span class="pre">EndUse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class builds up the loads and schedules for different type of buildings</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Creates the object with many dictionaries to store various loads and schedules</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – name of the archetype</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__delattr__</span></code>(name, /)</p></td>
+<td><p>Implement delattr(self, name).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__dir__</span></code>()</p></td>
+<td><p>Default dir() implementation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__eq__</span></code>(value, /)</p></td>
+<td><p>Return self==value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__format__</span></code>(format_spec, /)</p></td>
+<td><p>Default object formatter.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__ge__</span></code>(value, /)</p></td>
+<td><p>Return self&gt;=value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__getattribute__</span></code>(name, /)</p></td>
+<td><p>Return getattr(self, name).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__gt__</span></code>(value, /)</p></td>
+<td><p>Return self&gt;value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__hash__</span></code>()</p></td>
+<td><p>Return hash(self).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.__init__" title="eureca_ubem.end_uses.EndUse.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(name)</p></td>
+<td><p>Creates the object with many dictionaries to store various loads and schedules</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init_subclass__</span></code></p></td>
+<td><p>This method is called when a class is subclassed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__le__</span></code>(value, /)</p></td>
+<td><p>Return self&lt;=value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__lt__</span></code>(value, /)</p></td>
+<td><p>Return self&lt;value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__ne__</span></code>(value, /)</p></td>
+<td><p>Return self!=value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__new__</span></code>(**kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__reduce__</span></code>()</p></td>
+<td><p>Helper for pickle.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__reduce_ex__</span></code>(protocol, /)</p></td>
+<td><p>Helper for pickle.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__repr__</span></code>()</p></td>
+<td><p>Return repr(self).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__setattr__</span></code>(name, value, /)</p></td>
+<td><p>Implement setattr(self, name, value).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__sizeof__</span></code>()</p></td>
+<td><p>Size of object in memory, in bytes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__str__</span></code>()</p></td>
+<td><p>Return str(self).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__subclasshook__</span></code></p></td>
+<td><p>Abstract classes can override this to customize issubclass().</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.load_daily_sched" title="eureca_ubem.end_uses.EndUse.load_daily_sched"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_daily_sched</span></code></a>(name, daily_df_from_excel, ...)</p></td>
+<td><p>Class method to create the EndUse object from the spreadsheet page</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.rescale_df" title="eureca_ubem.end_uses.EndUse.rescale_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rescale_df</span></code></a>(ts, sched_df)</p></td>
+<td><p>Static method to rescale the schedule dataframe from the hour to the simulation time step</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__dict__</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__doc__</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__module__</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__weakref__</span></code></p></td>
+<td><p>list of weak references to the object (if defined)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.air_handling_unit_system" title="eureca_ubem.end_uses.EndUse.air_handling_unit_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">air_handling_unit_system</span></code></a></p></td>
+<td><p>Take care of units!!!</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.domestic_hot_water" title="eureca_ubem.end_uses.EndUse.domestic_hot_water"><code class="xref py py-obj docutils literal notranslate"><span class="pre">domestic_hot_water</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.heat_gains" title="eureca_ubem.end_uses.EndUse.heat_gains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">heat_gains</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.infiltration" title="eureca_ubem.end_uses.EndUse.infiltration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">infiltration</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_ubem.html#eureca_ubem.end_uses.EndUse.zone_system" title="eureca_ubem.end_uses.EndUse.zone_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zone_system</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
+<dd><p>Creates the object with many dictionaries to store various loads and schedules</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – name of the archetype</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.air_handling_unit_system">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">air_handling_unit_system</span></span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.air_handling_unit_system" title="Permalink to this definition"></a></dt>
+<dd><p>Take care of units!!!</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.load_daily_sched">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_daily_sched</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">daily_df_from_excel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalar_df_from_excel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holidays</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.load_daily_sched" title="Permalink to this definition"></a></dt>
+<dd><p>Class method to create the EndUse object from the spreadsheet page</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – name</p></li>
+<li><p><strong>daily_df_from_excel</strong> (<em>pandas.DataFrame</em>) – DataFrame containing schedules from the end_use</p></li>
+<li><p><strong>scalar_df_from_excel</strong> (<em>pandas.DataFrame</em>) – <dl>
+<dt>This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)</dt><dd><blockquote>
+<div><p>(Sensible and</p>
+</div></blockquote>
+<p>Latent AHU recovery,
+Convective fraction of internal gains)</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>eureca_ubem.eund_uses.EndUse</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.end_uses.EndUse.rescale_df">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rescale_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sched_df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.end_uses.EndUse.rescale_df" title="Permalink to this definition"></a></dt>
+<dd><p>Static method to rescale the schedule dataframe from the hour to the simulation time step</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ts</strong> (<em>int</em>) – Number of time steps per hour</p></li>
+<li><p><strong>sched_df</strong> (<em>pandas.DataFrame</em>) – DataFrame to rescale</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The rescaled df</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="eureca_ubem.end_uses.load_schedules.html" class="btn btn-neutral float-left" title="eureca_ubem.end_uses.load_schedules" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="eureca_ubem.envelope_types.html" class="btn btn-neutral float-right" title="eureca_ubem.envelope_types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

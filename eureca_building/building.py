@@ -1,5 +1,5 @@
 """
-This module includes functions to model the building
+This module includes functions to model the building and it includes the Building class
 """
 
 __author__ = "Enrico Prataviera"
@@ -22,19 +22,21 @@ from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_s
 from eureca_building.exceptions import SimulationError
 # %% Building class
 class Building:
-    """
-    This class is a wrapper for ThermalZone objects and HVAC objects
+    """This class is a wrapper for ThermalZone objects and HVAC objects
     """
 
     def __init__(self, name: str, thermal_zones_list:list,  model:str = "2C"):
-        """
-        Args:
-            name: str
-                Name of the building
-            thermal_zone: list
-                list of ThermalZone ibjects objects
-            model: str (default 2C)
-                model to be used: 1C or 2C
+        """Constructor of the building class. Memorizes the attributes by means of properties setter.
+        Checks also the validity of some attributes
+
+        Parameters
+        ----------
+        name : str
+            Name of the building
+        thermal_zone : list
+            list of ThermalZone ibjects objects
+        model : str, default 2C
+            model to be used: 1C or 2C
         """
 
         self.name = name
@@ -91,19 +93,24 @@ class Building:
         self._cooling_system = value
 
     def set_hvac_system(self, heating_system, cooling_system):
-        f"""
-
-        Args:
-            heating_system: str
-                string to define building heating system
-            cooling_system: str
-                string to define building cooling system
+        f"""Sets using roperties the heating and cooling system type (strings)
 
         Available heating systems: {hvac_heating_systems_classes.keys()}
         Available cooling systems: {hvac_cooling_systems_classes.keys()}
 
-        Returns:
-            None
+        Parameters
+        ----------
+        heating_system : str
+            string to define building heating system
+        cooling_system : str
+            string to define building cooling system
+
+        Raises
+        ----------
+        KeyError
+            if the heating/cooling system is not included in the available list (See above)
+        TypeError
+            if the heating system does not comply with the Systems metaclass, which is necessary for simulations
 
         """
         try:
@@ -125,15 +132,18 @@ class Building:
             tz.cooling_sigma = self.cooling_system.sigma
 
     def set_hvac_system_capacity(self, weather_object):
-        f"""
+        f"""Calls the thermal zone heating and cooling capacity for all themrmal zones (must be run after the calculation of zone loads)
 
-        Args:
-            weather_object: WeatherFile
-                WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
+        Parameters
+        ----------
+        weather_object : WeatherFile
+            WeatherFile object to use to simulate 
             
 
-        Returns:
-            None
+        Raises
+        ----------
+        SimulationError
+            if thermal_zone design load calculation has not been carried out yet
 
         """
         heating_capacity, cooling_capacity = 0. ,0.
@@ -150,12 +160,14 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         self.cooling_system.set_system_capacity(cooling_capacity, weather_object)
 
     def solve_timestep(self, t: int, weather: WeatherFile):
-        """
-        Args:
-            t: int
-                timestep
-            weather_object: WeatherFile
-                WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
+        """Runs the thermal zone and hvac systems simulation for the timestep t
+
+        Parameters
+        ----------
+        t : int
+            timestep
+        weather_object : WeatherFile
+            WeatherFile object to use to simulate
         """
         heat_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
@@ -200,18 +212,25 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                  preprocessing_ts: int = 100 * CONFIG.ts_per_hour,
                  output_folder: str = None
                  ):
-        """
-        Args:
-            weather_object: WeatherFile
-                WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
-            t_start: int (Default first timestep of simulation)
-                starting timestep
-            t_stop: int (last timestep of simulation)
-                stop timestep
-            preprocessing_ts: int
-                number of preprocessing timesteps
-            output_folder: str (default = None)
-                if not None prints building results in the selected folder
+        """Simulate a period and i stores the outputs. Calls solve_timestep method
+
+        Parameters
+        ----------
+        weather_object : WeatherFile
+            WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
+        t_start : int (Default first timestep of simulation)
+            starting timestep
+        t_stop : int (last timestep of simulation)
+            stop timestep
+        preprocessing_ts : int
+            number of preprocessing timesteps
+        output_folder : str, default None
+            if not None prints building results in the selected folder
+
+        Returns
+        ----------
+        pandas.DataFrame
+            building time step results
         """
         for tz in self._thermal_zones_list:
             tz.reset_init_values()
@@ -285,6 +304,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         return total
 
     def get_geojson_feature_parser(self):
+        """Function to get the json dictionary of building properties to stamp the output geojson
+
+        Returns
+        ----------
+        dict
+            dict with some info of the building
+        """
 
         floors = []
 

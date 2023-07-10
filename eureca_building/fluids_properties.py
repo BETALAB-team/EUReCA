@@ -1,5 +1,6 @@
 """
-This module includes functions to model the thermal zone
+This module includes dictionaries with fluid properties (air, water, vapour, fuels)
+To be used all over the code
 """
 
 __author__ = "Enrico Prataviera"

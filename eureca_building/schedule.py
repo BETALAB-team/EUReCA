@@ -24,8 +24,7 @@ from eureca_building.exceptions import (
 
 
 class Schedule:
-    """
-    Class schedule with some generic methods for all schedule
+    """Class Schedule with some generic methods for all schedules.
     (in particular how they are created)
     """
 
@@ -37,20 +36,20 @@ class Schedule:
             lower_limit=None,
             upper_limit=None,
     ):
-        f"""
-        Schedule Constructor
+        f"""Schedule Constructor and check the input values and types
         
-        Args:
-            name: str
-                name
-            schedule_type: str
-                type of the {schedule_types["unit_type"]}
-            schedule: np.array
-                the schedule array, length equal to 8760 time the number of time steps per hour
-            upper_limit: float/int (default None)
-                upper limit to check schedule validity
-            lower_limit: float/int (default None)
-                upper limit to check schedule validity
+        Parameters
+        ----------
+        name : str
+            name
+        schedule_type : str
+            type of the {schedule_types["unit_type"]}
+        schedule : numpy.array
+            the schedule array, length equal to 8760 time the number of time steps per hour
+        upper_limit : float, default None
+            upper limit to check schedule validity
+        lower_limit: float, default None
+            upper limit to check schedule validity
         """
         self.name = str(name)
         self.schedule_type = schedule_type
@@ -164,31 +163,34 @@ Number of time steps: {CONFIG.number_of_time_steps_year}
             starting_day: int = 0,
             holidays: tuple = (),
     ):
-        """
+        f"""Class method. This method allows to create a simulation schedule using daily profiles.
 
-        Args:
-            name: str
-                name
-            schedule_type:
-                type of the {schedule_types["unit_type"]}
-            schedule_week_day: np.array
-                week_day schedule (length 24 * n_ts)
-            schedule_saturday:
-                saturday  schedule (length 24 * n_ts)
-            schedule_sunday:
-                sunday  schedule (length 24 * n_ts)
-            schedule_holiday:
-                holiday schedule (length 24 * n_ts)
-            upper_limit: float/int (default None)
-                upper limit to check schedule validity
-            lower_limit: float/int (default None)
-                upper limit to check schedule validity
-            holidays: tuple
-                tuple of holidays (with int from 0 to 364)
-            starting_day: int
-                day to start the year (0 monday, 1 tuesday, ... 6 sunday)
+        Parameters
+        ----------
+        name : str
+            name
+        schedule_type :
+            type of the {schedule_types["unit_type"]}
+        schedule_week_day : numpy.array
+            week_day schedule (length 24 * n_ts)
+        schedule_saturday : numpy.array
+            saturday  schedule (length 24 * n_ts)
+        schedule_sunday : numpy.array
+            sunday  schedule (length 24 * n_ts)
+        schedule_holiday : numpy.array
+            holiday schedule (length 24 * n_ts)
+        upper_limit : float, default None
+            upper limit to check schedule validity
+        lower_limit : float, default None
+            upper limit to check schedule validity
+        holidays : tuple
+            tuple of holidays (with int from 0 to 364)
+        starting_day : int
+            day to start the year (0 monday, 1 tuesday, ... 6 sunday)
 
-        Returns: Schedule
+        Returns
+        ----------
+        eureca_building.Schedule
         """
         try:
             holidays = tuple(holidays)
@@ -236,6 +238,25 @@ Number of time steps: {CONFIG.number_of_time_steps_year}
             lower_limit=None,
             upper_limit=None,
     ):
+        f"""Class method. This method allows to create a simulation schedule from a constant value.
+
+        Parameters
+        ----------
+        name : str
+            Name
+        schedule_type : str
+            type of the {schedule_types["unit_type"]}
+        value : float
+            the schedule value (might be of different units)
+        upper_limit : float, default None
+            upper limit to check schedule validity
+        lower_limit: float, default None
+            upper limit to check schedule validity
+
+        Returns
+        -------
+        eureca_building.Schedule
+        """
 
         sched = np.array([value] * 24 * 365 * CONFIG.ts_per_hour)
         if CONFIG.ts_per_hour > 1:

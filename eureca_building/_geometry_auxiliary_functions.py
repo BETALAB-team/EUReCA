@@ -1,6 +1,6 @@
 """
 This module includes functions to process polygons
-It is an internal module with internal functions
+It is an internal module with internal geometry functions
 """
 
 __author__ = "Enrico Prataviera"
@@ -15,22 +15,28 @@ import numpy as np
 
 
 def normal_versor(a, b, c):
-    """
-    This function starting from three points defines the normal vector of the plane
+    """This function starting from three points defines the normal vector of the plane
     
     Parameters
     ----------
-    a : list of floats
+    a : list
         list with three floats with the coordinates of the first point
-    b : list of floats
+    b : list
         list with three floats with the coordinates of the second point
-    c : list of floats
+    c : list
         list with three floats with the coordinates of the third point
  
     Returns
     -------
-    tuple: the three components of the normal vector (anticlockwise)
-    
+    tuple
+        the three components of the normal vector (anticlockwise)
+
+    Raises
+    ------
+    TypeError
+        if input not Lists
+    ValueError
+        if number not floats
     """
 
     # Check input data type
@@ -65,19 +71,24 @@ def normal_versor(a, b, c):
 
 
 def normal_versor_2(vert_list):
-    """
-    Alternative
-    This function starting from three points defines the normal vector of the plane
+    """Alternative: This function starting from three points defines the normal vector of the plane
     
     Parameters
     ----------
-    vert_list : list of list of floats (polygon)
+    vert_list : tuple
         list with n lists of three floats (n vertices)
  
     Returns
     -------
-    np.array: coordinates of the centroid (3 components)
-    
+    numpy.array
+        coordinates of the centroid (3 components)
+
+    Raises
+    ------
+    TypeError
+        if input not tuples, and not long 3 components
+    ValueError
+        if number not floats
     """
 
     # Check input data type
@@ -119,8 +130,7 @@ def normal_versor_2(vert_list):
 
 
 def polygon_area(poly):
-    """
-    From a list of points calculates the area of the polygon
+    """From a list of points calculates the area of the polygon
 
     Parameters
     ----------
@@ -132,6 +142,12 @@ def polygon_area(poly):
     float
         Area [m2]
 
+    Raises
+    ------
+    TypeError
+        if input not tuples, and not long 3 components
+    ValueError
+        if number not floats
     """
 
     # Check input data type
@@ -180,21 +196,24 @@ def polygon_area(poly):
 
 
 def check_complanarity(vert_list_tot, precision=1):
-    """
-    Checks the complanarity of a list of points
+    """Checks the co-planarity of a list of points
     
     Parameters
     ----------
     vert_list_tot : list
         list of list of floats (polygon). list with n lists of three floats (n vertices)
     precision: float
-        defines the tollerance of the control [m]
+        defines the tolerance of the control [m]
  
     Returns
     -------
     bool
         are they in the same plane? True or False
-    
+
+    Raises
+    ------
+    ValueError
+        if precision not float
     """
 
     # Check input data type
@@ -257,17 +276,17 @@ def check_complanarity(vert_list_tot, precision=1):
 
 
 def centroid(vert_list):
-    """
-    From a list of points calculates the centroid
+    """From a list of points calculates the centroid
     
     Parameters
     ----------
-    vert_list : list of list of floats (polygon)
+    vert_list : list
         list with n lists of three floats (n vertices)
  
     Returns
     -------
-    np.array: coordinates of the centroid (3 components)
+    numpy.array
+        oordinates of the centroid (3 components)
     
     """
 
@@ -305,11 +324,23 @@ def centroid(vert_list):
 
 
 def _project(x, proj_axis):
-    """
-    Internal Function
-      
-    # Project onto either the xy, yz, or xz plane. (We choose the one that avoids degenerate configurations, which is the purpose of proj_axis.)
+    """Internal Function: Project onto either the xy, yz, or xz plane. (We choose the one that avoids degenerate configurations, which is the purpose of proj_axis.)
     # In this example, we would be projecting onto the xz plane.
+    https://stackoverflow.com/questions/39003450/transform-3d-polygon-to-2d-perform-clipping-and-transform-back-to-3d
+
+
+    Parameters
+    ----------
+    x : list
+        list of the three coordinates of a point
+    proj_axis : int
+        0, 1, or 2, is the axis where to project (x, y, z)
+
+    Returns
+    -------
+    tuple
+        tuple of three float, projected point
+
     """
     return tuple(c for i, c in enumerate(x) if i != proj_axis)
 
@@ -318,10 +349,26 @@ def _project(x, proj_axis):
 
 
 def _project_inv(x, proj_axis, a, v):
-    """
-    Internal Function
-      
-    # Returns the vector w in the walls' plane such that project(w) equals x.
+    """Internal Function: Returns the vector w in the walls' plane such that project(w) equals x.
+    https://stackoverflow.com/questions/39003450/transform-3d-polygon-to-2d-perform-clipping-and-transform-back-to-3d
+
+
+    Parameters
+    ----------
+    x : list
+        list of the three coordinates of a point
+    proj_axis : int
+        0, 1, or 2, is the axis where to project (x, y, z)
+    a : float
+        a number so that v[0] * x + v[1] * y + v[2] * z = a is the equation of the plane containing your walls
+    v : list
+        list of three floats. the normal versor to the surface
+
+    Returns
+    -------
+    tuple
+        tuple of three float, projected point
+
     """
     w = list(x)
     w[proj_axis:proj_axis] = [0.0]

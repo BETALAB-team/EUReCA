@@ -84,46 +84,45 @@
              
   <section id="eureca">
 <h1>EUReCA<a class="headerlink" href="#eureca" title="Permalink to this heading"></a></h1>
+<p><img alt="Insert caption here" src="https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg" /></p>
 <p>The <strong>E</strong>nergy <strong>U</strong>rban <strong>Re</strong>sistance <strong>C</strong>apacitance <strong>A</strong>pproach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.</p>
-<p>This research project has been developed within the <a class="reference external" href="https://research.dii.unipd.it/betalab/">BETALAB</a> research group of the University of Padua</p>
+<p>This research project has been developed within the <a class="reference external" href="https://research.dii.unipd.it/betalab/">BETALAB</a> research group of the University of Padua, Italy.</p>
 <section id="python-environment-set-up">
 <h2>Python environment set up<a class="headerlink" href="#python-environment-set-up" title="Permalink to this heading"></a></h2>
-<p>The tool is distributed via the GitHub repository, and it relies on the <a class="reference external" href="https://github.com/BETALAB-team/eureca-building">eureca-building</a> library, an additional repository that must be installed before running eureca.
-As first step, you must create a new conda or venv environment. You can name it eureca.</p>
+<p>The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.</p>
 <blockquote>
-<div><p>conda create -n eureca python 3.9</p>
+<div><p>conda create -n eureca python=3.9</p>
 </div></blockquote>
 <p>and activate it:</p>
 <blockquote>
 <div><p>conda activate eureca</p>
 </div></blockquote>
-<p>After creating the environment, follow the instruction in the <a class="reference external" href="https://github.com/BETALAB-team/eureca-building">eureca-building</a> page to install the auxiliary library.
-Then clone the following package in a separate folder:</p>
+<p>Then clone the following package in a separate folder:</p>
 <blockquote>
 <div><p>git clone https://github.com/BETALAB-team/EUReCA.git</p>
 </div></blockquote>
 <p>and install it in the same environement:</p>
 <blockquote>
-<div><p>pip install -e ./eureca-ubem</p>
+<div><p>pip install -e <em>your_path_to_the_folder/eureca-ubem</em></p>
 </div></blockquote>
 </section>
 <section id="preparing-and-run-a-simulation">
 <h2>Preparing and run a simulation<a class="headerlink" href="#preparing-and-run-a-simulation" title="Permalink to this heading"></a></h2>
 <section id="input-files">
 <h3>Input files<a class="headerlink" href="#input-files" title="Permalink to this heading"></a></h3>
-<p>The eureca_ubem/Input folder contain some examples file to run the simulation.
+<p>The <a class="reference external" href="https://github.com/BETALAB-team/EUReCA/tree/main/eureca_ubem/Input">eureca_ubem/Input</a> folder has some examples files to run the simulation.
 To simulate cities energy consumption in EUReCA, some input files must be prepared:</p>
 <ul class="simple">
 <li><p>A <code class="docutils literal notranslate"><span class="pre">weather_data.epw</span></code> weather file. These files are available at the <a class="reference external" href="https://www.energyplus.net/weather">EnergyPlus</a> website.</p></li>
 <li><p>A <code class="docutils literal notranslate"><span class="pre">EnvelopeTypes.xlsx</span></code> spreadsheet. It includes the thermo-physic properties of building envelopes. An example is available in the <code class="docutils literal notranslate"><span class="pre">materials_and_construction_test.xlsx</span></code></p></li>
 <li><p>A <code class="docutils literal notranslate"><span class="pre">Schedules.xlsx</span></code> spreadsheet. It includes the operational schedules of occupancy, appliances, temperature, humidity setpoints, HVAC usage for different end-uses. Example in <code class="docutils literal notranslate"><span class="pre">Schedules.xlsx</span></code>.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">config.json</span></code> file, which defines the simulation parameters. Example in <code class="docutils literal notranslate"><span class="pre">config.json</span></code>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">config.json</span></code> file, which defines the simulation parameters. Example in <a class="reference external" href="https://github.com/BETALAB-team/EUReCA/blob/main/eureca_ubem/Input/config.json">config.json</a>.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">city.json</span></code> model. See the next section for further info on the alternatives.</p></li>
 </ul>
 </section>
 <section id="the-json-city-model">
 <h3>The JSON city model<a class="headerlink" href="#the-json-city-model" title="Permalink to this heading"></a></h3>
-<p>Currently, EUReCA can handle two typologies of JSON city models. The recommended methodology consists of importing buildings’ geometries via semantic <a class="reference external" href="https://www.cityjson.org/">CityJSON</a> files, but also 2D shapefiles, encoded in GeoJSON format, can be utilized to build up the city.</p>
+<p>Currently, EUReCA can handle two typologies of JSON city models. The recommended methodology consists of importing buildings’ geometries via semantic <a class="reference external" href="https://www.cityjson.org/">CityJSON</a> files, but also 2D shapefiles, encoded in GeoJSON format, can be exploited to build up the city.</p>
 <p>The required attributes are:</p>
 <ul>
 <li><p>CityJSON:</p>
@@ -147,37 +146,71 @@ To simulate cities energy consumption in EUReCA, some input files must be prepar
 </div>
 </li>
 </ul>
-<p>Input folder provides some example for the city of Padua.</p>
-<p>List of available heating systems:</p>
+<p>The strings in the city model’s attribute table (<code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">Use</span></code> and <code class="docutils literal notranslate"><span class="pre">Envelope</span></code>) must match the labels of the End Uses and Envelope types listed in the <code class="docutils literal notranslate"><span class="pre">Schedules.xlsx</span></code> and <code class="docutils literal notranslate"><span class="pre">EnvelopeTypes.xlsx</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Heating</span> <span class="pre">System</span></code> and <code class="docutils literal notranslate"><span class="pre">Cooling</span> <span class="pre">System</span></code> must match one of the following items:
+List of available heating systems:</p>
 <ul class="simple">
+<li><p>IdealLoad</p></li>
 <li><p>CondensingBoiler</p></li>
 <li><p>TraditionalBoiler</p></li>
+<li><p>Traditional Gas Boiler, Centralized, Low Temp Radiator</p></li>
+<li><p>Traditional Gas Boiler, Single, Low Temp Radiator</p></li>
+<li><p>Traditional Gas Boiler, Centralized, High Temp Radiator</p></li>
+<li><p>Traditional Gas Boiler, Single, High Temp Radiator</p></li>
+<li><p>Traditional Gas Boiler, Centralized, Fan coil</p></li>
+<li><p>Traditional Gas Boiler, Single, Fan coil</p></li>
+<li><p>Traditional Gas Boiler, Centralized, Radiant surface</p></li>
+<li><p>Traditional Gas Boiler, Single, Radiant surface</p></li>
+<li><p>Condensing Gas Boiler, Centralized, Low Temp Radiator</p></li>
+<li><p>Condensing Gas Boiler, Single, Low Temp Radiator</p></li>
+<li><p>Condensing Gas Boiler, Centralized, High Temp Radiator</p></li>
+<li><p>Condensing Gas Boiler, Single, High Temp Radiator</p></li>
+<li><p>Condensing Gas Boiler, Centralized, Fan coil</p></li>
+<li><p>Condensing Gas Boiler, Single, Fan coil</p></li>
+<li><p>Condensing Gas Boiler, Centralized, Radiant surface</p></li>
+<li><p>Condensing Gas Boiler, Single, Radiant surface</p></li>
+<li><p>Oil Boiler, Centralized, High Temp Radiator</p></li>
+<li><p>Oil Boiler, Single, High Temp Radiator</p></li>
+<li><p>Stove</p></li>
+<li><p>A-W Heat Pump, Centralized, Low Temp Radiator</p></li>
+<li><p>A-W Heat Pump, Single, Low Temp Radiator</p></li>
+<li><p>A-W Heat Pump, Centralized, Fan coil</p></li>
+<li><p>A-W Heat Pump, Single, Fan coil</p></li>
+<li><p>A-W Heat Pump, Centralized, Radiant surface</p></li>
+<li><p>A-W Heat Pump, Single, Radiant surface</p></li>
 </ul>
 <p>List of available cooling systems:</p>
 <ul class="simple">
+<li><p>IdealLoad</p></li>
 <li><p>SplitAirCooler</p></li>
-<li><p>SplitAirConditioner</p></li>
 <li><p>ChillerAirtoWater</p></li>
+<li><p>SplitAirConditioner</p></li>
+<li><p>A-A split</p></li>
+<li><p>A-W chiller, Centralized, Fan coil</p></li>
+<li><p>A-W chiller, Centralized, Radiant surface</p></li>
+<li><p>A-W chiller, Single, Fan coil</p></li>
+<li><p>A-W chiller, Single, Radiant surface</p></li>
 </ul>
+<p>Input folder provides some example for the city of Padua.</p>
 </section>
 <section id="simulation">
 <h3>Simulation<a class="headerlink" href="#simulation" title="Permalink to this heading"></a></h3>
-<p>After the set up of all input files, you can run the Main.py file:</p>
+<p>After the set up of all input files, you can run the simulation throughout a python file, as following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span> <span class="k">as</span> <span class="nn">tm</span>
 
 
 <span class="c1"># CONFIG FILE LOADING</span>
 <span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">load_config</span>
-<span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;config.json&quot;</span><span class="p">)</span>
+<span class="n">load_config</span><span class="p">(</span><span class="s2">&quot;path_to_your_config</span><span class="se">\\</span><span class="s2">config.json&quot;</span><span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">eureca_ubem.city</span> <span class="kn">import</span> <span class="n">City</span>
 
 <span class="c1"># SET INPUT FILES</span>
-<span class="n">weather_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;ITA_Venezia-Tessera.161050_IGDG.epw&quot;</span><span class="p">)</span>
-<span class="n">schedules_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;Schedules.xlsx&quot;</span><span class="p">)</span>
-<span class="n">materials_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;materials_and_construction_test.xlsx&quot;</span><span class="p">)</span>
-<span class="n">city_model_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;PiovegoRestricted_with_holes.geojson&quot;</span><span class="p">)</span>
+<span class="n">weather_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;path_to_you_input&quot;</span><span class="p">,</span><span class="s2">&quot;weather_file.epw&quot;</span><span class="p">)</span>
+<span class="n">schedules_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;path_to_you_input&quot;</span><span class="p">,</span><span class="s2">&quot;Schedules.xlsx&quot;</span><span class="p">)</span>
+<span class="n">materials_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;path_to_you_input&quot;</span><span class="p">,</span><span class="s2">&quot;materials_and_construction_test.xlsx&quot;</span><span class="p">)</span>
+<span class="n">city_model_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;path_to_you_input&quot;</span><span class="p">,</span><span class="s2">&quot;citymodel.geojson&quot;</span><span class="p">)</span>
 
 <span class="c1"># Creation of the City object and simulation</span>
 <span class="n">city_geojson</span> <span class="o">=</span> <span class="n">City</span><span class="p">(</span>
@@ -186,32 +219,33 @@ To simulate cities energy consumption in EUReCA, some input files must be prepar
     <span class="n">end_uses_types_file</span><span class="o">=</span><span class="n">schedules_file</span><span class="p">,</span>
     <span class="n">envelope_types_file</span><span class="o">=</span><span class="n">materials_file</span><span class="p">,</span>
     <span class="n">shading_calculation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">output_folder</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;geojson&quot;</span><span class="p">)</span>
+    <span class="n">output_folder</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span><span class="s2">&quot;your_output_folder&quot;</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="n">city_geojson</span><span class="o">.</span><span class="n">loads_calculation</span><span class="p">()</span>
-<span class="n">city_geojson</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">city_geojson</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">print_single_building_results</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="output-report">
 <h3>Output report<a class="headerlink" href="#output-report" title="Permalink to this heading"></a></h3>
-<p>If <code class="docutils literal notranslate"><span class="pre">output_folder=os.path.join(&quot;.&quot;,&quot;name_output&quot;)</span></code> is set an output file for each building is created in the output folder.
+<p>If <code class="docutils literal notranslate"><span class="pre">output_folder=os.path.join(&quot;.&quot;,&quot;your_output_folder&quot;)</span></code> is set, outputs are printed in the output folder.
 Each file is a csv with the main output variables of each building.</p>
 </section>
 <section id="how-to-cite-eureca">
 <h3>How to cite EUReCA<a class="headerlink" href="#how-to-cite-eureca" title="Permalink to this heading"></a></h3>
-<p>In case you want to use EUReCA for your own research project, please cite this paper:</p>
-<p>&#64;article{PRATAVIERA2021544,
-title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},
-journal = {Renewable Energy},
-volume = {173},
-pages = {544-560},
-year = {2021},
-issn = {0960-1481},
-doi = {https://doi.org/10.1016/j.renene.2021.03.144},
-url = {https://www.sciencedirect.com/science/article/pii/S0960148121005085},
-author = {Enrico Prataviera and Pierdonato Romano and Laura Carnieletto and Francesco Pirotti and Jacopo Vivian and Angelo Zarrella},
-keywords = {Urban building energy modelling, Lumped-capacitance thermal networks, Semantic georeferenced data, EUReCA, District simulation}
+<p>In case you want to use EUReCA for your own research project, please cite the following paper:</p>
+<p>&#64;article{<br />
+PRATAVIERA2021544,<br />
+title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},<br />
+journal = {Renewable Energy},<br />
+volume = {173},<br />
+pages = {544-560},<br />
+year = {2021},<br />
+issn = {0960-1481},<br />
+doi = {https://doi.org/10.1016/j.renene.2021.03.144}, <br />
+url = {https://www.sciencedirect.com/science/article/pii/S0960148121005085}, <br />
+author = {Enrico Prataviera and Pierdonato Romano and Laura Carnieletto and Francesco Pirotti and Jacopo Vivian and Angelo Zarrella},<br />
+keywords = {Urban building energy modelling, Lumped-capacitance thermal networks, Semantic georeferenced data, EUReCA, District simulation}<br />
 }</p>
 </section>
 </section>

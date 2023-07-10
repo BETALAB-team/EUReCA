@@ -1,5 +1,4 @@
-"""
-This module includes classes and functions to manage weather file
+"""This module includes classes and functions to manage weather file
 """
 
 __author__ = "Enrico Prataviera"
@@ -20,12 +19,8 @@ from eureca_building.config import CONFIG
 # %% ---------------------------------------------------------------------------------------------------
 # Weather class
 class WeatherFile():
-    '''
-    This class is a container for all weather data.
+    '''This class is a container for all weather data.
     It processes the epw file to extract arrays of temperature, wind, humidity etc......
-
-    Methods:
-        init
     '''
 
     def __init__(self,
@@ -37,28 +32,24 @@ class WeatherFile():
                  height_subdivisions: int = 3,
                  urban_shading_tol=[80., 100., 80.]
                  ):
-        '''
-        initialize weather obj
-        It processes the epw file to extract arrays of temperature, wind, humidity etc......
+        '''Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc......
 
         Parameters
         ----------
         epw_name : str
             path of the epw file.
-        year : int
+        year : int, default None
             the year of simulation. it is used only to create a pd.DataFrame.
-        time_steps : int
+        time_steps : int, default 1
             number of time steps in a hour.
-        azimuth_subdivisions: int
+        irradiances_calculation : bool, default False
+            Whether to do or not the irradiances calculation
+        azimuth_subdivisions : int, default 8
             number of the different direction (azimuth) solar radiation will be calculated
-        height_subdivisions: int
+        height_subdivisions : int, default 3
             number of the different direction (solar height) solar radiation will be calculated
-        urban_shading_tol: list of 3 floats
-            list of the tolerances for urban shading calc (azimuth, distance, theta)
-
-        Returns
-        -------
-        None
+        urban_shading_tol: list, default [80.,100.,80.]
+            list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)
         '''
 
         # Importing and processing weather data from .epw
@@ -159,6 +150,8 @@ class WeatherFile():
         self.general_data['average_out_air_db_temperature'] = np.mean(self.hourly_data["out_air_db_temperature"])
 
     def irradiances_calculation(self):
+        """Internal method to tun the irrandiances calculation
+        """
         # Get and store solar position arrays
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
         if self.general_data['time_steps_per_hour'] > 1:
@@ -193,24 +186,24 @@ class WeatherFile():
 
 
 def _TskyCalc(T_ext, T_dp, P_, n_opaque, time_steps):
-    '''
-    Apparent sky temperature calculation procedure
+    '''Apparent sky temperature calculation procedure
     Martin Berdhal model used by TRNSYS
 
     Parameters
     ----------
-    T_ext : np.array column
+    T_ext : numpy.array
         External Temperature [°C]
-    T_dp : dataframe column
-        External dew point temperature [°C]
-    P_ : dataframe column
-        External pressure [Pa]
-    n_opaque : dataframe column
-        Opaque sky covering [-]
+    T_dp : pandas.DataFrame
+        External dew point temperature [°C]. It must be a pandas.DataFrame column
+    P_ : pandas.DataFrame
+        External pressure [Pa]. It must be a pandas.DataFrame column
+    n_opaque : pandas.DataFrame
+        Opaque sky covering [-]. It must be a pandas.DataFrame column
 
     Returns
     -------
-    dTer: int, Average temperature difference between External air temperature and Apparent sky temperature [°C]
+    float
+        Average temperature difference between External air temperature and Apparent sky temperature [°C]
 
     '''
 
@@ -246,13 +239,13 @@ def _TskyCalc(T_ext, T_dp, P_, n_opaque, time_steps):
 
 
 def _get_irradiance(weather_obj, surf_tilt, surf_az):
-    '''
-    function from pvlib to calculate irradiance on a specific surface
+    '''function from pvlib to calculate irradiance on a specific surface
     https://pvlib-python.readthedocs.io/en/stable/auto_examples/plot_ghi_transposition.html#sphx-glr-auto-examples-plot-ghi-transposition-py
 
     Parameters
     ----------
-    weather_obj : weather object
+    weather_obj : eureca_building.weather.WeatherFile
+        Weather file object
     surf_tilt: float
         tilt of the surface
     surf_az: float
@@ -260,7 +253,8 @@ def _get_irradiance(weather_obj, surf_tilt, surf_az):
 
     Returns
     -------
-    pandas DataFrame with the irradiances on the surface
+    pandas.DataFrame
+        pandas DataFrame with the irradiances on the surface
     '''
 
     if surf_tilt < 0 or surf_tilt > 90 or surf_az < -180 or surf_az > 180:

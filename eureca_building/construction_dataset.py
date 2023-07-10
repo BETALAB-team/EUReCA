@@ -1,5 +1,5 @@
 """
-This module includes a container class for materials, constructions, and windows
+This module includes a ConstructionDataset, a container class for materials, constructions, and windows
 """
 
 __author__ = "Enrico Prataviera"
@@ -18,28 +18,22 @@ from eureca_building.exceptions import WrongConstructionType, WrongMaterialType
 
 
 class ConstructionDataset:
-    """
-    This class is a class to include the list of materials,
+    """This class is a class to include the list of materials,
     construction and windows that are used in the project
 
-    Attributes:
-        self.materials_dict:
-            Dict: dictionary with all materials
-        self.constructions_dict:
-            Dict: dictionary with all constructions
-        self.windows_dict:
-            Dict: dictionary with all windows
+    Attributes
+    ----------
+    materials_dict : dict
+        Dict: dictionary with all Materials
+    constructions_dict : dict
+        Dict: dictionary with all Constructions
+    windows_dict : dict
+        Dict: dictionary with all Windows
     """
 
     def __init__(self):
-        """
-        Generates the ConstructionDataset and the list of materials,
+        """Generates the ConstructionDataset and the list of materials,
         contructions, and windows
-
-        Returns
-        -------
-        None.
-
         """
 
         self.materials_dict = {}
@@ -48,6 +42,21 @@ class ConstructionDataset:
 
     @classmethod
     def read_excel(cls, file):
+        """Read the Materials, Windows and Constrcutions from a spreadsheet.
+        See and example at https://github.com/BETALAB-team/EUReCA/tree/main/eureca_building/example_scripts under materials_and_constructions.xlsx
+
+        Parameters
+        ----------
+        file : str
+            path to the file.xls
+
+        Returns
+        -------
+        ConstructionDataset
+            the object with the three dictionaries including all Materials Windows and Constructions from the spreadsheet
+
+
+        """
         dataset = cls()
 
         data = pd.read_excel(file, sheet_name=None, index_col=0)

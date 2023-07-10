@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.systems &mdash; EUReCA 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="eureca_building.systems.ChillerAirtoWater" href="eureca_building.systems.ChillerAirtoWater.html" />
+    <link rel="prev" title="eureca_building.surface.SurfaceInternalMass" href="eureca_building.surface.SurfaceInternalMass.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Model reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html">eureca_ubem</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="eureca_building.html">eureca_building</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.air_handling_unit.html">eureca_building.air_handling_unit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.config.html">eureca_building.config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.construction.html">eureca_building.construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.construction_dataset.html">eureca_building.construction_dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.domestic_hot_water.html">eureca_building.domestic_hot_water</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.exceptions.html">eureca_building.exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.fluids_properties.html">eureca_building.fluids_properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.internal_load.html">eureca_building.internal_load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.logs.html">eureca_building.logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.material.html">eureca_building.material</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.schedule.html">eureca_building.schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.schedule_properties.html">eureca_building.schedule_properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.setpoints.html">eureca_building.setpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.surface.html">eureca_building.surface</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">eureca_building.systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.ChillerAirtoWater.html">eureca_building.systems.ChillerAirtoWater</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.CondensingBoiler.html">eureca_building.systems.CondensingBoiler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.Cooling_EN15316.html">eureca_building.systems.Cooling_EN15316</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.Heating_EN15316.html">eureca_building.systems.Heating_EN15316</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.IdealLoad.html">eureca_building.systems.IdealLoad</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.SplitAirConditioner.html">eureca_building.systems.SplitAirConditioner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.SplitAirCooler.html">eureca_building.systems.SplitAirCooler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.System.html">eureca_building.systems.System</a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_building.systems.TraditionalBoiler.html">eureca_building.systems.TraditionalBoiler</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.systems_info.html">eureca_building.systems_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.test.html">eureca_building.test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.thermal_zone.html">eureca_building.thermal_zone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.units.html">eureca_building.units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.ventilation.html">eureca_building.ventilation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.weather.html">eureca_building.weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.window.html">eureca_building.window</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Model reference</a></li>
+          <li class="breadcrumb-item"><a href="eureca_building.html">eureca_building</a></li>
+      <li class="breadcrumb-item active">eureca_building.systems</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/reference/_autosummary/eureca_building.systems.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-eureca_building.systems">
+<span id="eureca-building-systems"></span><h1>eureca_building.systems<a class="headerlink" href="#module-eureca_building.systems" title="Permalink to this heading"></a></h1>
+<p>File with HVAC systems classes</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.ChillerAirtoWater" title="eureca_building.systems.ChillerAirtoWater"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChillerAirtoWater</span></code></a>(*args, **kwargs)</p></td>
+<td><p>ChillerAirtoWater class.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.CondensingBoiler" title="eureca_building.systems.CondensingBoiler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CondensingBoiler</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Class CondensingBoiler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.Cooling_EN15316" title="eureca_building.systems.Cooling_EN15316"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Cooling_EN15316</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Class Cooling_EN15316.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.Heating_EN15316" title="eureca_building.systems.Heating_EN15316"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Heating_EN15316</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Class Heating_EN15316.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.IdealLoad" title="eureca_building.systems.IdealLoad"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IdealLoad</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Class IdealLoad is for the ideal  zone balance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.SplitAirConditioner" title="eureca_building.systems.SplitAirConditioner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SplitAirConditioner</span></code></a>(*args, **kwargs)</p></td>
+<td><p>SplitAirConditioner class</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.SplitAirCooler" title="eureca_building.systems.SplitAirCooler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SplitAirCooler</span></code></a>(*args, **kwargs)</p></td>
+<td><p>SplitAirCooler class.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.System" title="eureca_building.systems.System"><code class="xref py py-obj docutils literal notranslate"><span class="pre">System</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Father class for HVAC systems classes Defines an interface to force inherited class to implement mandatory methods</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.systems.TraditionalBoiler" title="eureca_building.systems.TraditionalBoiler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TraditionalBoiler</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Class TraditionalBoiler.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="eureca_building.surface.SurfaceInternalMass.html" class="btn btn-neutral float-left" title="eureca_building.surface.SurfaceInternalMass" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="eureca_building.systems.ChillerAirtoWater.html" class="btn btn-neutral float-right" title="eureca_building.systems.ChillerAirtoWater" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

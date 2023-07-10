@@ -11,18 +11,22 @@ __maintainer__ = "Enrico Prataviera"
 
 class PropertyOutsideBoundaries(Exception):
     """
-    Class to raise the exeption property outside boundaries
+    Class to raise the exception property outside boundaries
     """
 
     def __init__(self, mat, prop, lim=None, unit=None, value=None):
-        """
-        Create an exception for properties problems
+        """Create an exception for properties problems
 
-        Args:
-            mat  ([str]): name of the property
-            prop ([str]): string with the property
-            unit ([str]): unit of the property
-            lim  ([list]): list with boundaries
+        Parameters
+        ----------
+        mat : str
+            name of the property
+        prop : str
+            string with the property
+        unit : str
+            unit of the property
+        lim : list
+            list with boundaries
         """
 
         super().__init__(mat, prop, lim, unit, value)
@@ -35,7 +39,7 @@ class PropertyOutsideBoundaries(Exception):
 
 class MaterialPropertyOutsideBoundaries(PropertyOutsideBoundaries):
     """
-    Class to raise the exeption material property outside boundaries
+    Class to raise the exception material property outside boundaries
     """
 
     pass
@@ -43,7 +47,7 @@ class MaterialPropertyOutsideBoundaries(PropertyOutsideBoundaries):
 
 class MaterialPropertyNotFound(Exception):
     """
-    Class to raise the exeption material property not found
+    Class to raise the exception material property not found
     """
 
     pass
@@ -51,7 +55,7 @@ class MaterialPropertyNotFound(Exception):
 
 class WrongConstructionType(Exception):
     """
-    Class to raise the exeption wrong construction type
+    Class to raise the exception wrong construction type
     """
 
     pass
@@ -59,7 +63,7 @@ class WrongConstructionType(Exception):
 
 class WrongMaterialType(Exception):
     """
-    Class to raise the exeption wrong construction type
+    Class to raise the exception wrong construction type
     """
 
     pass

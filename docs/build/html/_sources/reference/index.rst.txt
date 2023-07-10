@@ -9,4 +9,5 @@ Model reference
    :recursive:
 
    eureca_ubem
+   eureca_building
 
