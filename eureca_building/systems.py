@@ -126,7 +126,7 @@ class IdealLoad(System):
         kwargs
         """
 
-        self.convective_fraction = 0.5
+        self.convective_fraction = 0.65
         self.sigma = {
             "1C" : (1-self.convective_fraction, self.convective_fraction),
             "2C" : (
