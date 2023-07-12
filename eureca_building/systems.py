@@ -116,6 +116,10 @@ class IdealLoad(System):
     '''Class IdealLoad is for the ideal  zone balance. This class passes all methods.
     '''
 
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
