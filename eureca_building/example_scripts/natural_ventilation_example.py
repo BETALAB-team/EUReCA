@@ -87,6 +87,7 @@ wall_north = Surface(
     surface_type="ExtWall",
     construction=ext_wall_cs,
     window=window_cs,
+    n_window_layers=2
 )
 wall_west = Surface(
     "Wall 2",
@@ -95,6 +96,7 @@ wall_west = Surface(
     surface_type="ExtWall",
     construction=ext_wall_cs,
     window=window_cs,
+    n_window_layers=2
 )
 floor = Surface(
     "Floor",
@@ -126,6 +128,8 @@ intceiling = SurfaceInternalMass(
 #########################################################
 # Ventilation
 
+# weather_file.hourly_data["wind_speed"] = weather_file.hourly_data["wind_speed"]*0
+
 natural_vent_sched = Schedule(
     "nat_vent_sche",
     "dimensionless",
@@ -139,14 +143,14 @@ inf_obj = NaturalVentilation(
     nominal_value=90., # 90% moltiplicato per il vettore della schedule
     schedule=natural_vent_sched,
     weather = weather_file,
-    surfaces_with_opening = [wall_south, wall_east]
+    surfaces_with_opening = [wall_west, wall_east]
 )
 
 # Option 2
 inf_obj = NaturalVentilation(
     name='nat_vent',
     unit='%',
-    nominal_value=90., # 90% moltiplicato per il vettore della schedule
+    nominal_value=.9, # 90% moltiplicato per il vettore della schedule
     schedule=natural_vent_sched,
 )
 
@@ -154,7 +158,7 @@ weather_file.hourly_data["wind_direction"] = np.linspace(0, 360, 17519)
 
 inf_obj.define_pressure_coef(
     weather = weather_file,
-    surfaces_with_opening = [wall_south, wall_east]
+    surfaces_with_opening = [wall_west, wall_east]
 )
 
 ###### Solution
@@ -164,25 +168,42 @@ vect_t_zona = []
 vect_v = []
 t_zona = 23.
 z_n_tot = []
-for t in range(5000 * 2, 5000 * 2 + 100):
+vol_flow_rate_tot = []
+vol_flow_rate_sopra_tot = []
+ts_to_sim = 25
+for t in range(5000 * 2, 5000 * 2 + ts_to_sim):
     t_zona += 1.*random.randint(-100,100)/100
-    z_n = inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file)
+    z_n, vol_flow_rate, vol_flow_rate_sopra = inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file)
 
     vect_t_zona.append(t_zona)
     z_n_tot.append(z_n)
+    vol_flow_rate_tot.append(vol_flow_rate)
+    vol_flow_rate_sopra_tot.append(vol_flow_rate_sopra)
 
+wall_south._h_bottom_windows
 z_n_tot = np.array(z_n_tot)
+vol_flow_rate_tot = np.array(vol_flow_rate_tot)
+vol_flow_rate_sopra_tot = np.array(vol_flow_rate_sopra_tot)
 
 fig, [ax11, ax12, ax13, ax14] = plt.subplots(ncols=1, nrows=4)
 ax11_ = ax11.twinx()
 ax11.plot(vect_t_zona)
-ax11.plot(weather_file.hourly_data["out_air_db_temperature"][5000 * 2: 5000 * 2 + 100])
-ax11_.plot(weather_file.hourly_data["wind_speed"][5000 * 2: 5000 * 2 + 100])
+ax11.plot(weather_file.hourly_data["out_air_db_temperature"][5000 * 2: 5000 * 2 + ts_to_sim])
+ax11_.plot(weather_file.hourly_data["wind_speed"][5000 * 2: 5000 * 2 + ts_to_sim])
 ax11.set_ylabel("Zone temperature [°C]")
+ax12.hlines(wall_south._h_bottom_windows, xmin=0, xmax=len(z_n_tot)-1,color = "b")
+ax12.hlines(wall_south._h_top_windows, xmin=0, xmax=len(z_n_tot)-1,color = "k")
 ax12.plot(z_n_tot, color = "r")
 ax12.set_ylabel("Neutral plane height\n[-----]")
 
 
-ax13.plot(wall_south.wind_pressure_coeff, color = "r")
-ax13.plot(wall_east.wind_pressure_coeff, color = "b")
+ax13.plot(vol_flow_rate_tot*3600, color = "b")
+ax13.plot(vol_flow_rate_sopra_tot*3600, color = "r")
 ax13.set_ylabel("Natural ventilation\nmass flow rate [-----]")
+
+
+ax14.plot(wall_west.wind_pressure_coeff, color = "b")
+ax14.plot(wall_east.wind_pressure_coeff, color = "k")
+ax14.set_ylabel("Natural ventilation\nmass flow rate [-----]")
+
+print(np.max(np.abs(vol_flow_rate_sopra_tot)))
