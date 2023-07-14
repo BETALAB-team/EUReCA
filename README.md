@@ -1,4 +1,4 @@
-# EUReCA
+# EUReCA 
 
 ![Insert caption here](https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg)
 
