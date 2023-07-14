@@ -24,8 +24,12 @@ def skip(app, what, name, obj, would_skip, options):
 def setup(app):
     app.connect("autodoc-skip-member", skip)
 
-sys.path.insert(0, os.path.abspath('.'))
-# sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
+
+# for x in os.walk('../../src'):
+#     sys.path.insert(0, x[0])
+# sys.path.insert(0, os.path.abspath('../..'))
+# sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 
 
 # -- Project information -----------------------------------------------------
