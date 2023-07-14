@@ -426,7 +426,7 @@ class NaturalVentilation(Ventilation):
         c_coeff = [s._c_coeff[ts] for s in self.surfaces_with_opening]
         
         z_n = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
-        vol_flow = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
+        vol_flow = np.zeros([len(self.surfaces_with_opening[0]._h_bottom_windows), len(self.surfaces_with_opening)])
         vol_flow_sopra = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
         for floor in range(len(self.surfaces_with_opening[0]._h_bottom_windows)):
             h_top = [s._h_top_windows[floor] for s in self.surfaces_with_opening]
@@ -439,20 +439,22 @@ class NaturalVentilation(Ventilation):
             # TODO: fix when T_ext and T_int are similar (only wind effect)
             # z_n[floor] = np.nan
             
-            vol_flow[floor] = 0
-            
+
+            i = 0
             for s in self.surfaces_with_opening:
-                if s._h_bottom_windows[floor] < z_n[floor]:
-                    vol_flow[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                if s._h_top_windows[floor] < z_n[floor]:
-                    vol_flow[floor] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-            
+                #if s._h_bottom_windows[floor] < z_n[floor]:
+
+                vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+                #if s._h_top_windows[floor] < z_n[floor]:
+                vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+                i+=1
+
             # vol_flow_sopra[floor] = 0
             # for s in self.surfaces_with_opening:
             #     if s._h_bottom_windows[floor] > z_n[floor]:
             #         vol_flow_sopra[floor] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
             #     if s._h_top_windows[floor] > z_n[floor]:
-                    vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+            #         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
                 
             
         return z_n, vol_flow, vol_flow_sopra

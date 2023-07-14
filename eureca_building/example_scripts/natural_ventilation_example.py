@@ -128,7 +128,7 @@ intceiling = SurfaceInternalMass(
 #########################################################
 # Ventilation
 
-# weather_file.hourly_data["wind_speed"] = weather_file.hourly_data["wind_speed"]*0
+#weather_file.hourly_data["wind_speed"] = weather_file.hourly_data["wind_speed"]*0
 
 natural_vent_sched = Schedule(
     "nat_vent_sche",
@@ -177,7 +177,7 @@ for t in range(5000 * 2, 5000 * 2 + ts_to_sim):
 
     vect_t_zona.append(t_zona)
     z_n_tot.append(z_n)
-    vol_flow_rate_tot.append(vol_flow_rate)
+    vol_flow_rate_tot.append(vol_flow_rate[0])
     vol_flow_rate_sopra_tot.append(vol_flow_rate_sopra)
 
 wall_south._h_bottom_windows
@@ -197,8 +197,10 @@ ax12.plot(z_n_tot, color = "r")
 ax12.set_ylabel("Neutral plane height\n[-----]")
 
 
-ax13.plot(vol_flow_rate_tot*3600, color = "b")
-ax13.plot(vol_flow_rate_sopra_tot*3600, color = "r")
+ax13.plot(vol_flow_rate_tot[:,0], color = "b")
+ax13.plot(vol_flow_rate_tot[:,1], color = "r")
+ax13.set_ylim([-0.04,0.04])
+# ax13.plot(vol_flow_rate_sopra_tot, color = "r")
 ax13.set_ylabel("Natural ventilation\nmass flow rate [-----]")
 
 
