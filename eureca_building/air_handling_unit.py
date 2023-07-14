@@ -64,13 +64,13 @@ class AirHandlingUnit:
         ----------
         name : str
             name of the Air Handling Unit
-        mechanical_vent : MechanicalVentilation
+        mechanical_vent : eureca_building.ventilation.MechanicalVentilation
             ventialation object to define air flow rate
-        supply_temperature : Schedule
+        supply_temperature : eureca_building.schedule.Schedule
             Schedule object
-        supply_specific_humidity : Schedule
+        supply_specific_humidity : eureca_building.schedule.Schedule
             Schedule object
-        ahu_operation : Schedule
+        ahu_operation : eureca_building.schedule.Schedule
             Schedule object to define opeartion (-1 cooling, 1 heating, 0 fan mode)
         humidity_control : bool
             whether do humidification/dehumidification
@@ -80,11 +80,11 @@ class AirHandlingUnit:
             sensible heat recovery efficiency, must be between 0 and 1
         outdoor_air_ratio : float
             outdoor air fraction, must be between 0 and 1
-        weather : Weather
+        weather : eureca_building.weather.WeatherFile
             Weather object
-        thermal_zone: ThermalZone
+        thermal_zone : eureca_building.thermal_zone.ThermalZone
             ThermalZone object
-        tag: str
+        tag : str
             possible tags
 
         Raises
@@ -244,15 +244,13 @@ class AirHandlingUnit:
         ----------
         t : int
             timestep: int [-]
-        weather : WeatherFile
+        weather : eureca_building.weather.WeatherFile
             WeatherFile object
         T_int : float
             zone internal temperature: float [°C]
         x_int : float
             zone internal specific humidity: float [kg_v/kg_da]
 
-        Returns
-        -------
 
         """
 

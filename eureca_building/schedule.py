@@ -190,7 +190,7 @@ Number of time steps: {CONFIG.number_of_time_steps_year}
 
         Returns
         ----------
-        eureca_building.Schedule
+        eureca_building.schedule.Schedule
         """
         try:
             holidays = tuple(holidays)
@@ -255,7 +255,7 @@ Number of time steps: {CONFIG.number_of_time_steps_year}
 
         Returns
         -------
-        eureca_building.Schedule
+        eureca_building.schedule.Schedule
         """
 
         sched = np.array([value] * 24 * 365 * CONFIG.ts_per_hour)

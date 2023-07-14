@@ -300,7 +300,7 @@ class Construction(object):
         ----------
         sup : float
             area of the surface [m2]
-        asim : boolean
+        asim : bool
             Is the surface non-adiabatic? True/False
 
         Returns
@@ -428,7 +428,7 @@ Construction: {self.name}
 
         Returns
         ----------
-        Construction
+        eureca_building.construction.Construction
             Construction object from these values
         """
 

@@ -32,7 +32,7 @@ def load_schedules(path):
     
     Parameters
     ----------
-    path : string
+    path : str
         Path to the spreadsheet to read file_schedule.xlsx
 
     Returns
@@ -230,7 +230,7 @@ class EndUse:
 
         Returns
         -------
-        eureca_ubem.eund_uses.EndUse
+        eureca_ubem.end_uses.EndUse
         '''
 
         # Each schedule is set to a different attribute of the class

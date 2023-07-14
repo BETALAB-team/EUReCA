@@ -28,7 +28,7 @@ def calc_neutral_plane_nat_vent(x, *data):
 
     Parameters
     ----------
-    x : float?
+    x : float
 
     data : tuple
 
@@ -357,7 +357,7 @@ class NaturalVentilation(Ventilation):
 
         Parameters
         ----------
-        weather : eureca_building.weathe.WeatherFile
+        weather : eureca_building.weather.WeatherFile
             WeatherFile object
         surfaces_with_opening : list
             list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes
@@ -414,7 +414,7 @@ class NaturalVentilation(Ventilation):
             time step of simulation
         t_zone : float
             zone temperature [°C]
-        weather : eureca_building.weathe.WeatherFile
+        weather : eureca_building.weather.WeatherFile
             WeatherFile object
         """
         # To be completed and commented

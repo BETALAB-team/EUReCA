@@ -48,7 +48,7 @@ class SimpleWindow(object):
             [-].
         visible_transmittance : float, default 0.9
             [-]. The default is 0.9.
-        frame_factor : float, , default 0.9
+        frame_factor : float, default 0.9
             [-]. The default is 0.9.
         shading_coef_int : float, default 0.05
             [-]. The default is 0.05.

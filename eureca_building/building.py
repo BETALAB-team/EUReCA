@@ -106,7 +106,7 @@ class Building:
             string to define building cooling system
 
         Raises
-        ----------
+        ------
         KeyError
             if the heating/cooling system is not included in the available list (See above)
         TypeError
@@ -136,12 +136,12 @@ class Building:
 
         Parameters
         ----------
-        weather_object : WeatherFile
+        weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate 
             
 
         Raises
-        ----------
+        ------
         SimulationError
             if thermal_zone design load calculation has not been carried out yet
 
@@ -166,7 +166,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         ----------
         t : int
             timestep
-        weather_object : WeatherFile
+        weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
         heat_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
@@ -216,7 +216,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         Parameters
         ----------
-        weather_object : WeatherFile
+        weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
         t_start : int (Default first timestep of simulation)
             starting timestep

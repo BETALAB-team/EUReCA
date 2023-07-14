@@ -52,7 +52,7 @@ class ConstructionDataset:
 
         Returns
         -------
-        ConstructionDataset
+        eureca_building.construction_dataset.ConstructionDataset
             the object with the three dictionaries including all Materials Windows and Constructions from the spreadsheet
 
 
