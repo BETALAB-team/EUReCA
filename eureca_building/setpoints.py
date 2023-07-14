@@ -89,9 +89,9 @@ class SetpointDualBand(Setpoint):
             name
         setpoint_type : float
             type from: {setpoint_prop.keys()}
-        schedule_lower : eureca_building.Schedule
+        schedule_lower : eureca_building.schedule.Schedule
             Schedule object to define the lower boundary
-        schedule_upper : eureca_building.Schedule
+        schedule_upper : eureca_building.schedule.Schedule
             Schedule object to define the upper boundary
         tag : str, default None
             a tag to define the type of internal load

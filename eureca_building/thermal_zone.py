@@ -185,9 +185,9 @@ class ThermalZone(object):
 
         Parameters
         ----------
-        setpoint: eureca_building.setpoint.Setpoint
+        setpoint : eureca_building.setpoint.Setpoint
             object of the class Setpoint
-        mode: str
+        mode : str
             setpoint mode: ['air', 'operative', 'radiant'].
             FOR NOW ONLY AIR IMPLEMENTED
 
@@ -228,7 +228,7 @@ class ThermalZone(object):
 
         Parameters
         ----------
-        setpoint: eureca_building.setpoint.Setpoint
+        setpoint : eureca_building.setpoint.Setpoint
             object of the class Setpoint
 
         """
@@ -302,7 +302,7 @@ class ThermalZone(object):
 
         Parameters
         ----------
-        internal_load: eureca_building.internal_load.InternalLoad
+        internal_load : eureca_building.internal_load.InternalLoad
             As many eureca_building.internal_load.InternalLoad can be provided
 
         """
@@ -349,7 +349,7 @@ class ThermalZone(object):
 
         Parameters
         ----------
-        natural_ventilation: eureca_building.ventilation.Infiltration
+        natural_ventilation : eureca_building.ventilation.Infiltration
             As many eureca_building.ventilation.Infiltration can be provided
 
         """
@@ -1051,7 +1051,7 @@ Thermal zone {self.name} 2C params:
 
         Returns
         -------
-        np.array
+        numpy.array
             temperature nodes of the RC model:
             theta_m_aw thermal mass of AW building components [°C]
             theta_s_aw surface of AW building components [°C]

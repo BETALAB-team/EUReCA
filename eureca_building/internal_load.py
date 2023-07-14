@@ -48,7 +48,7 @@ class InternalLoad:
             name
         nominal_value : float
             the value to be multiplied by the schedule
-        schedule : eureca_building.Schedule
+        schedule : eureca_building.schedule.Schedule
             Schedule object
         tag : str
             a tag to define the type of internal load
@@ -241,7 +241,7 @@ class People(InternalLoad):
             the value to be multiplied by the schedule
         unit : str
             define the unit from the list {internal_loads_prop["people"]["unit"]}
-        schedule : eureca_building.Schedule
+        schedule : eureca_building.schedule.Schedule
             Schedule object
         fraction_latent : float, default 0.55
             latent fraction (between 0 and 1)
@@ -437,7 +437,7 @@ class ElectricLoad(InternalLoad):
             the value to be multiplied by the schedule
         unit : str
             define the unit from the list {internal_loads_prop["people"]["unit"]}
-        schedule : eureca_building.Schedule
+        schedule : eureca_building.schedule.Schedule
             Schedule object
         fraction_to_zone : float, default 1.
             fraction that is actually counted as Heat Load for the zone (between 0 and 1)
@@ -633,7 +633,7 @@ class Lights(ElectricLoad):
             the value to be multiplied by the schedule
         unit : str
             define the unit from the list {internal_loads_prop["people"]["unit"]}
-        schedule : Schedule
+        schedule : eureca_building.schedule.Schedule
             Schedule object
         fraction_to_zone : float, default 1.
             fraction that is actually counted as Heat Load for the zone (between 0 and 1)

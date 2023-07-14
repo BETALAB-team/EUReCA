@@ -88,7 +88,7 @@ class Surface:
         surface_type : str, default None
             Type of surface 'ExtWall' or 'GroundFloor' or 'Roof'.
             If not provided autocalculate.
-        construction : eureca_building.Construction
+        construction : eureca_building.construction.Construction
             the construction object with the materials
         window : eureca_building.window.SimpleWindow
             the Window object with the materials

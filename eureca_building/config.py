@@ -24,7 +24,6 @@ def load_config(file: str = None):
 
     Examples
     ----------
-    '
     {
       "DEFAULT": {},
       "model": {
@@ -47,7 +46,6 @@ def load_config(file: str = None):
         "urban shading tolerances": "80.,100.,80."
       }
     }
-    '
 
     Parameters
     ----------
@@ -56,7 +54,7 @@ def load_config(file: str = None):
 
     Returns
     -------
-    Config
+    eureca_building.config.Config
         Config object from Config class
 
     """
@@ -168,7 +166,7 @@ class Config(configparser.ConfigParser):
 
         Returns
         -------
-        Config
+        eureca_building.config.Config
             config object
 
         """

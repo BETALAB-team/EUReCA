@@ -192,7 +192,7 @@ class DomesticHotWater:
             Calculation method, choose from {domestic_hot_water_prop['calculation_method']}
         unit : str
             Unit of the schedule, choose from {domestic_hot_water_prop['unit']}
-        schedule : Schedule
+        schedule : eureca_building.schedule.Schedule
             Schedule object, to be used in case the method is 'schedule'
         """
 
@@ -253,7 +253,7 @@ class DomesticHotWater:
             Area of the building [m2]
         number_of_units : int
             Number of dwellings (for residential calculation done with UNI-TS 11300
-        weather : WeatherFile
+        weather : eureca_building.weather.WeatherFile
             WeatherFile object
 
         Returns

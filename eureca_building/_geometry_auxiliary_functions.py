@@ -202,7 +202,7 @@ def check_complanarity(vert_list_tot, precision=1):
     ----------
     vert_list_tot : list
         list of list of floats (polygon). list with n lists of three floats (n vertices)
-    precision: float
+    precision : float
         defines the tolerance of the control [m]
  
     Returns
@@ -286,7 +286,7 @@ def centroid(vert_list):
     Returns
     -------
     numpy.array
-        oordinates of the centroid (3 components)
+        coordinates of the centroid (3 components)
     
     """
 
