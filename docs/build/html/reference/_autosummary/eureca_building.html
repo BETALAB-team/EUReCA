@@ -11,11 +11,11 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -43,11 +43,11 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Model reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html">eureca_ubem</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">eureca_building</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.air_handling_unit.html">eureca_building.air_handling_unit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.building.html">eureca_building.building</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.config.html">eureca_building.config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.construction.html">eureca_building.construction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.construction_dataset.html">eureca_building.construction_dataset</a></li>
@@ -106,69 +106,72 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.air_handling_unit" title="eureca_building.air_handling_unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.air_handling_unit</span></code></a></p></td>
-<td><p>This module manages the air handling units</p></td>
+<td><p>This module includes the class to manage the Air Handling Unit</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.config" title="eureca_building.config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.config</span></code></a></p></td>
-<td><p>This module includes classes and functions to manage weather file</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.building" title="eureca_building.building"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.building</span></code></a></p></td>
+<td><p>This module includes functions to model the building and it includes the Building class</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.construction" title="eureca_building.construction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.construction</span></code></a></p></td>
-<td><p>This module includes classfor the typical construction</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.config" title="eureca_building.config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.config</span></code></a></p></td>
+<td><p>This module includes classes and functions to manage the CONFIG varible (the variable with simulation settings)</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.construction_dataset" title="eureca_building.construction_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.construction_dataset</span></code></a></p></td>
-<td><p>This module includes a container class for materials, constructions, and windows</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.construction" title="eureca_building.construction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.construction</span></code></a></p></td>
+<td><p>This module includes class for the typical construction</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.domestic_hot_water" title="eureca_building.domestic_hot_water"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.domestic_hot_water</span></code></a></p></td>
-<td><p>This module includes functions to model natural ventilation and infiltration</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.construction_dataset" title="eureca_building.construction_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.construction_dataset</span></code></a></p></td>
+<td><p>This module includes a ConstructionDataset, a container class for materials, constructions, and windows</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.exceptions" title="eureca_building.exceptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.exceptions</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.domestic_hot_water" title="eureca_building.domestic_hot_water"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.domestic_hot_water</span></code></a></p></td>
+<td><p>This module includes functions to model Domestic Hot Water consumptions</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.exceptions" title="eureca_building.exceptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.exceptions</span></code></a></p></td>
 <td><p>List of custom exceptions</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.fluids_properties" title="eureca_building.fluids_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.fluids_properties</span></code></a></p></td>
-<td><p>This module includes functions to model the thermal zone</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.fluids_properties" title="eureca_building.fluids_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.fluids_properties</span></code></a></p></td>
+<td><p>This module includes dictionaries with fluid properties (air, water, vapour, fuels) To be used all over the code</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.internal_load" title="eureca_building.internal_load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.internal_load</span></code></a></p></td>
-<td><p>This module includes functions to model internal gains</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.internal_load" title="eureca_building.internal_load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.internal_load</span></code></a></p></td>
+<td><p>This module includes functions and classes to model internal heat gains</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.logs" title="eureca_building.logs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.logs</span></code></a></p></td>
-<td><p>function for logs</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.logs" title="eureca_building.logs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.logs</span></code></a></p></td>
+<td><p>Module that is called at the begin of the simulation to set the log file trough the logging library</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.material" title="eureca_building.material"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.material</span></code></a></p></td>
-<td><p>This module includes classes and fuction to implement materials properties</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.material" title="eureca_building.material"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.material</span></code></a></p></td>
+<td><p>This module includes classes and functions to implement materials properties</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.schedule" title="eureca_building.schedule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.schedule</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.schedule" title="eureca_building.schedule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.schedule</span></code></a></p></td>
 <td><p>This module includes functions to model any schedule</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.schedule_properties" title="eureca_building.schedule_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.schedule_properties</span></code></a></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.schedule_properties" title="eureca_building.schedule_properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.schedule_properties</span></code></a></p></td>
+<td><p>This file includes dictionaries to define each schedule and internal heat gains type and their properties using a JSON/Dictionary structure</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.setpoints" title="eureca_building.setpoints"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.setpoints</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.setpoints" title="eureca_building.setpoints"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.setpoints</span></code></a></p></td>
 <td><p>This module includes functions to model setpoint of the thermal zone</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.surface" title="eureca_building.surface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.surface</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.surface" title="eureca_building.surface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.surface</span></code></a></p></td>
 <td><p>This module includes functions to model a 3D surface</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.systems" title="eureca_building.systems"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.systems</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.systems" title="eureca_building.systems"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.systems</span></code></a></p></td>
 <td><p>File with HVAC systems classes</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.systems_info" title="eureca_building.systems_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.systems_info</span></code></a></p></td>
-<td><p>File with HVAC systems classes</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.systems_info" title="eureca_building.systems_info"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.systems_info</span></code></a></p></td>
+<td><p>File with HVAC systems csvs This is an internal class, where typical systems performances are stored in a disctionary, using csv parsed strings</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.test.html#module-eureca_building.test" title="eureca_building.test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.test</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.test.html#module-eureca_building.test" title="eureca_building.test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.test</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.thermal_zone" title="eureca_building.thermal_zone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.thermal_zone</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.thermal_zone" title="eureca_building.thermal_zone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.thermal_zone</span></code></a></p></td>
 <td><p>This module includes functions to model the thermal zone</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.units" title="eureca_building.units"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.units</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.units" title="eureca_building.units"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.units</span></code></a></p></td>
 <td><p>List of physic properties with their unit</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.ventilation" title="eureca_building.ventilation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.ventilation</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.ventilation" title="eureca_building.ventilation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.ventilation</span></code></a></p></td>
 <td><p>This module includes functions to model natural ventilation and infiltration</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.weather" title="eureca_building.weather"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.weather</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.weather" title="eureca_building.weather"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.weather</span></code></a></p></td>
 <td><p>This module includes classes and functions to manage weather file</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.window" title="eureca_building.window"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.window</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../eureca_building.html#module-eureca_building.window" title="eureca_building.window"><code class="xref py py-obj docutils literal notranslate"><span class="pre">eureca_building.window</span></code></a></p></td>
 <td><p>This module includes classes and functions to solve the window system</p></td>
 </tr>
 </tbody>

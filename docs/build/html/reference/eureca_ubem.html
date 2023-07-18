@@ -11,11 +11,11 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -41,7 +41,6 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="../readme_link.html">EUReCA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="index.html">Model reference</a></li>
 </ul>
 
@@ -74,8 +73,117 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
 </section>
-<section id="eureca-ubem-city-module">
-<h2>eureca_ubem.city module<a class="headerlink" href="#eureca-ubem-city-module" title="Permalink to this heading"></a></h2>
+<section id="module-eureca_ubem.city">
+<span id="eureca-ubem-city-module"></span><h2>eureca_ubem.city module<a class="headerlink" href="#module-eureca_ubem.city" title="Permalink to this heading"></a></h2>
+<p>IMPORTING MODULES</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="eureca_ubem.city.City">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eureca_ubem.city.</span></span><span class="sig-name descname"><span class="pre">City</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">city_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">envelope_types_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_uses_types_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epw_weather_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">building_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2C'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This class manages the city simulation via json input file: geojson or cityjson</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.H_waste_0">
+<span class="sig-name descname"><span class="pre">H_waste_0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.H_waste_0" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.T_out_AHU">
+<span class="sig-name descname"><span class="pre">T_out_AHU</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.T_out_AHU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.T_out_inf">
+<span class="sig-name descname"><span class="pre">T_out_inf</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.T_out_inf" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.T_w_0">
+<span class="sig-name descname"><span class="pre">T_w_0</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.T_w_0" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.V_0_inf">
+<span class="sig-name descname"><span class="pre">V_0_inf</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.V_0_inf" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.V_0_vent">
+<span class="sig-name descname"><span class="pre">V_0_vent</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#eureca_ubem.city.City.V_0_vent" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">city_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">envelope_types_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_uses_types_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epw_weather_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">building_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'2C'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shading_calculation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Creates the city from all the input files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>city_model</strong> (<em>str</em>) – path to the json/cityjson file</p></li>
+<li><p><strong>envelope_types_file</strong> (<em>str</em>) – path to the envelope_types file</p></li>
+<li><p><strong>end_uses_types_file</strong> (<em>str</em>) – path to the end_uses file</p></li>
+<li><p><strong>epw_weather_file</strong> (<em>str</em>) – path to the epw weather file</p></li>
+<li><p><strong>output_folder</strong> (<em>str</em>) – folder to save results</p></li>
+<li><p><strong>building_model</strong> (<em>str</em><em>, </em><em>default &quot;2C&quot;</em>) – 1C or 2C string</p></li>
+<li><p><strong>shading_calculation</strong> (<em>bool</em><em>, </em><em>default False</em>) – whether to do or not the mutual shading calculation</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.building_model">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">building_model</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#eureca_ubem.city.City.building_model" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.buildings_creation_from_cityjson">
+<span class="sig-name descname"><span class="pre">buildings_creation_from_cityjson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.buildings_creation_from_cityjson" title="Permalink to this definition"></a></dt>
+<dd><p>This method creates the city from the json file (CityJSON 3D)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>json_path</strong> (<em>str</em>) – path of the cityJSON file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.buildings_creation_from_geojson">
+<span class="sig-name descname"><span class="pre">buildings_creation_from_geojson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.buildings_creation_from_geojson" title="Permalink to this definition"></a></dt>
+<dd><p>Function to create buildings from geojson file (2D file).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>json_path</strong> (<em>str</em>) – Path to geojson file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.geometric_preprocessing">
+<span class="sig-name descname"><span class="pre">geometric_preprocessing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.geometric_preprocessing" title="Permalink to this definition"></a></dt>
+<dd><p>This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
+Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.loads_calculation">
+<span class="sig-name descname"><span class="pre">loads_calculation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.loads_calculation" title="Permalink to this definition"></a></dt>
+<dd><p>This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="eureca_ubem.city.City.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_single_building_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_ubem.city.City.simulate" title="Permalink to this definition"></a></dt>
+<dd><p>Simulation of the whole city, and memorization and stamp of results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>print_single_building_results</strong> (<em>bool</em><em>, </em><em>default False</em>) – If True, the prints a file with time step results for each building.
+USE CAREFULLY: It might fill a lot of disk space</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-eureca_ubem.end_uses">
 <span id="eureca-ubem-end-uses-module"></span><h2>eureca_ubem.end_uses module<a class="headerlink" href="#module-eureca_ubem.end_uses" title="Permalink to this heading"></a></h2>
@@ -126,19 +234,15 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> (<em>str</em>) – name</p></li>
 <li><p><strong>daily_df_from_excel</strong> (<em>pandas.DataFrame</em>) – DataFrame containing schedules from the end_use</p></li>
-<li><p><strong>scalar_df_from_excel</strong> (<em>pandas.DataFrame</em>) – <dl>
-<dt>This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)</dt><dd><blockquote>
-<div><p>(Sensible and</p>
-</div></blockquote>
-<p>Latent AHU recovery,
-Convective fraction of internal gains)</p>
-</dd>
-</dl>
-</p></li>
+<li><p><strong>scalar_df_from_excel</strong> (<em>pandas.DataFrame</em>) – This series includes some additional data about the archetype
+(from the GeneralInfo page in the spreadsheet)
+(Sensible and
+Latent AHU recovery,
+Convective fraction of internal gains)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>eureca_ubem.eund_uses.EndUse</p>
+<dd class="field-even"><p><a class="reference internal" href="#eureca_ubem.end_uses.EndUse" title="eureca_ubem.end_uses.EndUse">eureca_ubem.end_uses.EndUse</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -178,7 +282,7 @@ This function takes the path to the spreadsheet consisting of the schedules and 
 Works for the daily schedule (see file ScheduleSemp.xlsx in eureca_ubem/Input/)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> (<em>string</em>) – Path to the spreadsheet to read file_schedule.xlsx</p>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to the spreadsheet to read file_schedule.xlsx</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>dictionary with EndUse_key/ eureca_ubem.end_uses.EndUse objects</p>

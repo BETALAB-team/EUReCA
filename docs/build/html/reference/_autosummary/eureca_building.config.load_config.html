@@ -11,11 +11,11 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -43,11 +43,11 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Model reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html">eureca_ubem</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="eureca_building.html">eureca_building</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.air_handling_unit.html">eureca_building.air_handling_unit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.building.html">eureca_building.building</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="eureca_building.config.html">eureca_building.config</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">eureca_building.config.load_config</a></li>
 <li class="toctree-l4"><a class="reference internal" href="eureca_building.config.Config.html">eureca_building.config.Config</a></li>
@@ -110,37 +110,29 @@
 <h1>eureca_building.config.load_config<a class="headerlink" href="#eureca-building-config-load-config" title="Permalink to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="eureca_building.config.load_config">
-<span class="sig-prename descclassname"><span class="pre">eureca_building.config.</span></span><span class="sig-name descname"><span class="pre">load_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.config.load_config" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">eureca_building.config.</span></span><span class="sig-name descname"><span class="pre">load_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eureca_building.config.load_config" title="Permalink to this definition"></a></dt>
 <dd><p>Function to load the config file, json file suggested</p>
 <p class="rubric">Examples</p>
-<blockquote>
-<div><p>“DEFAULT”: {},
-“model”: {</p>
-<blockquote>
-<div><p>“name”: “example_model”</p>
-</div></blockquote>
-<p>},
-“simulation settings”: {</p>
-<blockquote>
-<div><p>“time steps per hour”: “2”,
+<p>“DEFAULT”: {},
+“model”: {
+“name”: “example_model”
+},
+“simulation settings”: {
+“time steps per hour”: “2”,
 “simulation reference year” : “2023”,
 “start date”: “01-01 00:00”,
 “final date”: “12-31 23:00”,
 “heating season start”: “11-15 23:00”,
 “heating season end”: “04-15 23:00”,
 “cooling season start”: “06-01 23:00”,
-“cooling season end”: “09-30 23:00”</p>
-</div></blockquote>
-<p>},
-“solar radiation settings”: {</p>
-<blockquote>
-<div><p>“do solar radiation calculation”: “False”,
+“cooling season end”: “09-30 23:00”
+},
+“solar radiation settings”: {
+“do solar radiation calculation”: “False”,
 “height subdivisions”: “4”,
 “azimuth subdivisions”: “8”,
-“urban shading tolerances”: “80.,100.,80.”</p>
-</div></blockquote>
-<p>}</p>
-</div></blockquote>
+“urban shading tolerances”: “80.,100.,80.”
+}</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>file</strong> (<em>str</em>) – string path to the file to load</p>
@@ -149,7 +141,7 @@
 <dd class="field-even"><p>Config object from Config class</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="../eureca_building.html#eureca_building.config.Config" title="eureca_building.config.Config">Config</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="../eureca_building.html#eureca_building.config.Config" title="eureca_building.config.Config">eureca_building.config.Config</a></p>
 </dd>
 </dl>
 </dd></dl>

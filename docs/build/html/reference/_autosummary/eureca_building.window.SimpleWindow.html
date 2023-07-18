@@ -11,11 +11,11 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -42,11 +42,11 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Model reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html">eureca_ubem</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="eureca_building.html">eureca_building</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.air_handling_unit.html">eureca_building.air_handling_unit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_building.building.html">eureca_building.building</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.config.html">eureca_building.config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.construction.html">eureca_building.construction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="eureca_building.construction_dataset.html">eureca_building.construction_dataset</a></li>
@@ -123,7 +123,7 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <li><p><strong>u_value</strong> (<em>float</em>) – u_value [W/(m2 K)].</p></li>
 <li><p><strong>solar_heat_gain_coef</strong> (<em>float</em>) – [-].</p></li>
 <li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
 <li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 <li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 </ul>
@@ -198,7 +198,7 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <td><p>Abstract classes can override this to customize issubclass().</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../eureca_building.html#eureca_building.window.SimpleWindow.simpleGlazingModel" title="eureca_building.window.SimpleWindow.simpleGlazingModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">simpleGlazingModel</span></code></a>()</p></td>
-<td><p>Description: This function implement the simplified model for glazing that is used in energy plus The output variables are: -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC     in function of the incident angle  from 0� to 90�, with a 10� step -   the solar transmittance, reflectance and absorption at normal incident; -   the equivalent conductivity [W/m K] of the glazing material; -   the equivalent thickness [m] of the glazing layer; -   the visible reflectance on the front side and back side; -   the inward flowing fraction;</p></td>
+<td><p>Description: This function implement the simplified model for glazing that is used in energy plus The output variables are: -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC in function of the incident angle  from 0 to 90, with a 10 step -   the solar transmittance, reflectance and absorption at normal incident; -   the equivalent conductivity [W/m K] of the glazing material; -   the equivalent thickness [m] of the glazing layer; -   the visible reflectance on the front side and back side; -   the inward flowing fraction;</p></td>
 </tr>
 </tbody>
 </table>
@@ -248,7 +248,7 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <li><p><strong>u_value</strong> (<em>float</em>) – u_value [W/(m2 K)].</p></li>
 <li><p><strong>solar_heat_gain_coef</strong> (<em>float</em>) – [-].</p></li>
 <li><p><strong>visible_transmittance</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
-<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
+<li><p><strong>frame_factor</strong> (<em>float</em><em>, </em><em>default 0.9</em>) – [-]. The default is 0.9.</p></li>
 <li><p><strong>shading_coef_int</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 <li><p><strong>shading_coef_ext</strong> (<em>float</em><em>, </em><em>default 0.05</em>) – [-]. The default is 0.05.</p></li>
 </ul>
@@ -262,17 +262,13 @@ and apply the simple glazing model to estimates the curve of SHGC(theta)</p>
 <dd><p>Description:
 This function implement the simplified model for glazing that is used in energy plus
 The output variables are:
--   4 vectors containing solar transmittance, reflectance, absorptance, SHGC</p>
-<blockquote>
-<div><p>in function of the incident angle  from 0� to 90�, with a 10� step</p>
-</div></blockquote>
-<ul class="simple">
-<li><p>the solar transmittance, reflectance and absorption at normal incident;</p></li>
-<li><p>the equivalent conductivity [W/m K] of the glazing material;</p></li>
-<li><p>the equivalent thickness [m] of the glazing layer;</p></li>
-<li><p>the visible reflectance on the front side and back side;</p></li>
-<li><p>the inward flowing fraction;</p></li>
-</ul>
+-   4 vectors containing solar transmittance, reflectance, absorptance, SHGC
+in function of the incident angle  from 0 to 90, with a 10 step
+-   the solar transmittance, reflectance and absorption at normal incident;
+-   the equivalent conductivity [W/m K] of the glazing material;
+-   the equivalent thickness [m] of the glazing layer;
+-   the visible reflectance on the front side and back side;
+-   the inward flowing fraction;</p>
 <p>———ATTENTION———–
 For some combinations of variable SHGC and U the curves are not
 physically possible,(reflectance &gt; 1).

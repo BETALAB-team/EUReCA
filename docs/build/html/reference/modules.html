@@ -11,11 +11,11 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -41,7 +41,6 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="../readme_link.html">EUReCA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="index.html">Model reference</a></li>
 </ul>
 
@@ -75,9 +74,48 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="eureca_ubem.html">eureca_ubem package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#eureca-ubem-city-module">eureca_ubem.city module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem.end_uses">eureca_ubem.end_uses module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem.envelope_types">eureca_ubem.envelope_types module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem.city">eureca_ubem.city module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City"><code class="docutils literal notranslate"><span class="pre">City</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.H_waste_0"><code class="docutils literal notranslate"><span class="pre">City.H_waste_0</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.T_out_AHU"><code class="docutils literal notranslate"><span class="pre">City.T_out_AHU</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.T_out_inf"><code class="docutils literal notranslate"><span class="pre">City.T_out_inf</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.T_w_0"><code class="docutils literal notranslate"><span class="pre">City.T_w_0</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.V_0_inf"><code class="docutils literal notranslate"><span class="pre">City.V_0_inf</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.V_0_vent"><code class="docutils literal notranslate"><span class="pre">City.V_0_vent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.__init__"><code class="docutils literal notranslate"><span class="pre">City.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.building_model"><code class="docutils literal notranslate"><span class="pre">City.building_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.buildings_creation_from_cityjson"><code class="docutils literal notranslate"><span class="pre">City.buildings_creation_from_cityjson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.buildings_creation_from_geojson"><code class="docutils literal notranslate"><span class="pre">City.buildings_creation_from_geojson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.geometric_preprocessing"><code class="docutils literal notranslate"><span class="pre">City.geometric_preprocessing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.loads_calculation"><code class="docutils literal notranslate"><span class="pre">City.loads_calculation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.city.City.simulate"><code class="docutils literal notranslate"><span class="pre">City.simulate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem.end_uses">eureca_ubem.end_uses module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse"><code class="docutils literal notranslate"><span class="pre">EndUse</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.__init__"><code class="docutils literal notranslate"><span class="pre">EndUse.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.air_handling_unit_system"><code class="docutils literal notranslate"><span class="pre">EndUse.air_handling_unit_system</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.domestic_hot_water"><code class="docutils literal notranslate"><span class="pre">EndUse.domestic_hot_water</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.heat_gains"><code class="docutils literal notranslate"><span class="pre">EndUse.heat_gains</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.infiltration"><code class="docutils literal notranslate"><span class="pre">EndUse.infiltration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.load_daily_sched"><code class="docutils literal notranslate"><span class="pre">EndUse.load_daily_sched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.rescale_df"><code class="docutils literal notranslate"><span class="pre">EndUse.rescale_df()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.EndUse.zone_system"><code class="docutils literal notranslate"><span class="pre">EndUse.zone_system</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.end_uses.load_schedules"><code class="docutils literal notranslate"><span class="pre">load_schedules()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem.envelope_types">eureca_ubem.envelope_types module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.envelope_types.EnvelopeType"><code class="docutils literal notranslate"><span class="pre">EnvelopeType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.envelope_types.EnvelopeType.__init__"><code class="docutils literal notranslate"><span class="pre">EnvelopeType.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="eureca_ubem.html#eureca_ubem.envelope_types.load_envelopes"><code class="docutils literal notranslate"><span class="pre">load_envelopes()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="eureca_ubem.html#module-eureca_ubem">Module contents</a></li>
 </ul>
 </li>
