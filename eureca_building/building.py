@@ -15,7 +15,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from eureca_building.config import CONFIG
+from eureca_building.config import _CONFIG
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
@@ -207,9 +207,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
     def simulate(self,
                  weather_object: WeatherFile,
-                 t_start: int = CONFIG.start_time_step,
-                 t_stop: int = CONFIG.final_time_step,
-                 preprocessing_ts: int = 100 * CONFIG.ts_per_hour,
+                 t_start: int = _CONFIG.start_time_step,
+                 t_stop: int = _CONFIG.final_time_step,
+                 preprocessing_ts: int = 100 * _CONFIG.ts_per_hour,
                  output_folder: str = None
                  ):
         """Simulate a period and i stores the outputs. Calls solve_timestep method
@@ -236,30 +236,30 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             tz.reset_init_values()
 
         results = {
-            'TZ Ta [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ To [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ Tmr [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ RH [-]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ sensible load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ latent load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU pre heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU post heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ Ta [°C]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ To [°C]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ Tmr [°C]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ RH [-]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ sensible load [W]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ latent load [W]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU pre heater load [W]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU post heater load [W]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ DHW volume flow rate [L/s]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ DHW demand [W]' : np.zeros([_CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
-            'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system gas consumption [Nm3]' : np.zeros([_CONFIG.number_of_time_steps, 1]),
+            'Heating system oil consumption [L]' : np.zeros([_CONFIG.number_of_time_steps, 1]),
+            'Heating system wood consumption [kg]' : np.zeros([_CONFIG.number_of_time_steps, 1]),
+            'Heating system electric consumption [Wh]' : np.zeros([_CONFIG.number_of_time_steps, 1]),
+            'Cooling system electric consumption [Wh]': np.zeros([_CONFIG.number_of_time_steps, 1]),
+            'Appliances electric consumption [Wh]': np.zeros([_CONFIG.number_of_time_steps, 1]),
         }
 
-        electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / CONFIG.ts_per_hour
-        results['Appliances electric consumption [Wh]'][:, 0] = electric_consumption[CONFIG.start_time_step:CONFIG.final_time_step]
+        electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / _CONFIG.ts_per_hour
+        results['Appliances electric consumption [Wh]'][:, 0] = electric_consumption[_CONFIG.start_time_step:_CONFIG.final_time_step]
 
-        results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
-        results['TZ DHW demand [W]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
+        results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[_CONFIG.start_time_step:_CONFIG.final_time_step]
+        results['TZ DHW demand [W]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[_CONFIG.start_time_step:_CONFIG.final_time_step]
 
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
@@ -288,8 +288,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         tz_names = [tz.name for tz in self._thermal_zones_list]
         columns_tz = pd.MultiIndex.from_product([tz_labels,tz_names])
         columns_bd = pd.MultiIndex.from_product([bd_labels,[f"Bd {self.name}"]])
-        tz = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_tz)
-        bd = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_bd)
+        tz = pd.DataFrame(0., index = range(_CONFIG.number_of_time_steps), columns = columns_tz)
+        bd = pd.DataFrame(0., index = range(_CONFIG.number_of_time_steps), columns = columns_bd)
         total = pd.concat([bd, tz], axis=1)
         for tz_result_label in tz_labels:
             total[tz_result_label] = results[tz_result_label]

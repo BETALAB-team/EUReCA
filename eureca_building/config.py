@@ -23,28 +23,26 @@ def load_config(file: str = None):
     """Function to load the config file, json file suggested
 
     Examples
-    ----------
-    {
-      "DEFAULT": {},
-      "model": {
-        "name": "example_model"
-      },
-      "simulation settings": {
-        "time steps per hour": "2",
-        "simulation reference year" : "2023",
-        "start date": "01-01 00:00",
-        "final date": "12-31 23:00",
-        "heating season start": "11-15 23:00",
-        "heating season end": "04-15 23:00",
-        "cooling season start": "06-01 23:00",
-        "cooling season end": "09-30 23:00"
-      },
-      "solar radiation settings": {
-        "do solar radiation calculation": "False",
-        "height subdivisions": "4",
-        "azimuth subdivisions": "8",
-        "urban shading tolerances": "80.,100.,80."
-      }
+    ---------
+    "DEFAULT": {},
+    "model": {
+    "name": "example_model"
+    },
+    "simulation settings": {
+    "time steps per hour": "2",
+    "simulation reference year" : "2023",
+    "start date": "01-01 00:00",
+    "final date": "12-31 23:00",
+    "heating season start": "11-15 23:00",
+    "heating season end": "04-15 23:00",
+    "cooling season start": "06-01 23:00",
+    "cooling season end": "09-30 23:00"
+    },
+    "solar radiation settings": {
+    "do solar radiation calculation": "False",
+    "height subdivisions": "4",
+    "azimuth subdivisions": "8",
+    "urban shading tolerances": "80.,100.,80."
     }
 
     Parameters
@@ -58,26 +56,26 @@ def load_config(file: str = None):
         Config object from Config class
 
     """
-    global CONFIG
+    global _CONFIG
     try:
         if file.endswith('ini'):
-            CONFIG = Config()
-            CONFIG.read(file)
+            _CONFIG = Config()
+            _CONFIG.read(file)
         elif file.endswith('json'):
-            CONFIG = Config.from_json(file)
+            _CONFIG = Config.from_json(file)
         else:
             raise ValueError(f'Config file must be .json or .ini')
     except (FileNotFoundError, AttributeError):
         message = "Config file not found: Trying to load default config"
         print(message)
         logging.warning(message)
-        CONFIG = Config()
-        CONFIG.read(DEFAULT_CONFIG_FILE)
+        _CONFIG = Config()
+        _CONFIG.read(DEFAULT_CONFIG_FILE)
         message = "Default config loaded"
         print(message)
 
-    globals().update(CONFIG)
-    return CONFIG
+    globals().update(_CONFIG)
+    return _CONFIG
 
 
 # %% ---------------------------------------------------------------------------------------------------
