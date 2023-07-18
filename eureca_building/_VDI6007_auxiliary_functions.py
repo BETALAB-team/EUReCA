@@ -180,22 +180,22 @@ def long_wave_radiation(theta_a, SSW=1.):
 def loadHK(perc_rad, perc_rad_aw, perc_altro_irr, A_aw, A_raum):
     '''loadHK  -  Distribution of heat load on the nodes (surface nodes and air node) based on heat emitters
     of the building
-        perc_rad: fraction of radiant heating/cooling surfaces on total heating/cooling load
-        perc_rad_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
-        perc_altro_irr: this is the radiant fraction the heating/cooling systems that are not embedded in the surfaces
+    perc_rad: fraction of radiant heating/cooling surfaces on total heating/cooling load
+    perc_rad_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
+    perc_altro_irr: this is the radiant fraction the heating/cooling systems that are not embedded in the surfaces
 
-        Let's say that a roof has 3 systems:
-            1) a radiant internal ceiling (20% of the total load)
-            2) a radiant floor (30% of the total load) in contact to the ground
-            3) a radiator working 80% convective and 20% radiant (50% of the total load)
+    Let's say that a roof has 3 systems:
+        1) a radiant internal ceiling (20% of the total load)
+        2) a radiant floor (30% of the total load) in contact to the ground
+        3) a radiator working 80% convective and 20% radiant (50% of the total load)
 
-        sigma_fhk: 0.5
-            sum of 20% for the radiant ceiling and 30% for the radiant floor
-        sigma_fhk_aw: 0.6
-            because 0.3/(0.2+0.3) is equal to 0.6, i.e. the part of the radiant surface load
-            associated to external surfaces
-        sigma_hk_str: 0.2
-            because the radiator is radiative for the 20%
+    sigma_fhk: 0.5
+        sum of 20% for the radiant ceiling and 30% for the radiant floor
+    sigma_fhk_aw: 0.6
+        because 0.3/(0.2+0.3) is equal to 0.6, i.e. the part of the radiant surface load
+        associated to external surfaces
+    sigma_hk_str: 0.2
+        because the radiator is radiative for the 20%
 
     Parameters
     ----------

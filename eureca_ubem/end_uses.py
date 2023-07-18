@@ -223,10 +223,11 @@ class EndUse:
         daily_df_from_excel : pandas.DataFrame
             DataFrame containing schedules from the end_use
         scalar_df_from_excel : pandas.DataFrame
-            This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)
-                                                                            (Sensible and
-                                                                           Latent AHU recovery,
-                                                                           Convective fraction of internal gains)
+            This series includes some additional data about the archetype
+            (from the GeneralInfo page in the spreadsheet)
+            (Sensible and
+            Latent AHU recovery,
+            Convective fraction of internal gains)
 
         Returns
         -------
