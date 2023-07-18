@@ -556,13 +556,13 @@ class City():
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0]
 
 
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
         bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
-        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
