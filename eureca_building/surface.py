@@ -81,10 +81,10 @@ class Surface:
             'height_subdivisions': 3,
             }
             keys:
-                azimuth_subdivisions : int, optional
-                    Number of azimuth discretization for radiation purposes. The default is 8.
-                height_subdivisions : int, optional
-                    Number of height discretization for radiation purposes. The default is 3.
+            azimuth_subdivisions : int, optional
+            Number of azimuth discretization for radiation purposes. The default is 8.
+            height_subdivisions : int, optional
+            Number of height discretization for radiation purposes. The default is 3.
         surface_type : str, default None
             Type of surface 'ExtWall' or 'GroundFloor' or 'Roof'.
             If not provided autocalculate.

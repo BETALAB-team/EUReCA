@@ -232,7 +232,7 @@ class SimpleWindow(object):
         This function implement the simplified model for glazing that is used in energy plus
         The output variables are:
         -   4 vectors containing solar transmittance, reflectance, absorptance, SHGC
-            in function of the incident angle  from 0� to 90�, with a 10� step
+        in function of the incident angle  from 0 to 90, with a 10 step
         -   the solar transmittance, reflectance and absorption at normal incident;
         -   the equivalent conductivity [W/m K] of the glazing material;
         -   the equivalent thickness [m] of the glazing layer;

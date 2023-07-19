@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_ubem.envelope_types &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_ubem.envelope_types</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_ubem.envelope_types</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module includes a container class for envelope types</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="sd">&#39;&#39;&#39;IMPORTING MODULES&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.construction_dataset</span> <span class="kn">import</span> <span class="n">ConstructionDataset</span>
+<span class="kn">from</span> <span class="nn">eureca_building.construction</span> <span class="kn">import</span> <span class="n">Construction</span>
+<span class="kn">from</span> <span class="nn">eureca_building.window</span> <span class="kn">import</span> <span class="n">SimpleWindow</span>
+
+<span class="c1"># %% ---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># %% Useful functions</span>
+
+<div class="viewcode-block" id="load_envelopes"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.envelope_types.load_envelopes">[docs]</a><span class="k">def</span> <span class="nf">load_envelopes</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    load_envelopes loads all materials, windows, stratigraphies and envelopes</span>
+<span class="sd">    archetypes in a database that is then utilized by the main program</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        Path containing the string of the Buildings_Envelopes.xlsx</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Dictionary with eureca_ubem.EnvelopeType objects</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;load_envelopes function, input path is not a string. path type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">cs_dataset</span> <span class="o">=</span> <span class="n">ConstructionDataset</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="c1"># Materials and constructions are loaded through the eureca-building library</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">envelopes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s2">&quot;Envelopes&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR Failed to open the archetype xlsx file </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">... Insert a proper path&#39;</span><span class="p">)</span>
+
+    <span class="n">envelopes_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">envelopes</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="n">envelope</span> <span class="o">=</span> <span class="n">EnvelopeType</span><span class="p">(</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+            <span class="n">roof</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;Roof&quot;</span><span class="p">]],</span>
+            <span class="n">ground_floor</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;GroundFloor&quot;</span><span class="p">]],</span>
+            <span class="n">interior_ceiling</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;IntCeiling&quot;</span><span class="p">]],</span>
+            <span class="n">external_wall</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">]],</span>
+            <span class="n">interior_wall</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;IntWall&quot;</span><span class="p">]],</span>
+            <span class="n">window</span> <span class="o">=</span> <span class="n">cs_dataset</span><span class="o">.</span><span class="n">windows_dict</span><span class="p">[</span><span class="n">envelopes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;Window&quot;</span><span class="p">]],</span>
+        <span class="p">)</span>
+
+        <span class="n">envelopes_dict</span><span class="p">[</span><span class="n">envelope</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">envelope</span>
+
+    <span class="k">return</span> <span class="n">envelopes_dict</span></div>
+
+
+<span class="c1"># %%---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># %% EnvelopeType class</span>
+
+<div class="viewcode-block" id="EnvelopeType"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.envelope_types.EnvelopeType">[docs]</a><span class="k">class</span> <span class="nc">EnvelopeType</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Definition of the EnvelopeType class</span>
+<span class="sd">    Each object of EnvelopeType contains several informations about stratigraphies</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">roof</span><span class="p">:</span> <span class="n">Construction</span><span class="p">,</span>
+                 <span class="n">ground_floor</span><span class="p">:</span> <span class="n">Construction</span><span class="p">,</span>
+                 <span class="n">interior_ceiling</span><span class="p">:</span> <span class="n">Construction</span><span class="p">,</span>
+                 <span class="n">external_wall</span><span class="p">:</span> <span class="n">Construction</span><span class="p">,</span>
+                 <span class="n">interior_wall</span><span class="p">:</span> <span class="n">Construction</span><span class="p">,</span>
+                 <span class="n">window</span><span class="p">:</span> <span class="n">SimpleWindow</span><span class="p">,</span>
+                 <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an envelope type. Just a container of some constructions objects</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name</span>
+<span class="sd">        roof : eureca_building.construction.Construction</span>
+<span class="sd">            roof construction obj</span>
+<span class="sd">        ground_floor: eureca_building.construction.Construction</span>
+<span class="sd">            ground_floor construction obj</span>
+<span class="sd">        interior_ceiling: eureca_building.construction.Construction</span>
+<span class="sd">            interior_ceiling construction obj</span>
+<span class="sd">        external_wall: eureca_building.construction.Construction</span>
+<span class="sd">            external_wall construction obj</span>
+<span class="sd">        interior_wall: eureca_building.construction.Construction</span>
+<span class="sd">            interior_wall construction obj</span>
+<span class="sd">        window: eureca_building.construction.Construction</span>
+<span class="sd">            window construction obj</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">roof</span> <span class="o">=</span> <span class="n">roof</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ground_floor</span> <span class="o">=</span> <span class="n">ground_floor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">external_wall</span> <span class="o">=</span> <span class="n">external_wall</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interior_wall</span> <span class="o">=</span> <span class="n">interior_wall</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interior_ceiling</span> <span class="o">=</span> <span class="n">interior_ceiling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interior_floor</span> <span class="o">=</span> <span class="n">Construction</span><span class="p">(</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interior_ceiling</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_flipped&quot;</span><span class="p">,</span>
+            <span class="n">materials_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interior_ceiling</span><span class="o">.</span><span class="n">materials_list</span><span class="p">)),</span>
+            <span class="n">construction_type</span> <span class="o">=</span> <span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">window</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_ubem.city &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_ubem.city</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_ubem.city</h1><div class="highlight"><pre>
+<span></span><span class="sd">&#39;&#39;&#39;IMPORTING MODULES&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">concurrent.futures</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">shapely</span>
+<span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">cjio</span> <span class="kn">import</span> <span class="n">cityjson</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+<span class="kn">from</span> <span class="nn">eureca_building.weather</span> <span class="kn">import</span> <span class="n">WeatherFile</span>
+<span class="kn">from</span> <span class="nn">eureca_building.thermal_zone</span> <span class="kn">import</span> <span class="n">ThermalZone</span>
+<span class="kn">from</span> <span class="nn">eureca_building.building</span> <span class="kn">import</span> <span class="n">Building</span>
+<span class="kn">from</span> <span class="nn">eureca_building.surface</span> <span class="kn">import</span> <span class="n">Surface</span><span class="p">,</span> <span class="n">SurfaceInternalMass</span>
+<span class="kn">from</span> <span class="nn">eureca_building._geometry_auxiliary_functions</span> <span class="kn">import</span> <span class="n">normal_versor_2</span>
+<span class="kn">from</span> <span class="nn">eureca_building.air_handling_unit</span> <span class="kn">import</span> <span class="n">AirHandlingUnit</span>
+<span class="kn">from</span> <span class="nn">eureca_ubem.end_uses</span> <span class="kn">import</span> <span class="n">load_schedules</span>
+<span class="kn">from</span> <span class="nn">eureca_ubem.envelope_types</span> <span class="kn">import</span> <span class="n">load_envelopes</span>
+
+<span class="c1">#%% ---------------------------------------------------------------------------------------------------</span>
+<span class="c1">#%% City class</span>
+
+<div class="viewcode-block" id="City"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City">[docs]</a><span class="k">class</span> <span class="nc">City</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class manages the city simulation via json input file: geojson or cityjson</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># class variables</span>
+    <span class="n">T_w_0</span> <span class="o">=</span> <span class="mf">15.</span>          <span class="c1"># Starting average temperature of the walls [°C]</span>
+    <span class="n">T_out_inf</span> <span class="o">=</span> <span class="mf">15.</span>      <span class="c1"># Starting average temperature outgoing the buildings [°C]</span>
+    <span class="n">T_out_AHU</span> <span class="o">=</span> <span class="mf">15.</span>      <span class="c1"># Starting average temperature outgoing the Air Handling units [°C]</span>
+    <span class="n">V_0_inf</span> <span class="o">=</span> <span class="mf">0.</span>         <span class="c1"># Starting average volumetric flow rate outgoing the buildings due to the inflitrations[m3/s]</span>
+    <span class="n">V_0_vent</span> <span class="o">=</span> <span class="mf">0.</span>        <span class="c1"># Starting average volumetric flow rate outgoing the Air Handling units [m3/s]</span>
+    <span class="n">H_waste_0</span> <span class="o">=</span> <span class="mf">0.</span>       <span class="c1"># Starting waste heating rejected by external condensers [kW]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">city_model</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                 <span class="n">envelope_types_file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                 <span class="n">end_uses_types_file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                 <span class="n">epw_weather_file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
+                 <span class="n">output_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">building_model</span> <span class="o">=</span> <span class="s2">&quot;2C&quot;</span><span class="p">,</span>
+                 <span class="n">shading_calculation</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the city from all the input files</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        city_model : str</span>
+<span class="sd">            path to the json/cityjson file</span>
+<span class="sd">        envelope_types_file : str</span>
+<span class="sd">            path to the envelope_types file</span>
+<span class="sd">        end_uses_types_file : str</span>
+<span class="sd">            path to the end_uses file</span>
+<span class="sd">        epw_weather_file : str</span>
+<span class="sd">            path to the epw weather file</span>
+<span class="sd">        output_folder : str</span>
+<span class="sd">            folder to save results</span>
+<span class="sd">        building_model : str, default &quot;2C&quot;</span>
+<span class="sd">            1C or 2C string</span>
+<span class="sd">        shading_calculation : bool, default False</span>
+<span class="sd">            whether to do or not the mutual shading calculation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># List of all the external surfaces of a city</span>
+
+        <span class="c1"># Loading weather file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span> <span class="o">=</span> <span class="n">WeatherFile</span><span class="p">(</span>
+            <span class="n">epw_weather_file</span><span class="p">,</span>
+            <span class="n">year</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">simulation_reference_year</span><span class="p">,</span>
+            <span class="n">time_steps</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">,</span>
+            <span class="n">irradiances_calculation</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">do_solar_radiation_calculation</span><span class="p">,</span>
+            <span class="n">azimuth_subdivisions</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">azimuth_subdivisions</span><span class="p">,</span>
+            <span class="n">height_subdivisions</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">height_subdivisions</span><span class="p">,</span>
+            <span class="n">urban_shading_tol</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Loading Envelope and Schedule Data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">envelopes_dict</span> <span class="o">=</span> <span class="n">load_envelopes</span><span class="p">(</span><span class="n">envelope_types_file</span><span class="p">)</span>  <span class="c1"># Envelope file loading</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span> <span class="o">=</span> <span class="n">load_schedules</span><span class="p">(</span><span class="n">end_uses_types_file</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">building_model</span> <span class="o">=</span> <span class="n">building_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shading_calculation</span> <span class="o">=</span> <span class="n">shading_calculation</span>
+
+        <span class="k">if</span> <span class="n">city_model</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.json&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_creation_from_cityjson</span><span class="p">(</span><span class="n">city_model</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">city_model</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.geojson&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_creation_from_geojson</span><span class="p">(</span><span class="n">city_model</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;City object creation: city model file must be a cityjson or a geojson. City_model: </span><span class="si">{</span><span class="n">city_model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span> <span class="o">=</span> <span class="n">output_folder</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">building_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_building_model</span>
+
+    <span class="nd">@building_model</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">building_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;City class, building_model is not a string: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;1C&quot;</span><span class="p">,</span><span class="s2">&quot;2C&quot;</span><span class="p">]:</span>
+            <span class="c1"># Check if unreasonable values provided</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;City class, building_model is not a allowed: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">. please provide an allowed model.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_building_model</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="City.buildings_creation_from_cityjson"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.buildings_creation_from_cityjson">[docs]</a>    <span class="k">def</span> <span class="nf">buildings_creation_from_cityjson</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">json_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;This method creates the city from the json file (CityJSON 3D)</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        json_path : str</span>
+<span class="sd">            path of the cityJSON file</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Case of cityJSON file availability:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_Floors</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="n">cityjson</span><span class="o">.</span><span class="n">CityJSON</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR Cityjson object not found: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">. Give a proper path&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;vertices&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;json file vertices are not a list&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;FeatureCollection&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Output_geojson&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">[</span><span class="s2">&quot;crs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;properties&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;referenceSystem&quot;</span><span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">=</span> <span class="p">{}</span>
+        <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">i</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;CityObjects&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]}))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;CityObjects&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;CityObjects&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Building&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">bd_key</span><span class="p">,</span> <span class="n">bd_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># Setting the attributes of the building</span>
+            <span class="n">vertices_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;vertices&#39;</span><span class="p">]</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="n">bd_key</span>  <span class="c1"># Heating plant of the building</span>
+            <span class="n">envelope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">envelopes_dict</span><span class="p">[</span><span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;attributes&#39;</span><span class="p">][</span><span class="s1">&#39;Envelope&#39;</span><span class="p">]]</span>  <span class="c1"># Age-class of the building</span>
+
+            <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">max_height</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">min_height</span> <span class="o">=</span> <span class="mf">1000.</span>
+            <span class="n">footprint_area</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">surfaces_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">geo</span> <span class="ow">in</span> <span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">geo</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MultiSurface&#39;</span><span class="p">:</span>
+                    <span class="n">boundaries</span> <span class="o">=</span> <span class="n">geo</span><span class="p">[</span><span class="s1">&#39;boundaries&#39;</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="n">boundaries</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">subsurface</span> <span class="ow">in</span> <span class="n">surface</span><span class="p">:</span>
+                            <span class="n">surf</span> <span class="o">=</span> <span class="p">[]</span>
+                            <span class="k">for</span> <span class="n">vert_id</span> <span class="ow">in</span> <span class="n">subsurface</span><span class="p">:</span>
+                                <span class="n">surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">vertices_list</span><span class="p">[</span><span class="n">vert_id</span><span class="p">]))</span>
+
+                            <span class="n">surface</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span>
+                                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                <span class="n">vertices</span> <span class="o">=</span> <span class="n">surf</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+                            <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">!=</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+
+                            <span class="c1"># TODO: Update wwr calculation</span>
+
+                            <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span>
+                                <span class="n">surface</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="mf">0.125</span>
+
+                            <span class="n">surface</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">external_wall</span><span class="p">,</span>
+                                <span class="s2">&quot;Roof&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">roof</span><span class="p">,</span>
+                                <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">ground_floor</span><span class="p">,</span>
+                            <span class="p">}[</span><span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span><span class="p">]</span>
+
+                            <span class="n">surface</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">envelope</span><span class="o">.</span><span class="n">window</span>
+
+                            <span class="n">max_height</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_height</span><span class="p">,</span> <span class="n">surface</span><span class="o">.</span><span class="n">max_height</span><span class="p">())</span>
+                            <span class="n">min_height</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">min_height</span><span class="p">,</span> <span class="n">surface</span><span class="o">.</span><span class="n">min_height</span><span class="p">())</span>
+
+                            <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+                            <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                            <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                                <span class="n">footprint_area</span> <span class="o">+=</span> <span class="n">surface</span><span class="o">.</span><span class="n">_area</span>
+
+            <span class="c1"># Add internal walls and ceilings 3.3 m height</span>
+            <span class="n">floor_height</span> <span class="o">=</span> <span class="mf">3.3</span>
+            <span class="n">n_floors</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">max_height</span> <span class="o">-</span> <span class="n">min_height</span><span class="p">)</span> <span class="o">//</span> <span class="n">floor_height</span><span class="p">)</span>
+            <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_floors</span><span class="p">):</span>
+                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span> <span class="o">=</span> <span class="n">footprint_area</span><span class="p">,</span>
+                    <span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span> <span class="o">=</span> <span class="n">envelope</span><span class="o">.</span><span class="n">interior_ceiling</span>
+                <span class="p">))</span>
+
+                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span><span class="p">,</span>
+                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_floor</span>
+                <span class="p">))</span>
+
+                <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">2</span>
+
+            <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span>  <span class="o">*</span> <span class="mf">2.5</span><span class="p">,</span>
+                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntWall&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_wall</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Creation of thermal zone and building</span>
+
+            <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">ThermalZone</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> thermal zone&quot;</span><span class="p">,</span>
+                <span class="n">surface_list</span><span class="o">=</span><span class="n">surfaces_list</span><span class="p">,</span>
+                <span class="n">net_floor_area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span><span class="p">,</span>
+                <span class="n">volume</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="n">floor_height</span>
+            <span class="p">)</span>
+
+            <span class="p">{</span>
+            <span class="s2">&quot;1C&quot;</span><span class="p">:</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
+            <span class="s2">&quot;2C&quot;</span><span class="p">:</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
+            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span>
+
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;attributes&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">][</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_key</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Building</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">thermal_zones_list</span><span class="o">=</span><span class="p">[</span><span class="n">thermal_zone</span><span class="p">],</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
+            <span class="n">geojson_feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_key</span><span class="p">]</span><span class="o">.</span><span class="n">get_geojson_feature_parser</span><span class="p">()</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;new_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;End Use&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">][</span><span class="s2">&quot;End Use&quot;</span><span class="p">]</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Envelope&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">][</span><span class="s2">&quot;Envelope&quot;</span><span class="p">]</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Heating System&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">][</span><span class="s2">&quot;Heating System&quot;</span><span class="p">]</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Cooling System&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">][</span><span class="s2">&quot;Cooling System&quot;</span><span class="p">]</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_height</span> <span class="o">-</span> <span class="n">min_height</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;Floors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_floors</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;ExtWallCoeff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+            <span class="n">geojson_feature</span><span class="p">[</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="s2">&quot;VolCoeff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">geojson_feature</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometric_preprocessing</span><span class="p">()</span>
+        <span class="c1"># with open(os.path.join(&quot;output_geojson.geojson&quot;), &#39;w&#39;) as outfile:</span>
+        <span class="c1">#     json.dump(self.output_geojson, outfile)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">))</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">index_parts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="City.buildings_creation_from_geojson"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.buildings_creation_from_geojson">[docs]</a>    <span class="k">def</span> <span class="nf">buildings_creation_from_geojson</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Function to create buildings from geojson file (2D file).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        json_path : str</span>
+<span class="sd">            Path to geojson file.</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Case of GeoJSON file availability:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">index_parts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Extrusion from the footprint operation</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="s2">&quot;new_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="n">bd_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
+            <span class="c1"># https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">]</span>  <span class="c1"># Heating plant of the building</span>
+            <span class="n">envelope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">envelopes_dict</span><span class="p">[</span><span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;Envelope&#39;</span><span class="p">]]</span>  <span class="c1"># Age-class of the building</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span>
+            <span class="n">counter_for_sub_parts</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1"># for g in building_parts:</span>
+            <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">build_surf</span><span class="o">=</span><span class="p">[]</span>
+            <span class="n">pavimento</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">soffitto</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">z_pav</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">z_soff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span>
+            <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">))]))</span>
+            <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
+                <span class="n">coords</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
+                <span class="n">pavimento</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]))</span>
+                <span class="n">soffitto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
+                <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">])]))</span>\
+
+            <span class="n">list_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">int_rings</span> <span class="ow">in</span> <span class="n">g</span><span class="o">.</span><span class="n">interiors</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">int_rings</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
+                <span class="n">coords_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">coords_int</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))]))</span>
+                <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                    <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
+                    <span class="n">coords_int</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+                <span class="n">list_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))</span>
+                <span class="n">area_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span><span class="n">int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">area</span><span class="p">)</span>
+
+                <span class="c1"># aggiunta delle superfici dei cortili interni nell&#39;edificio (muri verticali)</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">)):</span>
+                    <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),]))</span>
+
+            <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pavimento</span><span class="p">))</span>
+            <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">soffitto</span><span class="p">))</span>
+
+            <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="c1"># TODO: implement volume and external wall multiplication coefficients</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rh_net</span> <span class="o">=</span> <span class="mf">1.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rh_gross</span> <span class="o">=</span> <span class="mf">1.</span>
+
+            <span class="c1"># Creation of surfaces</span>
+            <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">footprint_area</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">surfaces_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">vertices</span> <span class="ow">in</span> <span class="n">build_surf</span><span class="p">:</span>
+                <span class="n">surface</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">vertices</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">!=</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span><span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
+                    <span class="n">surface</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span>
+
+                <span class="c1"># TODO: Update wwr calculation</span>
+
+                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span>
+                    <span class="n">surface</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="mf">0.125</span>
+
+                <span class="n">surface</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">external_wall</span><span class="p">,</span>
+                    <span class="s2">&quot;Roof&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">roof</span><span class="p">,</span>
+                    <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">ground_floor</span><span class="p">,</span>
+                <span class="p">}[</span><span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span><span class="p">]</span>
+
+                <span class="n">surface</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">envelope</span><span class="o">.</span><span class="n">window</span>
+
+                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+                <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                    <span class="n">footprint_area</span> <span class="o">+=</span> <span class="n">surface</span><span class="o">.</span><span class="n">_area</span>
+
+            <span class="c1"># Add internal walls and ceilings 3.3 m height</span>
+            <span class="n">n_floors</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Floors&#39;</span><span class="p">])</span>
+            <span class="n">floor_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">n_floors</span>
+            <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_floors</span><span class="p">):</span>
+                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span><span class="p">,</span>
+                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_ceiling</span>
+                <span class="p">))</span>
+
+                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span><span class="p">,</span>
+                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_floor</span>
+                <span class="p">))</span>
+
+                <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">2</span>
+
+            <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="mf">2.5</span><span class="p">,</span>
+                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntWall&quot;</span><span class="p">,</span>
+                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_wall</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">n_units</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">/</span> <span class="mf">77.</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">n_units</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">n_units</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">ThermalZone</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> thermal zone&quot;</span><span class="p">,</span>
+                <span class="n">surface_list</span><span class="o">=</span><span class="n">surfaces_list</span><span class="p">,</span>
+                <span class="n">net_floor_area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span><span class="p">,</span>
+                <span class="n">volume</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="n">floor_height</span><span class="p">,</span>
+                <span class="n">number_of_units</span><span class="o">=</span><span class="n">n_units</span><span class="p">,</span> <span class="c1"># 77 average flor area of an appartment according to ISTAT</span>
+            <span class="p">)</span>
+
+            <span class="p">{</span>
+                    <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
+                    <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
+            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Building</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">thermal_zones_list</span><span class="o">=</span><span class="p">[</span><span class="n">thermal_zone</span><span class="p">],</span>
+                                                          <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
+
+        <span class="c1"># Geometric preprocessing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometric_preprocessing</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="City.loads_calculation"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.loads_calculation">[docs]</a>    <span class="k">def</span> <span class="nf">loads_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">for</span> <span class="n">bd_id</span><span class="p">,</span> <span class="n">building_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">building_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span>
+            <span class="n">use</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span><span class="p">[</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">]]</span>
+            <span class="n">tz</span> <span class="o">=</span> <span class="n">building_obj</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># TODO: copy.deepcopy</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">add_internal_load</span><span class="p">(</span>
+                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">],</span>
+                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">],</span>
+                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;lighting&#39;</span><span class="p">],</span>
+            <span class="p">)</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">extract_convective_radiative_latent_electric_load</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_ISO13790</span><span class="p">,</span>
+                <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_VDI6007</span>
+            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">add_temperature_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;temperature_setpoint&#39;</span><span class="p">])</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">add_humidity_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;humidity_setpoint&#39;</span><span class="p">])</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">add_infiltration</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">infiltration</span><span class="p">[</span><span class="s1">&#39;infiltration&#39;</span><span class="p">])</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">calc_infiltration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
+
+            <span class="n">ahu</span> <span class="o">=</span> <span class="n">AirHandlingUnit</span><span class="p">(</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ahu Bd </span><span class="si">{</span><span class="n">building_info</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">mechanical_vent</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ventilation_flow_rate&#39;</span><span class="p">],</span>
+                <span class="n">supply_temperature</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature&#39;</span><span class="p">],</span>
+                <span class="n">supply_specific_humidity</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_humidity&#39;</span><span class="p">],</span>
+                <span class="n">ahu_operation</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_availability&#39;</span><span class="p">],</span>
+                <span class="n">humidity_control</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_humidity_control&#39;</span><span class="p">],</span>
+                <span class="n">sensible_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_sensible_heat_recovery&#39;</span><span class="p">],</span>
+                <span class="n">latent_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_latent_heat_recovery&#39;</span><span class="p">],</span>
+                <span class="n">outdoor_air_ratio</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;outdoor_air_ratio&#39;</span><span class="p">],</span>
+                <span class="n">weather</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span>
+                <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">tz</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">design_sensible_cooling_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">design_heating_load</span><span class="p">(</span><span class="o">-</span><span class="mf">5.</span><span class="p">)</span>
+
+            <span class="n">tz</span><span class="o">.</span><span class="n">add_domestic_hot_water</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">use</span><span class="o">.</span><span class="n">domestic_hot_water</span><span class="p">[</span><span class="s1">&#39;domestic_hot_water&#39;</span><span class="p">])</span>
+
+            <span class="n">building_obj</span><span class="o">.</span><span class="n">set_hvac_system</span><span class="p">(</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Heating System&quot;</span><span class="p">],</span> <span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Cooling System&quot;</span><span class="p">])</span>
+            <span class="n">building_obj</span><span class="o">.</span><span class="n">set_hvac_system_capacity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="City.simulate"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">print_single_building_results</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulation of the whole city, and memorization and stamp of results.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        print_single_building_results : bool, default False</span>
+<span class="sd">            If True, the prints a file with time step results for each building.</span>
+<span class="sd">            USE CAREFULLY: It might fill a lot of disk space</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">time</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="c1"># parallel simulation commented</span>
+        <span class="c1"># bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]</span>
+        <span class="c1"># def bd_parallel_solve(x):</span>
+        <span class="c1">#     bd, weather, out_fold = x</span>
+        <span class="c1">#     bd.simulate(weather, output_folder=out_fold)</span>
+        <span class="c1"># with concurrent.futures.ThreadPoolExecutor() as executor:</span>
+        <span class="c1">#     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)</span>
+        <span class="c1">#</span>
+        <span class="c1"># print(f&quot;Parallel simulation : {(time.time() - start)/60:0.2f} min&quot;)</span>
+        <span class="c1"># start = time.time()</span>
+
+        <span class="n">final_results</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span><span class="n">periods</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="n">freq</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+        <span class="n">district_hourly_results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Gas consumption [Nm3]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Electric consumption [Wh]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Oil consumption [L]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Wood consumption [kg]&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        <span class="n">n_buildings</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">)</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">bd_id</span><span class="p">,</span> <span class="n">building_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">counter</span><span class="o">%</span><span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2"> buildings simulated over </span><span class="si">{</span><span class="n">n_buildings</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_zone_info</span><span class="p">()</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">print_single_building_results</span><span class="p">:</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">output_folder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+            <span class="n">monthly</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">gas_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;gas consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">el_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;electric consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">oil_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;oil consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">wood_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;wood consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">oil_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wood_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">final_results</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system gas consumption [Nm3]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system oil consumption [L]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system wood consumption [kg]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> \
+                                                                    <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Cooling system electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> \
+                                                                    <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Appliances electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+
+
+        <span class="n">bd_summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">final_results</span><span class="p">,</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
+        <span class="n">bd_summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;Buildings_summary.csv&quot;</span><span class="p">))</span>
+        <span class="n">bd_summary</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;Name&quot;</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;new_id&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">new_geojson</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">,</span><span class="n">bd_summary</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">new_geojson</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;Buildings_summary.geojson&quot;</span><span class="p">),</span> <span class="n">driver</span> <span class="o">=</span> <span class="s2">&quot;GeoJSON&quot;</span><span class="p">)</span>
+        <span class="n">district_hourly_results</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;District_hourly_summary.csv&quot;</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Standard simulation : </span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2"> min&quot;</span><span class="p">)</span></div>
+
+        <span class="c1"># def bd_parallel_solve(x):</span>
+        <span class="c1">#     # Local function to be used in ThreadPoolExecutor</span>
+        <span class="c1">#     t, bd, weather = x</span>
+        <span class="c1">#     bd.solve_timestep(t, weather)</span>
+        <span class="c1"># for t in range(-preprocessing_timesteps, 31*24 - 1):</span>
+            <span class="c1"># bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]</span>
+            <span class="c1"># with concurrent.futures.ThreadPoolExecutor() as executor:</span>
+            <span class="c1">#     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)</span>
+
+<div class="viewcode-block" id="City.geometric_preprocessing"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.geometric_preprocessing">[docs]</a>    <span class="k">def</span> <span class="nf">geometric_preprocessing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results</span>
+<span class="sd">        Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="n">toll_az</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">toll_dist</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">toll_theta</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># Each surface is compared with all the others</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="c1"># Calculation of the distance between the centroids of the two surfaces under examination</span>
+                <span class="n">dist</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Reducing the area of the coincidence surfaces</span>
+                <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="mf">15.</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">check_surface_coincidence</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]):</span>
+                        <span class="n">intersectionArea</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">calculate_intersection_area</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">])</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">intersectionArea</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">intersectionArea</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shading_calculation</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">dist</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                        <span class="k">pass</span>
+                    <span class="k">else</span><span class="p">:</span>
+
+                        <span class="c1"># Calculation of the vector direction between the centroids of the two surfaces under examination</span>
+                        <span class="n">theta_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">dist</span><span class="p">))</span>
+                        <span class="n">theta</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">theta_xy</span> <span class="o">+</span> <span class="mi">90</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">theta_xy</span>
+                        <span class="k">if</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">+</span> <span class="mi">360</span>
+                        <span class="k">if</span> <span class="n">theta</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                            <span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span> <span class="o">-</span> <span class="mi">360</span>
+
+                    <span class="c1"># Conditions:</span>
+                    <span class="c1">#    1. the distance between surfaces must be less than toll_dist</span>
+                    <span class="c1">#    2. the theta angle between surfaces must be within the range</span>
+                    <span class="c1">#    3. the azimuth angle of the second surface must be within the range</span>
+
+                    <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">toll_dist</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">azimuth_opp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">+</span> <span class="mi">180</span>
+                            <span class="n">azimuth_opp_max</span> <span class="o">=</span> <span class="n">azimuth_opp</span> <span class="o">+</span> <span class="n">toll_az</span>
+                            <span class="n">azimuth_opp_min</span> <span class="o">=</span> <span class="n">azimuth_opp</span> <span class="o">-</span> <span class="n">toll_az</span>
+                            <span class="n">theta_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">+</span> <span class="n">toll_theta</span>
+                            <span class="n">theta_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">-</span> <span class="n">toll_theta</span>
+                            <span class="k">if</span> <span class="n">theta_min</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                                <span class="n">theta_min</span> <span class="o">=</span> <span class="n">theta_min</span> <span class="o">+</span> <span class="mi">360</span>
+                                <span class="k">if</span> <span class="n">theta_min</span> <span class="o">&lt;</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">180</span> <span class="ow">or</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="n">theta_max</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">azimuth_opp_max</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                                        <span class="n">azimuth_opp_max</span> <span class="o">=</span> <span class="n">azimuth_opp_max</span> <span class="o">-</span> <span class="mi">360</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;=</span> <span class="mi">180</span> <span class="ow">or</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">theta_min</span> <span class="o">&lt;</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="n">theta_max</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">azimuth_opp_max</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                                        <span class="n">azimuth_opp_max</span> <span class="o">=</span> <span class="n">azimuth_opp_max</span> <span class="o">-</span> <span class="mi">360</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;=</span> <span class="mi">180</span> <span class="ow">or</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">azimuth_opp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">-</span> <span class="mi">180</span>
+                            <span class="n">azimuth_opp_max</span> <span class="o">=</span> <span class="n">azimuth_opp</span> <span class="o">+</span> <span class="n">toll_az</span>
+                            <span class="n">azimuth_opp_min</span> <span class="o">=</span> <span class="n">azimuth_opp</span> <span class="o">-</span> <span class="n">toll_az</span>
+                            <span class="n">theta_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">+</span> <span class="n">toll_theta</span>
+                            <span class="n">theta_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">-</span> <span class="n">toll_theta</span>
+                            <span class="k">if</span> <span class="n">theta_max</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                                <span class="n">theta_max</span> <span class="o">=</span> <span class="n">theta_max</span> <span class="o">-</span> <span class="mi">360</span>
+                                <span class="k">if</span> <span class="n">theta_min</span> <span class="o">&lt;</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="mi">180</span> <span class="ow">or</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;=</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="n">theta_max</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                                        <span class="n">azimuth_opp_min</span> <span class="o">=</span> <span class="n">azimuth_opp_min</span> <span class="o">+</span> <span class="mi">360</span>
+                                        <span class="k">if</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span> <span class="ow">or</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;=</span> <span class="mi">180</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">theta_min</span> <span class="o">&lt;</span> <span class="n">theta</span> <span class="o">&lt;</span> <span class="n">theta_max</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                                        <span class="n">azimuth_opp_min</span> <span class="o">=</span> <span class="n">azimuth_opp_min</span> <span class="o">+</span> <span class="mi">360</span>
+                                        <span class="k">if</span> <span class="o">-</span><span class="mi">180</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span> <span class="ow">or</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;=</span> <span class="mi">180</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="k">if</span> <span class="n">azimuth_opp_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">azimuth_opp_max</span><span class="p">:</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dist</span><span class="p">,</span><span class="n">x</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shading_calculation</span><span class="p">:</span>
+            <span class="c1"># SECTION 2: Calculation of the shading effect</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coefficient</span> <span class="o">=</span> <span class="mf">1.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">!=</span> <span class="p">[]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_calculation</span> <span class="o">=</span> <span class="s1">&#39;On&#39;</span>
+                    <span class="n">shading</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">)):</span>
+
+                        <span class="n">distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">surface_opposite_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+
+                        <span class="c1"># Calculation of the solar height limit</span>
+                        <span class="k">if</span> <span class="n">distance</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="c1"># Case of distance = 0</span>
+                            <span class="n">sol_h_lim</span> <span class="o">=</span> <span class="mf">90.</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">sol_h_lim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span>
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">max_height</span><span class="p">()</span> <span class="o">-</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="n">distance</span>
+                                <span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sol_h_lim</span><span class="p">)</span>
+                        
+                        <span class="c1"># Calculation of the solar azimuth limits</span>
+                        <span class="n">sol_az_lim1_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span>
+                                <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+                                    <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">sol_az_lim2_xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                                 <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                                <span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span>
+                                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                                     <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+                                <span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">sol_az_lim1</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">sol_az_lim1_xy</span> <span class="o">+</span> <span class="mi">90</span><span class="p">)</span>
+                        <span class="n">sol_az_lim2</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">sol_az_lim2_xy</span> <span class="o">+</span> <span class="mi">90</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                            <span class="n">sol_az_lim1</span> <span class="o">=</span> <span class="n">sol_az_lim1</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">sol_az_lim1_xy</span>
+                        <span class="k">if</span> <span class="n">sol_az_lim1</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                            <span class="n">sol_az_lim1</span> <span class="o">=</span> <span class="n">sol_az_lim1</span> <span class="o">+</span> <span class="mi">360</span>
+                        <span class="k">if</span> <span class="n">sol_az_lim1</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                            <span class="n">sol_az_lim1</span> <span class="o">=</span> <span class="n">sol_az_lim1</span> <span class="o">-</span> <span class="mi">360</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">surface_opposite_index</span><span class="p">]</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">_centroid</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                            <span class="n">sol_az_lim2</span> <span class="o">=</span> <span class="n">sol_az_lim2</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">sol_az_lim2_xy</span>
+                        <span class="k">if</span> <span class="n">sol_az_lim2</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span><span class="p">:</span>
+                            <span class="n">sol_az_lim2</span> <span class="o">=</span> <span class="n">sol_az_lim2</span> <span class="o">+</span> <span class="mi">360</span>
+                        <span class="k">if</span> <span class="n">sol_az_lim2</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+                            <span class="n">sol_az_lim2</span> <span class="o">=</span> <span class="n">sol_az_lim2</span> <span class="o">-</span> <span class="mi">360</span>
+                        
+                        <span class="c1"># Necessary conditions:</span>
+                        <span class="c1">#    1. solar height less than the solar height limit</span>
+                        <span class="c1">#    2. solar azimuth between the solar azimuth limits</span>
+                        
+                        <span class="n">shading_sol_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_elevation&quot;</span><span class="p">],</span>
+                            <span class="n">sol_h_lim</span>
+                        <span class="p">)</span>
+                        <span class="n">sol_az_lim_inf</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">sol_az_lim1</span><span class="p">,</span><span class="n">sol_az_lim2</span><span class="p">)</span>
+                        <span class="n">sol_az_lim_sup</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sol_az_lim1</span><span class="p">,</span><span class="n">sol_az_lim2</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">sol_az_lim_inf</span> <span class="o">-</span> <span class="n">sol_az_lim_sup</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">180</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">sol_az_lim_inf</span><span class="p">,</span><span class="n">sol_az_lim_sup</span><span class="p">])</span>
+                            <span class="n">shading_sol_az</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="n">sol_az_lim_sup</span>
+                            <span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="n">sol_az_lim_inf</span>
+                            <span class="p">)</span>
+                            <span class="p">]</span>
+                            <span class="n">shading_tot</span> <span class="o">=</span> <span class="n">shading_sol_h</span> <span class="o">&amp;</span> <span class="n">shading_sol_az</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">shading_sol_az</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">sol_az_lim_inf</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sol_az_lim1</span><span class="p">,</span><span class="n">sol_az_lim2</span><span class="p">)</span>
+                            <span class="n">sol_az_lim_sup</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">sol_az_lim1</span><span class="p">,</span><span class="n">sol_az_lim2</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">sol_az_lim_inf</span><span class="p">,</span><span class="n">sol_az_lim_sup</span><span class="p">])</span>
+                            <span class="n">shading_sol_az1</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="mi">180</span><span class="p">),</span>
+                                               <span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="n">sol_az_lim_inf</span><span class="p">)]</span>
+                            <span class="n">shading_sol_az2</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="n">sol_az_lim_sup</span><span class="p">),</span>
+                                               <span class="n">np</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span><span class="o">-</span><span class="mi">180</span><span class="p">)]</span>
+                            <span class="n">shading_az1</span> <span class="o">=</span> <span class="n">shading_sol_az1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">shading_sol_az1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="n">shading_az2</span> <span class="o">=</span> <span class="n">shading_sol_az2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">shading_sol_az2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="n">shading_az</span> <span class="o">=</span> <span class="n">shading_az1</span> <span class="o">|</span> <span class="n">shading_az2</span>
+                            <span class="n">shading_tot</span> <span class="o">=</span> <span class="n">shading_sol_h</span> <span class="o">&amp;</span> <span class="n">shading_az</span>
+                        <span class="n">shading</span><span class="p">[</span><span class="n">y</span><span class="p">]</span> <span class="o">=</span> <span class="n">shading_tot</span>
+                    <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">)):</span>
+                        <span class="k">if</span> <span class="n">y</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">shading_eff</span> <span class="o">=</span> <span class="n">shading</span><span class="p">[</span><span class="n">y</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">shading_eff</span> <span class="o">=</span> <span class="n">shading_eff</span> <span class="o">|</span> <span class="n">shading</span><span class="p">[</span><span class="n">y</span><span class="p">]</span>
+                    <span class="n">shading_eff_01</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shading_eff</span><span class="o">==</span><span class="kc">True</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">shading_eff</span><span class="p">))</span>
+                    <span class="n">shading_eff_01</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">shading_eff_01</span><span class="o">==</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.</span> <span class="p">,</span><span class="n">shading_eff_01</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coefficient</span> <span class="o">=</span> <span class="n">shading_eff_01</span></div></div>
+
+    <span class="c1"># def create_urban_canyon(self,sim_time,calc,data):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     This method allows to evaluate the Urban Heat Island effect</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     sim_time : list</span>
+    <span class="c1">#         list containing timestep per hour and hours of simulation info</span>
+    <span class="c1">#     calc : bool</span>
+    <span class="c1">#         True if the calculation is performed, False in the opposite case</span>
+    <span class="c1">#     data : dict</span>
+    <span class="c1">#         dictionary containing general and specific district information</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data type</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if not isinstance(sim_time, list):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - create_urban_canyon, sim_time is not a list: sim_time {sim_time}&#39;)</span>
+    <span class="c1">#     if not isinstance(calc, bool):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - create_urban_canyon, calc is not a bool: calc {calc}&#39;)</span>
+    <span class="c1">#     if not isinstance(data, dict):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - create_urban_canyon, data is not a dict: data {data}&#39;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data quality</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if sim_time[0] &gt; 6:</span>
+    <span class="c1">#         wrn(f&quot;WARNING JsonCity class - create_urban_canyon, more than 6 timestper per hours - it would be better to reduce ts {sim_time[0]}&quot;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Urban Heat Island evaluation</span>
+    <span class="c1">#     if calc:</span>
+    <span class="c1">#         self.urban_canyon_calc = calc</span>
+    <span class="c1">#         self.bd_ext_walls = np.array([],dtype = float)</span>
+    <span class="c1">#         tot_wall_glazed_area = .0</span>
+    <span class="c1">#         tot_wall_opaque_area = .0</span>
+    <span class="c1">#         h_builidngs = np.array([], dtype = float)</span>
+    <span class="c1">#         building_footprints = np.array([], dtype = float)</span>
+    <span class="c1">#         for bd in self.buildings.values():</span>
+    <span class="c1">#             self.bd_ext_walls = np.append(self.bd_ext_walls, bd.extWallOpaqueArea + bd.extWallWinArea)</span>
+    <span class="c1">#             tot_wall_opaque_area += bd.extWallOpaqueArea</span>
+    <span class="c1">#             tot_wall_glazed_area += bd.extWallWinArea</span>
+    <span class="c1">#             building_footprints = np.append(building_footprints, bd.footprint)</span>
+    <span class="c1">#             h_builidngs = np.append(h_builidngs, bd.buildingHeight)</span>
+    <span class="c1">#</span>
+    <span class="c1">#         data[&#39;tot_wall_opaque_area&#39;] = tot_wall_opaque_area</span>
+    <span class="c1">#         data[&#39;tot_wall_glazed_area&#39;] = tot_wall_glazed_area</span>
+    <span class="c1">#         data[&#39;tot_footprint&#39;] = np.sum(building_footprints)</span>
+    <span class="c1">#         data[&#39;h_builidng_average&#39;] = np.average(h_builidngs, weights = building_footprints)</span>
+    <span class="c1">#         data[&#39;VH_urb&#39;] = (tot_wall_opaque_area + tot_wall_glazed_area)/data[&#39;Area&#39;]</span>
+    <span class="c1">#         data[&#39;Buildings_density&#39;] = data[&#39;tot_footprint&#39;] /data[&#39;Area&#39;]</span>
+    <span class="c1">#</span>
+    <span class="c1">#         # Check data quality</span>
+    <span class="c1">#</span>
+    <span class="c1">#         if ((data[&#39;Buildings_density&#39;] + data[&#39;Vegetation_density&#39;]) &gt; 0.9) :</span>
+    <span class="c1">#             print(&#39;WARNING: building density with vegetation density higher than 0.9: check vegetation density&#39;)</span>
+    <span class="c1">#             if ((data[&#39;Buildings_density&#39;] + data[&#39;Vegetation_density&#39;]) &gt;= .99):</span>
+    <span class="c1">#                 data[&#39;Vegetation_density&#39;] = 0.99 - data[&#39;Buildings_density&#39;]</span>
+    <span class="c1">#         if data[&#39;tot_footprint&#39;] &gt; data[&#39;Area&#39;]:</span>
+    <span class="c1">#             sys.exit(&#39;Error: the sum of building footprints is higher than City area. Correct city area&#39;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#         self.urban_canyon_data = data</span>
+    <span class="c1">#         self.urban_canyon = UrbanCanyon(sim_time,self.urban_canyon_data)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         self.urban_canyon_calc = calc</span>
+    <span class="c1">#         self.urban_canyon_data = None</span>
+   
+    
+    <span class="c1"># &#39;&#39;&#39;Design Power calculation during design days&#39;&#39;&#39;</span>
+    <span class="c1"># def designdays(self,Plant_calc,Time_to_regime,design_days,weather):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Design Power calculation during design days</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     Plant_calc : bool</span>
+    <span class="c1">#         True if plant calculation is performed, False viceversa</span>
+    <span class="c1">#     Time_to_regime : int</span>
+    <span class="c1">#         time needed to reach a regime condition for Design Days Calculation</span>
+    <span class="c1">#     design_days : list</span>
+    <span class="c1">#         period of design days calculation</span>
+    <span class="c1">#     weather : RC_classes.WeatherData.Weather obj</span>
+    <span class="c1">#         object of the class weather WeatherData module</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data type</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if not isinstance(Plant_calc, bool):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - designdays, Plant_calc is not a bool: Plant_calc {Plant_calc}&#39;)</span>
+    <span class="c1">#     if not isinstance(Time_to_regime, int):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - designdays, Time_to_regime is not a int: Time_to_regime {Time_to_regime}&#39;)</span>
+    <span class="c1">#     if not isinstance(design_days, list):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - designdays, design_days is not a list: design_days {design_days}&#39;)</span>
+    <span class="c1">#     if not isinstance(weather, Weather):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}&#39;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Calculation in Heating and Cooling seasons</span>
+    <span class="c1">#     for bd in self.buildings.values():</span>
+    <span class="c1">#         bd.BDdesigndays_Heating(Plant_calc)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     for t in design_days[1]:</span>
+    <span class="c1">#         if t == design_days[1][0]:</span>
+    <span class="c1">#             x = t</span>
+    <span class="c1">#             while x &lt; design_days[1][Time_to_regime - 1]:</span>
+    <span class="c1">#                 T_e = weather.Text[t]</span>
+    <span class="c1">#                 RH_e = weather.RHext[t]</span>
+    <span class="c1">#</span>
+    <span class="c1">#                 if T_e &lt; 0:</span>
+    <span class="c1">#                     p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))</span>
+    <span class="c1">#                 else:</span>
+    <span class="c1">#                     p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))</span>
+    <span class="c1">#</span>
+    <span class="c1">#                 for bd in self.buildings.values():</span>
+    <span class="c1">#                     bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)</span>
+    <span class="c1">#</span>
+    <span class="c1">#                 x = x + 1</span>
+    <span class="c1">#         else:</span>
+    <span class="c1">#             T_e = weather.Text[t]</span>
+    <span class="c1">#             RH_e = weather.RHext[t]</span>
+    <span class="c1">#</span>
+    <span class="c1">#             if T_e &lt; 0:</span>
+    <span class="c1">#                 p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))</span>
+    <span class="c1">#             else:</span>
+    <span class="c1">#                 p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))</span>
+    <span class="c1">#</span>
+    <span class="c1">#             for bd in self.buildings.values():</span>
+    <span class="c1">#                 bd.BDdesigndays_Cooling(t,T_e,RH_e,p_extsat,weather.tau,Plant_calc,self.model)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Reset starting values</span>
+    <span class="c1">#     for bd in self.buildings.values():</span>
+    <span class="c1">#         for z in bd.zones.values():</span>
+    <span class="c1">#             z.reset_init_values()</span>
+    
+    
+    <span class="c1"># &#39;&#39;&#39; Setting plant of each building and checking plant efficiency&#39;&#39;&#39;</span>
+    <span class="c1"># def cityplants(self,Plants_list,weather):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Setting plant of each building and checking plant efficiency</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     Plants_list : dict</span>
+    <span class="c1">#         dictionary contaning all the implemented plants</span>
+    <span class="c1">#     weather : RC_classes.WeatherData.Weather obj</span>
+    <span class="c1">#         object of the class weather WeatherData module</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data type</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if not isinstance(Plants_list, dict):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - cityplants, Plants_list is not a dict: Plants_list {Plants_list}&#39;)</span>
+    <span class="c1">#     if not isinstance(weather, Weather):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}&#39;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Setting plant</span>
+    <span class="c1">#     for bd in self.buildings.values():</span>
+    <span class="c1">#         bd.BDplants(Plants_list,weather)</span>
+    
+    
+    <span class="c1"># &#39;&#39;&#39;Energy simulation of the city&#39;&#39;&#39;</span>
+    <span class="c1"># def citysim(self,time,weather,Plant_calc,Plants_list):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     This method allows the energy simulation of the city</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     time : simulation timestep</span>
+    <span class="c1">#         array of int32</span>
+    <span class="c1">#     weather : RC_classes.WeatherData.Weather obj</span>
+    <span class="c1">#         object of the class weather WeatherData module</span>
+    <span class="c1">#     Plant_calc : bool</span>
+    <span class="c1">#         True if plant calculation is performed, False viceversa</span>
+    <span class="c1">#     Plants_list : dict</span>
+    <span class="c1">#         dictionary contaning all the implemented plants</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data type</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if not isinstance(time, np.ndarray):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - citysim, time is not a np.ndarray: time {time}&#39;)</span>
+    <span class="c1">#     if not isinstance(weather, Weather):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class, weather is not a RC_classes.WeatherData.Weather: weather {weather}&#39;)</span>
+    <span class="c1">#     if not isinstance(Plant_calc, bool):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - citysim, Plant_calc is not a bool: Plant_calc {Plant_calc}&#39;)</span>
+    <span class="c1">#     if not isinstance(Plants_list, dict):</span>
+    <span class="c1">#         raise TypeError(f&#39;ERROR JsonCity class - citysim, Plants_list is not a dict: Plants_list {Plants_list}&#39;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Check input data quality</span>
+    <span class="c1">#     print(time.dtype)</span>
+    <span class="c1">#     if not time.dtype == np.dtype(&#39;int64&#39;) and not time.dtype == np.dtype(&#39;int32&#39;):</span>
+    <span class="c1">#         wrn(f&quot;WARNING JsonCity class - citysim, at least a component of the vector time is not a np.int32: time {time}&quot;)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Energy simulation of the city</span>
+    <span class="c1">#     for t in time:</span>
+    <span class="c1">#         T_e = weather.Text[t]</span>
+    <span class="c1">#         RH_e = weather.RHext[t]</span>
+    <span class="c1">#         w = weather.w[t]</span>
+    <span class="c1">#         zenith = weather.SolarPosition.zenith[t]</span>
+    <span class="c1">#         if T_e &lt; 0:</span>
+    <span class="c1">#             p_extsat = 610.5*np.exp((21.875*T_e)/(265.5+T_e))</span>
+    <span class="c1">#         else:</span>
+    <span class="c1">#             p_extsat = 610.5*np.exp((17.269*T_e)/(237.3+T_e))</span>
+    <span class="c1">#</span>
+    <span class="c1">#         # Urban Heat Island evaluation</span>
+    <span class="c1">#         if self.urban_canyon_calc:</span>
+    <span class="c1">#             radiation = [weather.SolarGains[&#39;0.0&#39;,&#39;0.0&#39;,&#39;global&#39;].iloc[t],</span>
+    <span class="c1">#                          weather.SolarGains[&#39;0.0&#39;,&#39;0.0&#39;,&#39;direct&#39;].iloc[t]]</span>
+    <span class="c1">#             self.urban_canyon.solve_canyon(t,</span>
+    <span class="c1">#                                            T_e,</span>
+    <span class="c1">#                                            w,</span>
+    <span class="c1">#                                            radiation,</span>
+    <span class="c1">#                                            self.T_w_0,</span>
+    <span class="c1">#                                            T_e-weather.dT_er,</span>
+    <span class="c1">#                                            self.H_waste_0*1000,</span>
+    <span class="c1">#                                            zenith,</span>
+    <span class="c1">#                                            [self.T_out_inf,self.T_out_AHU],</span>
+    <span class="c1">#                                            [self.V_0_inf,self.V_0_vent])</span>
+    <span class="c1">#             T_e = self.urban_canyon.T_urb[t] - 273.15</span>
+    <span class="c1">#</span>
+    <span class="c1">#         # Vectors initialization</span>
+    <span class="c1">#         T_w_bd = np.array([],dtype = float)</span>
+    <span class="c1">#         T_out_inf_bd = np.array([],dtype = float)</span>
+    <span class="c1">#         T_out_vent_bd = np.array([],dtype = float)</span>
+    <span class="c1">#         V_0_inf_bd = np.array([],dtype = float)</span>
+    <span class="c1">#         V_0_vent_bd = np.array([],dtype = float)</span>
+    <span class="c1">#         H_waste_0 = np.array([],dtype = float)</span>
+    <span class="c1">#</span>
+    <span class="c1">#         # Linear system resolution</span>
+    <span class="c1">#         for bd in self.buildings.values():</span>
+    <span class="c1">#             bd.solve(t,</span>
+    <span class="c1">#                      T_e,</span>
+    <span class="c1">#                      RH_e,</span>
+    <span class="c1">#                      p_extsat,</span>
+    <span class="c1">#                      weather.tau,</span>
+    <span class="c1">#                      Plants_list,</span>
+    <span class="c1">#                      Plant_calc,</span>
+    <span class="c1">#                      self.model)</span>
+    <span class="c1">#             T_w_bd = np.append(T_w_bd, bd.T_wall_0)</span>
+    <span class="c1">#             T_out_inf_bd = np.append(T_out_inf_bd, bd.T_out_inf)</span>
+    <span class="c1">#             T_out_vent_bd =np.append(T_out_vent_bd, bd.T_out_AHU)</span>
+    <span class="c1">#             V_0_inf_bd = np.append(V_0_inf_bd, bd.G_inf_0)</span>
+    <span class="c1">#             V_0_vent_bd = np.append(V_0_vent_bd, bd.G_vent_0)</span>
+    <span class="c1">#             H_waste_0 = np.append(H_waste_0, bd.H_waste)</span>
+    <span class="c1">#</span>
+    <span class="c1">#         # Output post-prcessing in case of Urban Heat Island evaluation</span>
+    <span class="c1">#         if self.urban_canyon_calc:</span>
+    <span class="c1">#             self.T_w_0 = np.average(T_w_bd, weights = self.bd_ext_walls)</span>
+    <span class="c1">#             self.V_0_inf = np.sum(V_0_inf_bd)</span>
+    <span class="c1">#             self.V_0_vent = np.sum(V_0_vent_bd)</span>
+    <span class="c1">#             self.H_waste_0 = np.sum(H_waste_0)</span>
+    <span class="c1">#             try:</span>
+    <span class="c1">#                 self.T_out_inf = np.average(T_out_inf_bd, weights = V_0_inf_bd)</span>
+    <span class="c1">#             except ZeroDivisionError:</span>
+    <span class="c1">#                 self.T_out_inf = 20.</span>
+    <span class="c1">#             try:</span>
+    <span class="c1">#                 self.T_out_AHU = np.average(T_out_vent_bd, weights = V_0_vent_bd)</span>
+    <span class="c1">#             except ZeroDivisionError:</span>
+    <span class="c1">#                 self.T_out_AHU = 20.</span>
+        
+    
+    <span class="c1"># def complexmerge(self):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Post-processing: output vectors in case of geojson mode.</span>
+    <span class="c1">#     ATTENTION: Buildings with the same name must be listed in the</span>
+    <span class="c1">#        object city() one after the other</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#     ----------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#     nb = len(self.buildings.values())</span>
+    <span class="c1">#     for y in range(nb-1,-1,-1):</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]] = Complex(self.city.loc[y][&#39;nome&#39;])</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]].heatFlowC = self.buildings[self.city.loc[y][&#39;id&#39;]].heatFlowBD</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]].latentFlowC = self.buildings[self.city.loc[y][&#39;id&#39;]].latentFlowBD</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]].AHUDemandC = self.buildings[self.city.loc[y][&#39;id&#39;]].AHUDemandBD</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]].AHUDemand_latC = self.buildings[self.city.loc[y][&#39;id&#39;]].AHUDemand_latBD</span>
+    <span class="c1">#         self.complexes[self.city.loc[y][&#39;nome&#39;]].AHUDemand_sensC = self.buildings[self.city.loc[y][&#39;id&#39;]].AHUDemand_sensBD</span>
+    <span class="c1">#     i = 0</span>
+    <span class="c1">#     x = 1</span>
+    <span class="c1">#     while i &lt; nb:</span>
+    <span class="c1">#         if i &lt; nb - 1:</span>
+    <span class="c1">#             if self.city.loc[i][&#39;nome&#39;] == self.city.loc[x][&#39;nome&#39;]:</span>
+    <span class="c1">#                 self.complexes[self.city.loc[i][&#39;nome&#39;]].heatFlowC += self.buildings[self.city.loc[x][&#39;id&#39;]].heatFlowBD</span>
+    <span class="c1">#                 self.complexes[self.city.loc[i][&#39;nome&#39;]].latentFlowC += self.buildings[self.city.loc[x][&#39;id&#39;]].latentFlowBD</span>
+    <span class="c1">#                 self.complexes[self.city.loc[i][&#39;nome&#39;]].AHUDemandC += self.buildings[self.city.loc[x][&#39;id&#39;]].AHUDemandBD</span>
+    <span class="c1">#                 self.complexes[self.city.loc[i][&#39;nome&#39;]].AHUDemand_latC += self.buildings[self.city.loc[x][&#39;id&#39;]].AHUDemand_latBD</span>
+    <span class="c1">#                 self.complexes[self.city.loc[i][&#39;nome&#39;]].AHUDemand_sensC += self.buildings[self.city.loc[x][&#39;id&#39;]].AHUDemand_sensBD</span>
+    <span class="c1">#         i = i + 1</span>
+    <span class="c1">#         x = x + 1</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -160,6 +160,7 @@ class Ventilation:
         ----------
         numpy.array
             air flow rate in kg/s
+
         """
         # try:
         #     self.nominal_value_absolute
@@ -198,13 +199,16 @@ class Ventilation:
         ----------
         weather : eureca_building.weather.WeatherFile
             Weather object
-        args
-        kwargs
+        args : list
+            additional args
+        kwargs : dict
+            additional kwargs
 
         Returns
         ----------
         tuple
-            tuple of two numpy.array (air and vapour flow rates
+            tuple of two numpy.array (air and vapour flow rates)
+
         """
         if "area" not in kwargs.keys():
             area = None

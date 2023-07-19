@@ -15,36 +15,33 @@ import logging
 from datetime import datetime, timedelta
 import eureca_building.logs
 
-global DEFAULT_CONFIG_FILE
-DEFAULT_CONFIG_FILE = os.path.join(".", "eureca_building", "default_config.ini")
-
+global DEFAULTCONFIG_FILE
+DEFAULTCONFIG_FILE = os.path.join(".", "eureca_building", "default_config.ini")
 
 def load_config(file: str = None):
     """Function to load the config file, json file suggested
 
     Examples
-    ----------
-    {
-      "DEFAULT": {},
-      "model": {
-        "name": "example_model"
-      },
-      "simulation settings": {
-        "time steps per hour": "2",
-        "simulation reference year" : "2023",
-        "start date": "01-01 00:00",
-        "final date": "12-31 23:00",
-        "heating season start": "11-15 23:00",
-        "heating season end": "04-15 23:00",
-        "cooling season start": "06-01 23:00",
-        "cooling season end": "09-30 23:00"
-      },
-      "solar radiation settings": {
-        "do solar radiation calculation": "False",
-        "height subdivisions": "4",
-        "azimuth subdivisions": "8",
-        "urban shading tolerances": "80.,100.,80."
-      }
+    ---------
+    "DEFAULT": {},
+    "model": {
+    "name": "example_model"
+    },
+    "simulation settings": {
+    "time steps per hour": "2",
+    "simulation reference year" : "2023",
+    "start date": "01-01 00:00",
+    "final date": "12-31 23:00",
+    "heating season start": "11-15 23:00",
+    "heating season end": "04-15 23:00",
+    "cooling season start": "06-01 23:00",
+    "cooling season end": "09-30 23:00"
+    },
+    "solar radiation settings": {
+    "do solar radiation calculation": "False",
+    "height subdivisions": "4",
+    "azimuth subdivisions": "8",
+    "urban shading tolerances": "80.,100.,80."
     }
 
     Parameters
@@ -72,7 +69,7 @@ def load_config(file: str = None):
         print(message)
         logging.warning(message)
         CONFIG = Config()
-        CONFIG.read(DEFAULT_CONFIG_FILE)
+        CONFIG.read(DEFAULTCONFIG_FILE)
         message = "Default config loaded"
         print(message)
 
@@ -84,6 +81,66 @@ def load_config(file: str = None):
 class Config(configparser.ConfigParser):
     """Inherited from configparser.ConfigParser. This class is a container for config settings.
     """
+
+    def __init__(self):
+        super().__init__()
+
+        # Default Values
+        self.ts_per_hour = 1
+        self.start_date = datetime.strptime(
+            "2023 01-01 00:00",
+            "%Y %m-%d %H:%M")
+        self.final_date = datetime.strptime(
+            "2023 12-31 23:00",
+            "%Y %m-%d %H:%M")
+        self.heating_start_date = datetime.strptime(
+            "2023 11-15 00:00",
+            "%Y %m-%d %H:%M")
+        self.heating_final_date = datetime.strptime(
+            "2023 04-15 00:00",
+            "%Y %m-%d %H:%M")
+        self.cooling_start_date = datetime.strptime(
+            "2023 06-30 00:00",
+            "%Y %m-%d %H:%M")
+        self.cooling_final_date = datetime.strptime(
+            "2023 09-01 00:00",
+            "%Y %m-%d %H:%M")
+        self.time_step = int(3600 / self.ts_per_hour)  # s
+        self.number_of_time_steps = int((self.final_date - self.start_date) / timedelta(
+            minutes=self.time_step / 60)) + 1
+        start_time_step = int(
+            (self.start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+                minutes=self.time_step / 60))
+        self.start_time_step = start_time_step
+        self.final_time_step = start_time_step + self.number_of_time_steps
+
+        # Heating/cooling season time steps
+        self.heating_season_start_time_step = int(
+            (self.heating_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+                minutes=self.time_step / 60))
+        self.heating_season_end_time_step = int(
+            (self.heating_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+                minutes=self.time_step / 60))
+
+        self.cooling_season_start_time_step = int(
+            (self.cooling_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+                minutes=self.time_step / 60))
+        self.cooling_season_end_time_step = int(
+            (self.cooling_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+                minutes=self.time_step / 60))
+
+        self.number_of_time_steps_year = int(8760 * 60 / (self.time_step / 60))
+        if self.ts_per_hour > 1:
+            self.number_of_time_steps_year -= (self.ts_per_hour - 1)
+
+        self.simulation_reference_year = 2023
+
+        # Radiation
+        self.azimuth_subdivisions = 8
+        self.height_subdivisions = 4
+
+        self.do_solar_radiation_calculation = True
+        self.urban_shading_tolerances = [80.,100.,80]
 
     @property
     def ts_per_hour(self) -> int:
@@ -237,6 +294,9 @@ class Config(configparser.ConfigParser):
         """
         with open(file_path, "w") as outfile:
             json.dump(self, outfile, indent=4, )
+
+global CONFIG
+CONFIG = Config()
 
 # try:
 #     CONFIG

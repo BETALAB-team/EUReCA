@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.material &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.material</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.material</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module includes classes and functions to implement materials properties</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="n">MaterialPropertyOutsideBoundaries</span>
+<span class="kn">from</span> <span class="nn">eureca_building.units</span> <span class="kn">import</span> <span class="n">units</span><span class="p">,</span> <span class="n">material_limits</span>
+
+
+<div class="viewcode-block" id="Material"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.material.Material">[docs]</a><span class="k">class</span> <span class="nc">Material</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class used to define the material. Creates the material and checks the properties</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">thick</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.100</span>  <span class="c1"># Thickness [m]</span>
+    <span class="n">cond</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.00</span>  <span class="c1"># Conductivity [W/mK]</span>
+    <span class="n">spec_heat</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span>  <span class="c1"># Specific heat [J/kgK]</span>
+    <span class="n">dens</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span>  <span class="c1"># Density [kg/m3]</span>
+
+    <span class="c1"># Just to use the @property decorator and the setter function</span>
+    <span class="c1"># _name: str = field(init = False, repr = False)</span>
+    <span class="c1"># _thick: float = field(init = False, repr = False)</span>
+    <span class="c1"># _cond: float = field(init = False, repr = False)</span>
+    <span class="c1"># _spec_heat: float = field(init = False, repr = False)</span>
+    <span class="c1"># _dens: float = field(init = False, repr = False)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">thick</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.100</span><span class="p">,</span>
+        <span class="n">cond</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.00</span><span class="p">,</span>
+        <span class="n">spec_heat</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+        <span class="n">dens</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+        <span class="n">thermal_absorptance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Define the material and check the properties, using setter methods</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name</span>
+<span class="sd">        thick : float, default 0.1</span>
+<span class="sd">            thickness</span>
+<span class="sd">        cond : float, default 1.</span>
+<span class="sd">            conductivity</span>
+<span class="sd">        spec_heat : float, default 1000.</span>
+<span class="sd">            spec_heat</span>
+<span class="sd">        dens : float, default 1000.</span>
+<span class="sd">            density</span>
+<span class="sd">        thermal_absorptance : float, default 0.9</span>
+<span class="sd">            thermal absorptance  [-]</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        MaterialPropertyOutsideBoundaries</span>
+<span class="sd">            If a material parameter is not allowed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thick</span> <span class="o">=</span> <span class="n">thick</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dens</span> <span class="o">=</span> <span class="n">dens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cond</span> <span class="o">=</span> <span class="n">cond</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_heat</span> <span class="o">=</span> <span class="n">spec_heat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thermal_absorptance</span> <span class="o">=</span> <span class="n">thermal_absorptance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_params</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">thick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thick</span>
+
+    <span class="nd">@thick</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">thick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, thickness is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;thickness&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thick</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dens</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dens</span>
+
+    <span class="nd">@dens</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">dens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, density is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;density&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dens</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cond</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cond</span>
+
+    <span class="nd">@cond</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">cond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, conductivity is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;conductivity&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cond</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">spec_heat</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec_heat</span>
+
+    <span class="nd">@spec_heat</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">spec_heat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, specific heat is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;specific_heat&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec_heat</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">thermal_absorptance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_absorptance</span>
+
+    <span class="nd">@thermal_absorptance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">thermal_absorptance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, thermal_absorptance is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;absorptance&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;absorptance&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;thermal_absorptance&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;absorptance&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;absorptance&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_absorptance</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="Material.calc_capacity"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.material.Material.calc_capacity">[docs]</a>    <span class="k">def</span> <span class="nf">calc_capacity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Thermal capacity calculation (thickness * density * specific_heat)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thick</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dens</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_heat</span></div>
+
+<div class="viewcode-block" id="Material.calc_resistance"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.material.Material.calc_resistance">[docs]</a>    <span class="k">def</span> <span class="nf">calc_resistance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Thermal capacity calculation (thickness / conductivity)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thick</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">cond</span></div>
+
+<div class="viewcode-block" id="Material.calc_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.material.Material.calc_params">[docs]</a>    <span class="k">def</span> <span class="nf">calc_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs self.calc_capacity() and self.calc_resistance()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_capacity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_resistance</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a beautiful parsed str of the properties</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            A string to print properties</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Material: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span>
+<span class="s2">    thickness: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">thick</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">    density: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dens</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">    specific heat: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_heat</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">    conductivity: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cond</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;conductivity&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="AirGapMaterial"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.material.AirGapMaterial">[docs]</a><span class="k">class</span> <span class="nc">AirGapMaterial</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A class used to define the air gap material</span>
+<span class="sd">&lt;    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">thick</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.100</span>  <span class="c1"># Thickness [m]</span>
+    <span class="n">thermal_resistance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.00</span>  <span class="c1"># thermal_resistance [m2K/W]</span>
+
+    <span class="c1"># Just to use the @property decorator and the setter function</span>
+    <span class="c1"># _name: str = field(init = False, repr = False)</span>
+    <span class="c1"># _thick: float = field(init = False, repr = False)</span>
+    <span class="c1"># _resistance: float = field(init = False, repr = False)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">thick</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.100</span><span class="p">,</span> <span class="n">thermal_resistance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.00</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Defines the material and check the properties. Checks properties values using setter methods</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name</span>
+<span class="sd">        thick : float, default 0.1</span>
+<span class="sd">            thickness</span>
+<span class="sd">        thermal_resistance : float, default 1.</span>
+<span class="sd">            thermal_resistance</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        MaterialPropertyOutsideBoundaries</span>
+<span class="sd">            If a material parameter is not allowed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thick</span> <span class="o">=</span> <span class="n">thick</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span> <span class="o">=</span> <span class="n">thermal_resistance</span>
+
+        <span class="c1"># Just some equivalent values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thick</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dens</span> <span class="o">=</span> <span class="mf">1.2</span>  <span class="c1"># [kg/m3]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_heat</span> <span class="o">=</span> <span class="mf">1005.0</span>  <span class="c1"># [J/kgK]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">thick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thick</span>
+
+    <span class="nd">@thick</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">thick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, thickness is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;thickness&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thickness&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thick</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">thermal_resistance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_resistance</span>
+
+    <span class="nd">@thermal_resistance</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">thermal_resistance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, thermal_resistance is not a float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">value</span> <span class="o">&lt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thermal_resistance&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thermal_resistance&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># Value in [m]. Take a look to units</span>
+            <span class="c1"># Check if thickenss is outside</span>
+            <span class="k">raise</span> <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;thermal_resistance&quot;</span><span class="p">,</span>
+                <span class="n">lim</span><span class="o">=</span><span class="n">material_limits</span><span class="p">[</span><span class="s2">&quot;thermal_resistance&quot;</span><span class="p">],</span>
+                <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;thermal_resistance&quot;</span><span class="p">],</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_resistance</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a beautiful parsed str of the properties</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            A string to print properties</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">AirGapMaterial: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span>
+<span class="s2">    thickness: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">thick</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">    thermal resistance: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;thermal_resistance&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

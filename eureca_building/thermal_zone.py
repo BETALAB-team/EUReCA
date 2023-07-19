@@ -937,8 +937,8 @@ Thermal zone {self.name} 2C params:
         sigma : list, default [0., 1.]
             list of 2 floats
             portion of the heating/cooling load to:
-                sigma[0]: radiant to surface
-                sigma[1]: convective to air node
+            sigma[0]: radiant to surface
+            sigma[1]: convective to air node
             sum must be 1
         T_set : float, default 20.
             time step setpoint temperature [°C]
@@ -950,12 +950,12 @@ Thermal zone {self.name} 2C params:
         numpy.array
             array with system load, air temperature, surfaces equivalent temperature and mass equivalent temperature
             e.g.
-                [
-                    demand [W],
-                    T_air [°C],
-                    T_s [°C],
-                    T_m [°C]
-                ]
+            [
+            demand [W],
+            T_air [°C],
+            T_s [°C],
+            T_m [°C]
+            ]
         '''
 
         # Check input data type
@@ -1040,9 +1040,9 @@ Thermal zone {self.name} 2C params:
         sigma: list, default [0., 0., 1.]
             list of 3 floats
             portion of the heating cooling load to:
-                sigma[0]: radiant to non adiabatic
-                sigma[1]: radiant to adiabatic
-                sigma[2]: convective to air node
+            sigma[0]: radiant to non adiabatic
+            sigma[1]: radiant to adiabatic
+            sigma[2]: convective to air node
             The sum must be 1
         T_set : float, default 20.
             time step setpoint of considered thermal zone [°C]
@@ -1061,15 +1061,15 @@ Thermal zone {self.name} 2C params:
             theta_s_iw surface of IW building components [°C]
             theta_m_iw thermal mass of IW building components [°C]
             e.g.
-                [
-                    theta_m_aw [°C],
-                    theta_s_aw [°C],
-                    theta_lu_star [°C],
-                    theta_I_lu [°C],
-                    Q_hk_ges [W]
-                    theta_s_iw [°C],
-                    theta_m_iw [°C],
-                ]
+            [
+            theta_m_aw [°C],
+            theta_s_aw [°C],
+            theta_lu_star [°C],
+            theta_I_lu [°C],
+            Q_hk_ges [W]
+            theta_s_iw [°C],
+            theta_m_iw [°C],
+            ]
         """
 
         # Check input data type
@@ -1227,11 +1227,11 @@ Thermal zone {self.name} 2C params:
         tuple
             array with zone specific humidity [kg_v, kg_as], zone relative humidity [-], latent demand [W]
             e.g.
-                [
-                    zone specific humidity [kg_v, kg_as],
-                    zone relative humidity [-],
-                    latent demand [W],
-                ]
+            [
+            zone specific humidity [kg_v, kg_as],
+            zone relative humidity [-],
+            latent demand [W],
+            ]
 
         """
 

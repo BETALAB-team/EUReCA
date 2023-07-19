@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.surface &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.surface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.surface</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module includes functions to model a 3D surface</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyclipper</span> <span class="k">as</span> <span class="nn">pc</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+<span class="kn">from</span> <span class="nn">eureca_building.construction</span> <span class="kn">import</span> <span class="n">Construction</span>
+<span class="kn">from</span> <span class="nn">eureca_building.window</span> <span class="kn">import</span> <span class="n">SimpleWindow</span>
+<span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Non3ComponentsVertex</span><span class="p">,</span>
+    <span class="n">SurfaceWrongNumberOfVertices</span><span class="p">,</span>
+    <span class="n">WindowToWallRatioOutsideBoundaries</span><span class="p">,</span>
+    <span class="n">InvalidSurfaceType</span><span class="p">,</span>
+    <span class="n">NonPlanarSurface</span><span class="p">,</span>
+    <span class="n">NegativeSurfaceArea</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">eureca_building._geometry_auxiliary_functions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">check_complanarity</span><span class="p">,</span>
+    <span class="n">polygon_area</span><span class="p">,</span>
+    <span class="n">normal_versor_2</span><span class="p">,</span>
+    <span class="n">centroid</span><span class="p">,</span>
+    <span class="n">_project</span><span class="p">,</span>
+    <span class="n">_project_inv</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># %% Surface class</span>
+
+
+<div class="viewcode-block" id="Surface"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface">[docs]</a><span class="k">class</span> <span class="nc">Surface</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class surface checks the complanarity and calculates the area.</span>
+<span class="sd">    Then calculates the azimuth and tilt of the surface and set a surface</span>
+<span class="sd">    type depending on the tilt angle</span>
+<span class="sd">    </span>
+<span class="sd">    co planarity:</span>
+<span class="sd">        https://www.geeksforgeeks.org/program-to-check-whether-4-points-in-a-3-d-plane-are-coplanar/</span>
+
+<span class="sd">    the area is calculated from:</span>
+<span class="sd">        https://stackoverflow.com/questions/12642256/python-find-area-of-polygon-from-xyz-coordinates    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__warning_azimuth_subdivisions</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">__warning_height_subdivisions</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="n">_discharge_coefficient_nat_vent</span> <span class="o">=</span> <span class="mf">0.6</span>
+
+<div class="viewcode-block" id="Surface.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">vertices</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+            <span class="n">wwr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">subdivisions_solar_calc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">surface_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">construction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the surface object. Checks all the inputs using properties setter methods</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name.</span>
+<span class="sd">        vertices : tuple, default ((0, 0, 0), (0, 0, 0), (0, 0, 0))</span>
+<span class="sd">            List of vertices coordinates [m]. The default is ([0, 0, 0], [0, 0, 0], [0, 0, 0]).</span>
+<span class="sd">        wwr : float, default None</span>
+<span class="sd">            window to wall ratio (between  and 0 and 1). The default is 0.0.</span>
+<span class="sd">        subdivisions_solar_calc : dict, default None</span>
+<span class="sd">            Something like {</span>
+<span class="sd">            &#39;azimuth_subdivisions&#39;: 8,</span>
+<span class="sd">            &#39;height_subdivisions&#39;: 3,</span>
+<span class="sd">            }</span>
+<span class="sd">            keys:</span>
+<span class="sd">            azimuth_subdivisions : int, optional</span>
+<span class="sd">            Number of azimuth discretization for radiation purposes. The default is 8.</span>
+<span class="sd">            height_subdivisions : int, optional</span>
+<span class="sd">            Number of height discretization for radiation purposes. The default is 3.</span>
+<span class="sd">        surface_type : str, default None</span>
+<span class="sd">            Type of surface &#39;ExtWall&#39; or &#39;GroundFloor&#39; or &#39;Roof&#39;.</span>
+<span class="sd">            If not provided autocalculate.</span>
+<span class="sd">        construction : eureca_building.construction.Construction</span>
+<span class="sd">            the construction object with the materials</span>
+<span class="sd">        window : eureca_building.window.SimpleWindow</span>
+<span class="sd">            the Window object with the materials</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span> <span class="o">=</span> <span class="n">vertices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_centroid</span> <span class="o">=</span> <span class="n">centroid</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+
+        <span class="c1"># Area calculation</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="n">polygon_area</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+
+        <span class="c1"># Considering only three points in calculating the normal vector could create</span>
+        <span class="c1"># reverse orientations if the three points are in a non-convex angle of the surface</span>
+        <span class="c1">#</span>
+        <span class="c1"># for this reason theres an alternative way to calculate the normal,</span>
+        <span class="c1"># implemented in function: normalAlternative</span>
+        <span class="c1">#</span>
+        <span class="c1"># reference: https://stackoverflow.com/questions/32274127/how-to-efficiently-determine-the-normal-to-a-polygon-in-3d-space</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_azimuth_and_zenith</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">wwr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="n">wwr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="c1"># Param Solar Calc</span>
+        <span class="k">if</span> <span class="n">subdivisions_solar_calc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subdivisions_solar_calc</span> <span class="o">=</span> <span class="n">subdivisions_solar_calc</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subdivisions_solar_calc</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;height_subdivisions&quot;</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">height_subdivisions</span><span class="p">,</span>
+                                            <span class="s2">&quot;azimuth_subdivisions&quot;</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">azimuth_subdivisions</span><span class="p">,</span> <span class="p">}</span>
+        <span class="c1"># Surfcae type</span>
+        <span class="k">if</span> <span class="n">surface_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_auto_surface_type</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="n">surface_type</span>
+
+        <span class="k">if</span> <span class="n">construction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="n">construction</span>
+        <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">window</span>
+            
+        <span class="c1"># Window layout for natural ventilation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_windows_layout</span><span class="p">(</span><span class="n">n_window_layers</span><span class="o">=</span><span class="n">n_window_layers</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__vertices</span>
+
+    <span class="nd">@_vertices</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vertices of surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> are not a tuple: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># Not a plane - no area</span>
+            <span class="k">raise</span> <span class="n">SurfaceWrongNumberOfVertices</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Number of vertices lower than 3: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">vtx</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vtx</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Vertices of surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> are not a tuple: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vtx</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">Non3ComponentsVertex</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> has a vertex with len() != 3: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">vtx</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. One vertex contains non float values: </span><span class="si">{</span><span class="n">vtx</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># Check coplanarity</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">check_complanarity</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">NonPlanarSurface</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Non planar points&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__vertices</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__area</span>
+
+    <span class="nd">@_area</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, area is not an float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NegativeSurfaceArea</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, negative surface area: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__area</span> <span class="o">=</span> <span class="mf">1e-10</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__area</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_wwr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__wwr</span>
+
+    <span class="nd">@_wwr</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_wwr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, wwr is not an float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mf">0.999</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">WindowToWallRatioOutsideBoundaries</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, wwrS must included between 0 and 1: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__wwr</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">subdivisions_solar_calc</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subdivisions_solar_calc</span>
+
+    <span class="nd">@subdivisions_solar_calc</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">subdivisions_solar_calc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, subdivisions_solar_calc must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_subdivisions</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;azimuth_subdivisions&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, subdivisions_solar_calc must contain an azimuth_subdivisions key: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_height_subdivisions</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;height_subdivisions&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, subdivisions_solar_calc must contain an height_subdivisions key: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subdivisions_solar_calc</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_azimuth_and_zenith_solar_radiation</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_azimuth_subdivisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__azimuth_subdivisions</span>
+
+    <span class="nd">@_azimuth_subdivisions</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_azimuth_subdivisions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, azimuth_subdivisions is not an int: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="c1"># Check if unreasonable values provided</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, azimuth_subdivisions must be &gt; 1 and lower than 100: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">16</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__warning_azimuth_subdivisions</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;For one or more surfaces azimuth_subdivisions is high: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">The calculation time can be long&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__warning_azimuth_subdivisions</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__azimuth_subdivisions</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_height_subdivisions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__height_subdivisions</span>
+
+    <span class="nd">@_height_subdivisions</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_height_subdivisions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, height_subdivisions is not an int: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="p">:</span>
+            <span class="c1"># Check if unreasonable values provided</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, height_subdivisions must be &gt; 1 and lower than 50: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">__warning_height_subdivisions</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;For one or more surfaces height_subdivisions is high: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">The calculation time can be long&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__warning_height_subdivisions</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__height_subdivisions</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface_type</span>
+
+    <span class="nd">@surface_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, surface_type is not a str: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">,</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span> <span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">InvalidSurfaceType</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, surface_type must choosen from: [ExtWall, GroundFloor, Roof] </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_surface_type</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">construction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construction</span>
+
+    <span class="nd">@construction</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">construction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Construction</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, construction must be a Construction object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_construction</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">window</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window</span>
+
+    <span class="nd">@window</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">SimpleWindow</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, window must be a SimpleWindow object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate azimuth and zenith</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set the azimuth and zenith</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">=</span> <span class="mi">180</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">=</span> <span class="mi">90</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span>
+                    <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                            <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="o">-</span><span class="mi">90</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="mi">90</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="mi">180</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="o">-</span><span class="mi">180</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wwr</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate glazed and opaque ares</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        wwr : float</span>
+<span class="sd">            Window-to-wall ration. Number between 0 and 1</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opaque_area</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wwr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span> <span class="o">=</span> <span class="n">wwr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span>
+        
+    <span class="k">def</span> <span class="nf">_define_windows_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;USED FOR NATURAL VENTILATION</span>
+<span class="sd">        Defines the windows layout (sill height, width, number, ...)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n_window_layers : int, default 1</span>
+<span class="sd">            Number of rows to consider</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_h_window_default</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_window_layers</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: number of window layers is not an integer: n_window_layers </span><span class="si">{</span><span class="n">n_window_layers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">area_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span><span class="o">/</span><span class="n">n_window_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_w_window</span> <span class="o">=</span> <span class="n">area_layer</span><span class="o">/</span><span class="n">_h_window_default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h_window</span> <span class="o">=</span> <span class="n">_h_window_default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h_bottom_windows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.2</span> <span class="o">+</span> <span class="n">n</span><span class="o">*</span><span class="mf">3.3</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_window_layers</span><span class="p">)])</span>       
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h_top_windows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h_bottom_windows</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h_window</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discharge_coefficient_nat_vent</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_w_window</span>   <span class="c1"># Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate</span>
+
+    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith_solar_radiation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate rounded azimuth and zenith</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Azimuth and tilt approximation</span>
+
+        <span class="n">delta_a</span> <span class="o">=</span> <span class="mi">360</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_subdivisions</span><span class="p">)</span>
+        <span class="n">delta_h</span> <span class="o">=</span> <span class="mi">90</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height_subdivisions</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">delta_h</span><span class="p">,</span> <span class="mi">90</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_h</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_h</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&lt;</span> <span class="n">x</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sky_view_factor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&lt;</span> <span class="mi">150</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">=</span> <span class="mi">90</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sky_view_factor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Only to avoid errors</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">180</span> <span class="o">-</span> <span class="n">delta_a</span><span class="p">,</span> <span class="mi">180</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_a</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_a</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&gt;=</span> <span class="n">y</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">y</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">y</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="n">y</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">==</span> <span class="mi">180</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="o">-</span><span class="mi">180</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_set_auto_surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Uses tilt to autoset surface type.</span>
+<span class="sd">        tilt &gt; 150 --&gt; GroundFloor</span>
+<span class="sd">        tilt &lt; 40 --&gt; Roof</span>
+<span class="sd">        else --&gt; ExtWall</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Set surface inclination</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&lt;</span> <span class="mi">40</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;Roof&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&gt;</span> <span class="mi">150</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;GroundFloor&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;ExtWall&quot;</span>
+
+<div class="viewcode-block" id="Surface.max_height"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.max_height">[docs]</a>    <span class="k">def</span> <span class="nf">max_height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates max height from the most high vertex</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hmax</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">vert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__vertices</span><span class="p">:</span>
+            <span class="n">hmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">hmax</span><span class="p">,</span> <span class="n">vert</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">hmax</span></div>
+
+<div class="viewcode-block" id="Surface.min_height"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.min_height">[docs]</a>    <span class="k">def</span> <span class="nf">min_height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates max height from the most low vertex</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hmin</span> <span class="o">=</span> <span class="mi">10000</span>
+        <span class="k">for</span> <span class="n">vert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__vertices</span><span class="p">:</span>
+            <span class="n">hmin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">hmin</span><span class="p">,</span> <span class="n">vert</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">hmin</span></div>
+
+<div class="viewcode-block" id="Surface.get_VDI6007_surface_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.get_VDI6007_surface_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_VDI6007_surface_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates R and C using VDI6007 method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        asim : bool</span>
+<span class="sd">            Whether the surface is asimmetric (True) or not (False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            R, C -&gt; Thermal Resistance and Capacity</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">asim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">,</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span> <span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
+                <span class="n">asim</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">asim</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">R1</span><span class="p">,</span> <span class="n">C1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construction</span><span class="o">.</span><span class="n">_VDI6007_surface_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_area</span><span class="p">,</span> <span class="n">asim</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, construction not specified&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">R1</span><span class="p">,</span> <span class="n">C1</span></div>
+
+<div class="viewcode-block" id="Surface.get_surface_external_radiative_coefficient"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.get_surface_external_radiative_coefficient">[docs]</a>    <span class="k">def</span> <span class="nf">get_surface_external_radiative_coefficient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the radiative heat exchange coefficient.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># From standard average value</span>
+        <span class="k">return</span> <span class="mi">5</span> <span class="o">*</span> <span class="mf">0.9</span>  <span class="c1"># W/(m2 K)</span></div>
+
+<div class="viewcode-block" id="Surface.check_surface_coincidence"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.check_surface_coincidence">[docs]</a>    <span class="k">def</span> <span class="nf">check_surface_coincidence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_surface</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if two surface are coincident returning True or False</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other_surface : eureca_building.surface.Surface</span>
+<span class="sd">            another surface object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Are the surfaces coincident? True/False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check Input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other_surface</span><span class="p">,</span> <span class="n">Surface</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ERROR Surface class, surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, check_surface_coincidence. other_surface is not a Surface object: otherSurface </span><span class="si">{</span><span class="n">other_surface</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check the coincidence of two surface looking firstly at the coplanarity</span>
+        <span class="c1"># of the points and then the direction of the normals vectors</span>
+
+        <span class="n">flagPoints</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">plane</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">)</span>
+
+        <span class="c1"># Coplanarity test</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">other_surface</span><span class="o">.</span><span class="n">_vertices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">check_complanarity</span><span class="p">(</span><span class="n">plane</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">precision</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+                <span class="n">flagPoints</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Normal vector test</span>
+        <span class="n">flagNormal</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span> <span class="o">+</span> <span class="n">other_surface</span><span class="o">.</span><span class="n">_normal</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">:</span>
+            <span class="n">flagNormal</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">flagNormal</span> <span class="ow">and</span> <span class="n">flagPoints</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Surface.calculate_intersection_area"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.calculate_intersection_area">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_intersection_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_surface</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Calculates the area between two adjacent surfaces</span>
+<span class="sd">        reference: https://stackoverflow.com/questions/39003450/transform-3d-polygon-to-2d-perform-clipping-and-transform-back-to-3d</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other_surface : eureca_building.surface.Surface</span>
+<span class="sd">            another surface object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            The intersection area [m2]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check Input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other_surface</span><span class="p">,</span> <span class="n">Surface</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ERROR Surface class, surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, calculate_intersection_area. other_surface is not a Surface object: otherSurface </span><span class="si">{</span><span class="n">other_surface</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check the coincidence of two surface looking firstly at the coplanarity</span>
+        <span class="c1"># of the points and then the direction of the normals vectors</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">proj_axis</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="n">projA</span> <span class="o">=</span> <span class="p">[</span><span class="n">_project</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">proj_axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vertices</span><span class="p">]</span>
+        <span class="n">projB</span> <span class="o">=</span> <span class="p">[</span><span class="n">_project</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">proj_axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">other_surface</span><span class="o">.</span><span class="n">_vertices</span><span class="p">]</span>
+        <span class="n">scaledA</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">scale_to_clipper</span><span class="p">(</span><span class="n">projA</span><span class="p">)</span>
+        <span class="n">scaledB</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">scale_to_clipper</span><span class="p">(</span><span class="n">projB</span><span class="p">)</span>
+        <span class="n">clipper</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">Pyclipper</span><span class="p">()</span>
+        <span class="n">clipper</span><span class="o">.</span><span class="n">AddPath</span><span class="p">(</span><span class="n">scaledA</span><span class="p">,</span> <span class="n">poly_type</span><span class="o">=</span><span class="n">pc</span><span class="o">.</span><span class="n">PT_SUBJECT</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">clipper</span><span class="o">.</span><span class="n">AddPath</span><span class="p">(</span><span class="n">scaledB</span><span class="p">,</span> <span class="n">poly_type</span><span class="o">=</span><span class="n">pc</span><span class="o">.</span><span class="n">PT_CLIP</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">intersections</span> <span class="o">=</span> <span class="n">clipper</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">CT_INTERSECTION</span><span class="p">,</span> <span class="n">pc</span><span class="o">.</span><span class="n">PFT_NONZERO</span><span class="p">,</span> <span class="n">pc</span><span class="o">.</span><span class="n">PFT_NONZERO</span><span class="p">)</span>
+        <span class="n">intersections</span> <span class="o">=</span> <span class="p">[</span><span class="n">pc</span><span class="o">.</span><span class="n">scale_from_clipper</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">intersections</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">intersections</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">_project_inv</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">proj_axis</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">intersections</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">area</span> <span class="o">=</span> <span class="n">polygon_area</span><span class="p">(</span><span class="n">intersection</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">area</span> <span class="k">if</span> <span class="n">area</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.</span></div>
+
+<div class="viewcode-block" id="Surface.reduce_area"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.reduce_area">[docs]</a>    <span class="k">def</span> <span class="nf">reduce_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area_to_reduce</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Reduces the area of the surface by an input area</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        area_to_reduce : float</span>
+<span class="sd">            the area to subtract [m2] to the total area</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check Input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">area_to_reduce</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="n">area_to_reduce</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">area_to_reduce</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">area_to_reduce</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;ERROR Surface class, surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, reduce_area. The area is not a positive float: AreaToReduce </span><span class="si">{</span><span class="n">area_to_reduce</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Area reduction</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">-</span> <span class="n">area_to_reduce</span> <span class="o">&gt;</span> <span class="mf">0.0000001</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">-</span> <span class="n">area_to_reduce</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="mf">0.0000001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span><span class="p">)</span> <span class="c1"># This runs again the glazed and opaque calculation</span></div></div>
+
+<span class="c1"># %%---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># %% SurfaceInternalMass class</span>
+
+
+<div class="viewcode-block" id="SurfaceInternalMass"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.SurfaceInternalMass">[docs]</a><span class="k">class</span> <span class="nc">SurfaceInternalMass</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class to define a surface for thermal capacity using area and surface type</span>
+<span class="sd">    with a specific geometry</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SurfaceInternalMass.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.SurfaceInternalMass.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">area</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">surface_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">construction</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;It creates the SurfaceInternalMass object, like the Surface class, but without vertexes and geometry</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : string</span>
+<span class="sd">            name of the surface</span>
+<span class="sd">        area : float, default 0.</span>
+<span class="sd">            area of the internal surface</span>
+<span class="sd">        surface_type : str, default None</span>
+<span class="sd">            Type of internal surface: &#39;IntWall&#39; or &#39;IntCeiling&#39;</span>
+<span class="sd">        construction : eureca_building.construction.Construction</span>
+<span class="sd">            The construction to be assigned to the SurfaceInternalMass</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input data type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="n">area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="n">surface_type</span>
+        <span class="k">if</span> <span class="n">construction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="n">construction</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_area</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__area</span>
+
+    <span class="nd">@_area</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_area</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, area is not an float: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NegativeSurfaceArea</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, negative surface area: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__area</span> <span class="o">=</span> <span class="mf">1e-10</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__area</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opaque_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface_type</span>
+
+    <span class="nd">@surface_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, surface_type is not a str: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, surface_type is None: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">. IntWall will be assigned&quot;</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="s2">&quot;IntWall&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;IntWall&quot;</span><span class="p">,</span> <span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span> <span class="s2">&quot;IntFloor&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">InvalidSurfaceType</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, surface_type must choosen from: [IntWall, IntCeiling, IntFloor] </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_surface_type</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">construction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construction</span>
+
+    <span class="nd">@construction</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">construction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Construction</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, construction must be a Construction object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_construction</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="SurfaceInternalMass.get_VDI6007_surface_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.SurfaceInternalMass.get_VDI6007_surface_params">[docs]</a>    <span class="k">def</span> <span class="nf">get_VDI6007_surface_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asim</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates R and C using VDI6007 method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        asim : bool</span>
+<span class="sd">            Whether the surface is asimmetric (True) or not (False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            R, C -&gt; Thermal Resistance and Capacity</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">R1</span><span class="p">,</span> <span class="n">C1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construction</span><span class="o">.</span><span class="n">_VDI6007_surface_params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_opaque_area</span><span class="p">,</span> <span class="n">asim</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SurfaceInternalMass </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, construction not specified&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">R1</span><span class="p">,</span> <span class="n">C1</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
