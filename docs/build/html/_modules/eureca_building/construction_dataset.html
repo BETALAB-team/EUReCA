@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.construction_dataset &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.construction_dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.construction_dataset</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module includes a ConstructionDataset, a container class for materials, constructions, and windows</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.construction</span> <span class="kn">import</span> <span class="n">Construction</span>
+<span class="kn">from</span> <span class="nn">eureca_building.window</span> <span class="kn">import</span> <span class="n">SimpleWindow</span>
+<span class="kn">from</span> <span class="nn">eureca_building.material</span> <span class="kn">import</span> <span class="n">Material</span><span class="p">,</span> <span class="n">AirGapMaterial</span>
+<span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="n">WrongConstructionType</span><span class="p">,</span> <span class="n">WrongMaterialType</span>
+
+
+<div class="viewcode-block" id="ConstructionDataset"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction_dataset.ConstructionDataset">[docs]</a><span class="k">class</span> <span class="nc">ConstructionDataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class is a class to include the list of materials,</span>
+<span class="sd">    construction and windows that are used in the project</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    materials_dict : dict</span>
+<span class="sd">        Dict: dictionary with all Materials</span>
+<span class="sd">    constructions_dict : dict</span>
+<span class="sd">        Dict: dictionary with all Constructions</span>
+<span class="sd">    windows_dict : dict</span>
+<span class="sd">        Dict: dictionary with all Windows</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates the ConstructionDataset and the list of materials,</span>
+<span class="sd">        contructions, and windows</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">materials_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">constructions_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">windows_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="ConstructionDataset.read_excel"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction_dataset.ConstructionDataset.read_excel">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read_excel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read the Materials, Windows and Constrcutions from a spreadsheet.</span>
+<span class="sd">        See and example at https://github.com/BETALAB-team/EUReCA/tree/main/eureca_building/example_scripts under materials_and_constructions.xlsx</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str</span>
+<span class="sd">            path to the file.xls</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        eureca_building.construction_dataset.ConstructionDataset</span>
+<span class="sd">            the object with the three dictionaries including all Materials Windows and Constructions from the spreadsheet</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Windows</span>
+        <span class="k">for</span> <span class="n">win_idx</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Windows&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+            <span class="n">win</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Windows&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">win_idx</span><span class="p">]</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">windows_dict</span><span class="p">[</span><span class="n">win_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">SimpleWindow</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                <span class="n">u_value</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;U [W/(m²K)]&quot;</span><span class="p">],</span>
+                <span class="n">solar_heat_gain_coef</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;Solar_Heat_Gain_Coef [-]&quot;</span><span class="p">],</span>
+                <span class="n">visible_transmittance</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;visible_transmittance [-]&quot;</span><span class="p">],</span>
+                <span class="n">frame_factor</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;frame_factor [-]&quot;</span><span class="p">],</span>
+                <span class="n">shading_coef_int</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;shading_coef_int [-]&quot;</span><span class="p">],</span>
+                <span class="n">shading_coef_ext</span><span class="o">=</span><span class="n">win</span><span class="p">[</span><span class="s2">&quot;shading_coef_ext [-]&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="c1"># Materials</span>
+        <span class="k">for</span> <span class="n">mat_idx</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Materials&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+            <span class="n">mat</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Materials&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mat_idx</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Material_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Opaque&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">materials_dict</span><span class="p">[</span><span class="n">mat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">Material</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="n">thick</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Thickness [m]&quot;</span><span class="p">],</span>
+                    <span class="n">cond</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Conductivity [W/(m K)]&quot;</span><span class="p">],</span>
+                    <span class="n">spec_heat</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Specific_heat [J/(kg K)]&quot;</span><span class="p">],</span>
+                    <span class="n">dens</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Density [kg/m³]&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Material_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;AirGapMaterial&quot;</span><span class="p">:</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">materials_dict</span><span class="p">[</span><span class="n">mat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">AirGapMaterial</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="n">thermal_resistance</span><span class="o">=</span><span class="n">mat</span><span class="p">[</span><span class="s2">&quot;Thermal_resistance [(m2 K)/W]&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">WrongMaterialType</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Material </span><span class="si">{</span><span class="n">mat</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">, invalid material type&quot;</span>
+                <span class="p">)</span>
+        <span class="c1"># Constructions</span>
+        <span class="k">for</span> <span class="n">cons_idx</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Constructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+            <span class="n">cons</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Constructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cons_idx</span><span class="p">]</span>
+            <span class="n">list_of_materials</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">materials_dict</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cons</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;nan&quot;</span>
+            <span class="p">]</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cons</span><span class="p">[</span><span class="s2">&quot;U-value [W/(m2 K)]&quot;</span><span class="p">])</span> <span class="ow">and</span>
+                    <span class="p">(</span><span class="n">cons</span><span class="p">[</span><span class="s2">&quot;Weight class&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Very heavy&quot;</span><span class="p">,</span> <span class="s2">&quot;Heavy&quot;</span><span class="p">,</span> <span class="s2">&quot;Medium&quot;</span><span class="p">,</span> <span class="s2">&quot;Light&quot;</span><span class="p">,</span> <span class="s2">&quot;Very light&quot;</span><span class="p">])</span>
+            <span class="p">):</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">cons_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">Construction</span><span class="o">.</span><span class="n">from_U_value</span><span class="p">(</span>
+                                                            <span class="n">cons</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                                                            <span class="n">u_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cons</span><span class="p">[</span><span class="s2">&quot;U-value [W/(m2 K)]&quot;</span><span class="p">]),</span>
+                                                            <span class="n">weight_class</span> <span class="o">=</span>  <span class="n">cons</span><span class="p">[</span><span class="s2">&quot;Weight class&quot;</span><span class="p">],</span>
+                                                            <span class="n">construction_type</span> <span class="o">=</span> <span class="n">cons</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">dataset</span><span class="o">.</span><span class="n">constructions_dict</span><span class="p">[</span><span class="n">cons_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">Construction</span><span class="p">(</span>
+                    <span class="n">cons</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+                    <span class="n">materials_list</span><span class="o">=</span><span class="n">list_of_materials</span><span class="p">,</span>
+                    <span class="n">construction_type</span><span class="o">=</span><span class="n">cons</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dataset</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.weather &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.weather</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.weather</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module includes classes and functions to manage weather file</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">pvlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+
+
+<span class="c1"># %% ---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># Weather class</span>
+<div class="viewcode-block" id="WeatherFile"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather.WeatherFile">[docs]</a><span class="k">class</span> <span class="nc">WeatherFile</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class is a container for all weather data.</span>
+<span class="sd">    It processes the epw file to extract arrays of temperature, wind, humidity etc......</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">epw</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">time_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                 <span class="n">irradiances_calculation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">azimuth_subdivisions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+                 <span class="n">height_subdivisions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+                 <span class="n">urban_shading_tol</span><span class="o">=</span><span class="p">[</span><span class="mf">80.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">,</span> <span class="mf">80.</span><span class="p">]</span>
+                 <span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc......</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        epw_name : str</span>
+<span class="sd">            path of the epw file.</span>
+<span class="sd">        year : int, default None</span>
+<span class="sd">            the year of simulation. it is used only to create a pd.DataFrame.</span>
+<span class="sd">        time_steps : int, default 1</span>
+<span class="sd">            number of time steps in a hour.</span>
+<span class="sd">        irradiances_calculation : bool, default False</span>
+<span class="sd">            Whether to do or not the irradiances calculation</span>
+<span class="sd">        azimuth_subdivisions : int, default 8</span>
+<span class="sd">            number of the different direction (azimuth) solar radiation will be calculated</span>
+<span class="sd">        height_subdivisions : int, default 3</span>
+<span class="sd">            number of the different direction (solar height) solar radiation will be calculated</span>
+<span class="sd">        urban_shading_tol: list, default [80.,100.,80.]</span>
+<span class="sd">            list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Importing and processing weather data from .epw</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">epw</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">iotools</span><span class="o">.</span><span class="n">read_epw</span><span class="p">(</span><span class="n">epw</span><span class="p">,</span> <span class="n">coerce_year</span><span class="o">=</span><span class="n">year</span><span class="p">)</span>  <span class="c1"># Reading the epw via pvlib</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span> \
+                <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR Weather epw file not found in the Input folder.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check some integer inputs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_steps</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile: time_steps must be a integer: time_steps = </span><span class="si">{</span><span class="n">time_steps</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">azimuth_subdivisions</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;WeatherFile: azimuth_subdivisions must be a integer: azimuth_subdivisions = </span><span class="si">{</span><span class="n">azimuth_subdivisions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">height_subdivisions</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile: time_steps must be a integer: height_subdivisions = </span><span class="si">{</span><span class="n">height_subdivisions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">time_steps</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile: time_steps higher than 6&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">azimuth_subdivisions</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile: azimuth_subdivisions higher than 10&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">height_subdivisions</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile: height_subdivisions higher than 4&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span> <span class="o">=</span> <span class="n">epw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Hourly values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_epw_general_data</span> <span class="o">=</span> <span class="n">epw</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Extracting general data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_site</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">Location</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_epw_general_data</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">],</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_epw_general_data</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">],</span>
+                                             <span class="n">tz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_epw_general_data</span><span class="p">[</span><span class="s1">&#39;TZ&#39;</span><span class="p">])</span>  <span class="c1"># Creating a location variable</span>
+
+        <span class="k">if</span> <span class="n">time_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">time_steps</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;min&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span> <span class="o">=</span> <span class="n">epw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Weather Data and Average temperature difference between Text and Tsky</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;time_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="o">.</span><span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;wind_speed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;wind_speed&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># [m/s]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;wind_direction&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;wind_direction&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># [°]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;temp_air&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># [°C]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_dp_temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;temp_dew&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># [°C]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;relative_humidity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">/</span> <span class="mi">100</span>  <span class="c1"># [0-1]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;atmospheric_pressure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># Pa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;opaque_sky_coverage&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;opaque_sky_cover&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># [0-10]</span>
+        <span class="c1"># Average temperature difference between Text and Tsky</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_dt_air_sky&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_TskyCalc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">],</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_dp_temperature&quot;</span><span class="p">],</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_pressure&quot;</span><span class="p">],</span>
+                                                            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;opaque_sky_coverage&quot;</span><span class="p">],</span>
+                                                            <span class="n">time_steps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;number_of_time_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;time_steps_per_hour&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;azimuth_subdivisions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">azimuth_subdivisions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;height_subdivisions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">height_subdivisions</span>
+
+        <span class="c1"># Check some weather data values</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">],</span> <span class="o">-</span><span class="mf">50.</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">],</span> <span class="mf">60.</span><span class="p">)):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile class, input drybulb outdoor temperature is out of range [-50:60] °C&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;wind_speed&quot;</span><span class="p">],</span> <span class="o">-</span><span class="mf">0.001</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;wind_speed&quot;</span><span class="p">],</span> <span class="mf">25.001</span><span class="p">)):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile, input wind speed is out of range [-0.001, 25.] m/s&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">],</span> <span class="o">-</span><span class="mf">0.0001</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">],</span> <span class="mf">1.</span><span class="p">)):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WeatherFile, input relative humidity is out of range [-0.001, 1] [-]&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Humidity calculation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_saturation_pressure&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">]))</span>
+        <span class="n">higher_filt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">lower_filt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">higher_filt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_saturation_pressure&quot;</span><span class="p">][</span><span class="n">lower_filt</span><span class="p">]</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="p">(</span><span class="mf">21.875</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">lower_filt</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+                    <span class="mf">265.5</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">lower_filt</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_saturation_pressure&quot;</span><span class="p">][</span><span class="n">higher_filt</span><span class="p">]</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="p">(</span><span class="mf">17.269</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">higher_filt</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+                    <span class="mf">237.3</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">higher_filt</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_specific_humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.622</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_saturation_pressure&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_pressure&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">]</span> <span class="o">*</span>
+                                                        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span>
+                                                            <span class="s2">&quot;out_air_saturation_pressure&quot;</span><span class="p">])))</span>
+
+        <span class="k">if</span> <span class="n">irradiances_calculation</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">irradiances_calculation</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;urban_shading_tol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urban_shading_tol</span>
+
+        <span class="c1"># Definition of average T_ext during heating season</span>
+        <span class="n">av_t_daily</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">24</span><span class="o">*</span><span class="n">time_steps</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">8760</span> <span class="o">*</span> <span class="n">time_steps</span><span class="p">,</span> <span class="mi">24</span><span class="o">*</span><span class="n">time_steps</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;heating_degree_days&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">20</span><span class="o">-</span><span class="n">av_t_daily</span><span class="p">[</span><span class="n">av_t_daily</span> <span class="o">&lt;</span> <span class="mi">12</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_out_air_db_temperature_heating_season&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_start_time_step</span><span class="p">:],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_end_time_step</span><span class="p">]</span>
+        <span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_out_air_db_temperature_cooling_season&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_out_air_db_temperature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="WeatherFile.irradiances_calculation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather.WeatherFile.irradiances_calculation">[docs]</a>    <span class="k">def</span> <span class="nf">irradiances_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to tun the irrandiances calculation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get and store solar position arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_site</span><span class="o">.</span><span class="n">get_solarposition</span><span class="p">(</span><span class="n">times</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;time_steps_per_hour&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;time_steps_per_hour&#39;</span><span class="p">]))</span> <span class="o">+</span> <span class="s1">&#39;min&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span>  <span class="c1"># Bfill for azimuth that is not continuous</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;apparent_zenith&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_zenith&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;zenith&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;apparent_elevation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;elevation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;azimuth&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="mf">180.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_equation_of_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;equation_of_time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># Dataframe with hourly solar radiation per each direction</span>
+        <span class="n">azimuth_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;azimuth_subdivisions&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">height_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;height_subdivisions&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">az</span> <span class="ow">in</span> <span class="n">azimuth_array</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="n">az</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">height_array</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="n">az</span><span class="p">][</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">POA</span> <span class="o">=</span> <span class="n">_get_irradiance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">az</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="n">az</span><span class="p">][</span><span class="n">h</span><span class="p">][</span><span class="s1">&#39;global&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="n">az</span><span class="p">][</span><span class="n">h</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA_B&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="n">az</span><span class="p">][</span><span class="n">h</span><span class="p">][</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="c1"># Horizontal</span>
+        <span class="n">POA</span> <span class="o">=</span> <span class="n">_get_irradiance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;global&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA_B&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_TskyCalc</span><span class="p">(</span><span class="n">T_ext</span><span class="p">,</span> <span class="n">T_dp</span><span class="p">,</span> <span class="n">P_</span><span class="p">,</span> <span class="n">n_opaque</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Apparent sky temperature calculation procedure</span>
+<span class="sd">    Martin Berdhal model used by TRNSYS</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    T_ext : numpy.array</span>
+<span class="sd">        External Temperature [°C]</span>
+<span class="sd">    T_dp : pandas.DataFrame</span>
+<span class="sd">        External dew point temperature [°C]. It must be a pandas.DataFrame column</span>
+<span class="sd">    P_ : pandas.DataFrame</span>
+<span class="sd">        External pressure [Pa]. It must be a pandas.DataFrame column</span>
+<span class="sd">    n_opaque : pandas.DataFrame</span>
+<span class="sd">        Opaque sky covering [-]. It must be a pandas.DataFrame column</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Average temperature difference between External air temperature and Apparent sky temperature [°C]</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1"># Check input data type</span>
+    <span class="c1"># Calculation Martin Berdhal model used by TRNSYS</span>
+
+    <span class="n">day</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="n">time_steps</span><span class="p">)</span>  <span class="c1"># Inizialization day vector</span>
+    <span class="n">T_sky</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="n">time_steps</span><span class="p">)</span>
+    <span class="n">Tsky</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">T_sky_year</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">365</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">day</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">+</span> <span class="n">x</span>
+            <span class="n">Tdp</span> <span class="o">=</span> <span class="n">T_dp</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">P_</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span>  <span class="c1"># [mbar]</span>
+            <span class="n">nopaque</span> <span class="o">=</span> <span class="n">n_opaque</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">*</span> <span class="mf">0.1</span>  <span class="c1"># [0-1]</span>
+            <span class="n">eps_m</span> <span class="o">=</span> <span class="mf">0.711</span> <span class="o">+</span> <span class="mf">0.56</span> <span class="o">*</span> <span class="n">Tdp</span> <span class="o">/</span> <span class="mi">100</span> <span class="o">+</span> <span class="mf">0.73</span> <span class="o">*</span> <span class="p">(</span><span class="n">Tdp</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">eps_h</span> <span class="o">=</span> <span class="mf">0.013</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">24</span><span class="p">)</span>
+            <span class="n">eps_e</span> <span class="o">=</span> <span class="mf">0.00012</span> <span class="o">*</span> <span class="p">(</span><span class="n">P</span> <span class="o">-</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="n">eps_clear</span> <span class="o">=</span> <span class="n">eps_m</span> <span class="o">+</span> <span class="n">eps_h</span> <span class="o">+</span> <span class="n">eps_e</span>  <span class="c1"># Emissivity under clear sky condition</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">nopaque</span> <span class="o">*</span> <span class="mf">0.9</span>  <span class="c1"># Infrared cloud amount</span>
+            <span class="n">eps_sky</span> <span class="o">=</span> <span class="n">eps_clear</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">eps_clear</span><span class="p">)</span> <span class="o">*</span> <span class="n">C</span>  <span class="c1"># Sky emissivity</span>
+            <span class="n">T_sky</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">T_ext</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="mi">273</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">eps_sky</span> <span class="o">**</span> <span class="mf">0.25</span><span class="p">))</span> <span class="o">-</span> <span class="mi">273</span>  <span class="c1"># Apparent sky temperature [°C]</span>
+        <span class="n">Tsky</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Tsky</span><span class="p">,</span> <span class="n">T_sky</span><span class="p">)</span>  <span class="c1"># Annual Tsky created day by day</span>
+
+    <span class="c1"># Average temperature difference between External air temperature and Apparent sky temperature</span>
+    <span class="k">if</span> <span class="n">time_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">dT_er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">T_ext</span> <span class="o">-</span> <span class="n">Tsky</span><span class="p">[:</span><span class="o">-</span><span class="n">time_steps</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dT_er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">T_ext</span> <span class="o">-</span> <span class="n">Tsky</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dT_er</span>
+
+
+<span class="k">def</span> <span class="nf">_get_irradiance</span><span class="p">(</span><span class="n">weather_obj</span><span class="p">,</span> <span class="n">surf_tilt</span><span class="p">,</span> <span class="n">surf_az</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;function from pvlib to calculate irradiance on a specific surface</span>
+<span class="sd">    https://pvlib-python.readthedocs.io/en/stable/auto_examples/plot_ghi_transposition.html#sphx-glr-auto-examples-plot-ghi-transposition-py</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    weather_obj : eureca_building.weather.WeatherFile</span>
+<span class="sd">        Weather file object</span>
+<span class="sd">    surf_tilt: float</span>
+<span class="sd">        tilt of the surface</span>
+<span class="sd">    surf_az: float</span>
+<span class="sd">        azimuth of the surface</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        pandas DataFrame with the irradiances on the surface</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">surf_tilt</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">surf_tilt</span> <span class="o">&gt;</span> <span class="mi">90</span> <span class="ow">or</span> <span class="n">surf_az</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">180</span> <span class="ow">or</span> <span class="n">surf_az</span> <span class="o">&gt;</span> <span class="mi">180</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;WARNING get_irradiance function, are you sure that the surface orientation is correct?? surf_tilt </span><span class="si">{</span><span class="n">surf_tilt</span><span class="si">}</span><span class="s2">, surf_az </span><span class="si">{</span><span class="n">surf_az</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Use pvlib function to calculate the irradiance on the surface</span>
+
+    <span class="n">surf_az</span> <span class="o">=</span> <span class="n">surf_az</span> <span class="o">+</span> <span class="mi">180</span>
+    <span class="n">POA_irradiance</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_total_irradiance</span><span class="p">(</span>
+        <span class="n">surface_tilt</span><span class="o">=</span><span class="n">surf_tilt</span><span class="p">,</span>
+        <span class="n">surface_azimuth</span><span class="o">=</span><span class="n">surf_az</span><span class="p">,</span>
+        <span class="n">dni_extra</span><span class="o">=</span><span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_extra_radiation</span><span class="p">(</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;time_index&quot;</span><span class="p">],</span> <span class="n">solar_constant</span><span class="o">=</span><span class="mf">1366.1</span><span class="p">,</span>
+                                                       <span class="n">method</span><span class="o">=</span><span class="s1">&#39;spencer&#39;</span><span class="p">),</span>
+        <span class="n">dni</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;dni&#39;</span><span class="p">],</span>
+        <span class="n">ghi</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;ghi&#39;</span><span class="p">],</span>
+        <span class="n">dhi</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;dhi&#39;</span><span class="p">],</span>
+        <span class="n">solar_zenith</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">],</span>
+        <span class="n">solar_azimuth</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">],</span>
+        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;isotropic&#39;</span><span class="p">,</span>
+        <span class="n">model_perez</span><span class="o">=</span><span class="s1">&#39;allsitescomposite1990&#39;</span><span class="p">,</span>
+        <span class="n">airmass</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">_site</span><span class="o">.</span><span class="n">get_airmass</span><span class="p">(</span><span class="n">solar_position</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">))</span>
+    <span class="n">AOI</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">aoi</span><span class="p">(</span>
+        <span class="n">surface_tilt</span><span class="o">=</span><span class="n">surf_tilt</span><span class="p">,</span>
+        <span class="n">surface_azimuth</span><span class="o">=</span><span class="n">surf_az</span><span class="p">,</span>
+        <span class="n">solar_zenith</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">],</span>
+        <span class="n">solar_azimuth</span><span class="o">=</span><span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_azimuth&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Cleaning AOI vector</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">AOI</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">AOI</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">90</span> <span class="ow">or</span> <span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">90</span><span class="p">:</span>
+            <span class="n">AOI</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">90</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;GHI&#39;</span><span class="p">:</span> <span class="n">weather_obj</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="p">[</span><span class="s1">&#39;ghi&#39;</span><span class="p">],</span>
+                         <span class="s1">&#39;POA&#39;</span><span class="p">:</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_global&#39;</span><span class="p">],</span>
+                         <span class="s1">&#39;POA_B&#39;</span><span class="p">:</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_direct&#39;</span><span class="p">],</span>
+                         <span class="s1">&#39;POA_D&#39;</span><span class="p">:</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_global&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_direct&#39;</span><span class="p">],</span>
+                         <span class="s1">&#39;AOI&#39;</span><span class="p">:</span> <span class="n">AOI</span><span class="p">,</span>
+                         <span class="s1">&#39;solar zenith&#39;</span><span class="p">:</span> <span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">]})</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

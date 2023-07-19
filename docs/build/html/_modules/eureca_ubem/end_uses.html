@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_ubem.end_uses &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_ubem.end_uses</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_ubem.end_uses</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module includes a container class for schedule end-uses</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="sd">&#39;&#39;&#39;IMPORTING MODULES&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+<span class="kn">from</span> <span class="nn">eureca_building.schedule</span> <span class="kn">import</span> <span class="n">Schedule</span>
+<span class="kn">from</span> <span class="nn">eureca_building.internal_load</span> <span class="kn">import</span> <span class="n">People</span><span class="p">,</span> <span class="n">Lights</span><span class="p">,</span> <span class="n">ElectricLoad</span><span class="p">,</span> <span class="n">InternalLoad</span>
+<span class="kn">from</span> <span class="nn">eureca_building.setpoints</span> <span class="kn">import</span> <span class="n">SetpointDualBand</span>
+<span class="kn">from</span> <span class="nn">eureca_building.ventilation</span> <span class="kn">import</span> <span class="n">Infiltration</span><span class="p">,</span> <span class="n">MechanicalVentilation</span>
+<span class="kn">from</span> <span class="nn">eureca_building.domestic_hot_water</span> <span class="kn">import</span> <span class="n">DomesticHotWater</span>
+
+<span class="c1">#%% ---------------------------------------------------------------------------------------------------</span>
+<span class="c1">#%% Useful functions to create the schedule EndUses</span>
+
+<div class="viewcode-block" id="load_schedules"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.end_uses.load_schedules">[docs]</a><span class="k">def</span> <span class="nf">load_schedules</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;Schedule type loading in case you use daily schedules</span>
+<span class="sd">    This function takes the path to the spreadsheet consisting of the schedules and loads; it</span>
+<span class="sd">    Works for the daily schedule (see file ScheduleSemp.xlsx in eureca_ubem/Input/)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        Path to the spreadsheet to read file_schedule.xlsx</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        dictionary with EndUse_key/ eureca_ubem.end_uses.EndUse objects</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># Check input data type  </span>
+
+    <span class="c1"># read archetype names from the excel sheet</span>
+    <span class="n">end_uses_sheet_dict</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">sheet_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">header</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">skiprows</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">general_data</span> <span class="o">=</span> <span class="n">end_uses_sheet_dict</span><span class="p">[</span><span class="s2">&quot;GeneralData&quot;</span><span class="p">][[</span><span class="s1">&#39;System Convective Fraction&#39;</span><span class="p">,</span> <span class="s1">&#39;AHU humidity control&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;AHU sensible heat recovery&#39;</span><span class="p">,</span> <span class="s1">&#39;AHU latent heat recovery&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;Outdoor Air Ratio&#39;</span><span class="p">,</span><span class="s1">&#39;DomesticHotWater calculation&#39;</span><span class="p">]]</span>
+
+    <span class="n">holidays</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">end_uses_sheet_dict</span><span class="p">[</span><span class="s2">&quot;GeneralData&quot;</span><span class="p">][</span><span class="s2">&quot;Holidays from 0 to 364&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))]</span>
+
+    <span class="n">end_uses_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">k_use</span><span class="p">,</span> <span class="n">use_df</span> <span class="ow">in</span> <span class="n">end_uses_sheet_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k_use</span> <span class="o">!=</span> <span class="s2">&quot;GeneralData&quot;</span><span class="p">:</span>
+            <span class="n">use_df</span> <span class="o">=</span> <span class="n">use_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">use_df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">end_uses_dict</span><span class="p">[</span><span class="n">k_use</span><span class="p">]</span> <span class="o">=</span> <span class="n">EndUse</span><span class="o">.</span><span class="n">load_daily_sched</span><span class="p">(</span><span class="n">k_use</span><span class="p">,</span><span class="n">use_df</span><span class="p">,</span><span class="n">general_data</span><span class="p">,</span><span class="n">holidays</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">end_uses_dict</span></div>
+
+<span class="c1">#%%--------------------------------------------------------------------------------------------------- </span>
+<span class="c1">#%% EndUse class</span>
+
+<div class="viewcode-block" id="EndUse"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.end_uses.EndUse">[docs]</a><span class="k">class</span> <span class="nc">EndUse</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class builds up the loads and schedules for different type of buildings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Creates the object with many dictionaries to store various loads and schedules</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name of the archetype</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>    
+        
+        <span class="c1"># Check input data type</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR EndUse initialization, name must be a string: name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Inizialization</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="c1"># Schedules in files are set using hourly timestep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heat_gains</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;appliances&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;lighting&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;people&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">domestic_hot_water</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;domestic_hot_water&#39;</span><span class="p">:</span><span class="kc">None</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infiltration</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;infiltration&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_system</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;temperature_setpoint&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;humidity_setpoint&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;convective_fraction&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit_system</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;ventilation_flow_rate&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ahu_availability&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ahu_humidity_control&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ahu_supply_temperature&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;ahu_supply_humidity&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;ahu_sensible_heat_recovery&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;ahu_latent_heat_recovery&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;outdoor_air_ratio&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Take care of units!!!</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">domestic_hot_water</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_domestic_hot_water</span>
+
+    <span class="nd">@domestic_hot_water</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">domestic_hot_water</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, domestic_hot_water must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;domestic_hot_water&quot;</span><span class="p">],</span> <span class="n">DomesticHotWater</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;domestic_hot_water&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting domestic hot water. Domestic hot water not a DomesticHotWater type&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_domestic_hot_water</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">heat_gains</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_heat_gains</span>
+
+    <span class="nd">@heat_gains</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">heat_gains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, heat gains must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">],</span> <span class="n">InternalLoad</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting internal loads. Appliances not a InternalLoad type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">],</span> <span class="n">InternalLoad</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting internal loads. Lights not a InternalLoad type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">],</span> <span class="n">People</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting internal loads. People not a People type&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_heat_gains</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">infiltration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infiltration</span>
+
+    <span class="nd">@infiltration</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">infiltration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, infiltration must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;infiltration&quot;</span><span class="p">],</span> <span class="n">Infiltration</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;infiltration&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting infiltration. Infiltration not a Infiltration type&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_infiltration</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">zone_system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zone_system</span>
+
+    <span class="nd">@zone_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">zone_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, zone_system must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;temperature_setpoint&quot;</span><span class="p">],</span> <span class="n">Infiltration</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;temperature_setpoint&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. temperature_setpoint not a SetpointDualBand type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;humidity_setpoint&quot;</span><span class="p">],</span> <span class="n">Infiltration</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;humidity_setpoint&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. humidity_setpoint not a SetpointDualBand type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;convective_fraction&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;convective_fraction&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. humidity_setpoint not a SetpointDualBand type&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zone_system</span> <span class="o">=</span> <span class="n">value</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">air_handling_unit_system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_air_handling_unit_system</span>
+
+    <span class="nd">@air_handling_unit_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">air_handling_unit_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, air_handling_unit_system must be a dict: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ventilation_flow_rate&quot;</span><span class="p">],</span> <span class="n">MechanicalVentilation</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ventilation_flow_rate&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting air_handling_unit_system. ventilation_flow_rate not a MechanicalVentilation type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_availability&quot;</span><span class="p">],</span> <span class="n">Schedule</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_availability&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting air_handling_unit_system. ahu_availability not a Schedule type&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature&quot;</span><span class="p">],</span> <span class="n">Schedule</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting air_handling_unit_system. ahu_supply_temperature not a Schedule type&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_supply_humidity&quot;</span><span class="p">],</span> <span class="n">Schedule</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_supply_humidity&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting air_handling_unit_system. ahu_supply_humidity not a Schedule type&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_humidity_control&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_humidity_control&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. ahu_humidity_control not a boolean&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_sensible_heat_recovery&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_sensible_heat_recovery&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. ahu_sensible_heat_recovery not a float&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_latent_heat_recovery&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;ahu_latent_heat_recovery&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. ahu_latent_heat_recovery not a float&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;outdoor_air_ratio&quot;</span><span class="p">],</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span><span class="p">[</span><span class="s2">&quot;outdoor_air_ratio&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EndUse object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: error in setting zone_system. outdoor_air_ratio not a float&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_air_handling_unit_system</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="EndUse.load_daily_sched"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.end_uses.EndUse.load_daily_sched">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_daily_sched</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">daily_df_from_excel</span><span class="p">,</span> <span class="n">scalar_df_from_excel</span><span class="p">,</span> <span class="n">holidays</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Class method to create the EndUse object from the spreadsheet page</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name</span>
+<span class="sd">        daily_df_from_excel : pandas.DataFrame</span>
+<span class="sd">            DataFrame containing schedules from the end_use</span>
+<span class="sd">        scalar_df_from_excel : pandas.DataFrame</span>
+<span class="sd">            This series includes some additional data about the archetype</span>
+<span class="sd">            (from the GeneralInfo page in the spreadsheet)</span>
+<span class="sd">            (Sensible and</span>
+<span class="sd">            Latent AHU recovery,</span>
+<span class="sd">            Convective fraction of internal gains)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        eureca_ubem.end_uses.EndUse</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Each schedule is set to a different attribute of the class</span>
+
+        <span class="n">schedules_list</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;appliances&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;lighting&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;people&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;heatingTSP&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;coolingTSP&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;HeatingRHSP&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;CoolingRHSP&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ventFlowRate&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;infFlowRate&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ahu_supply_temperature_heating&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ahu_supply_specific_humidity_heating&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ahu_supply_temperature_cooling&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ahu_supply_specific_humidity_cooling&#39;</span><span class="p">,</span>
+            <span class="p">]</span>
+
+        <span class="n">sched_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="n">schedules_list</span><span class="p">)</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Appliances&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;lighting&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Lighting&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Occupancy (Total)&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;heatingTSP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;HeatSP&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;coolingTSP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;CoolSP&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;HeatingRHSP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;HumSP&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;CoolingRHSP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;DehumSP&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mi">100</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;ventFlowRate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Ventilation FlowRate&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;infFlowRate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Infiltration FlowRate&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature_heating&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Ventilation Supply Temperature heating mode&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;ahu_supply_specific_humidity_heating&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Ventilation Supply specific humidity heating mode&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature_cooling&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Ventilation Supply Temperature cooling mode&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;ahu_supply_specific_humidity_cooling&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Ventilation Supply specific humidity cooling mode&#39;</span><span class="p">]</span>
+        <span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;dhw&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">daily_df_from_excel</span><span class="p">[</span><span class="s1">&#39;Domestic Hot Water FlowRate&#39;</span><span class="p">]</span>
+
+        <span class="n">sched_df</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">rescale_df</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">,</span> <span class="n">sched_df</span><span class="p">)</span>
+
+        <span class="n">scalar_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;conFrac&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;System Convective Fraction&#39;</span><span class="p">])</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;AHUHUM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;AHU humidity control&#39;</span><span class="p">])</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;sensRec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;AHU sensible heat recovery&#39;</span><span class="p">])</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;latRec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;AHU latent heat recovery&#39;</span><span class="p">])</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;outdoorAirRatio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;Outdoor Air Ratio&#39;</span><span class="p">])</span>
+            <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;DomesticHotWater calculation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;DomesticHotWater calculation&#39;</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ERROR Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;ERROR </span>
+<span class="s2">                             Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. GeneralData</span>
+<span class="s2">                             I&#39;m not able to parse the General data. </span>
+<span class="s2">                                 ConvFrac should be a float </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;ConvFrac&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                                 AHUHum should be a boolean </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;AHUHum&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                                 SensRec should be a float </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;SensRec&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                                 LatRec  should be a float </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;LatRec&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                                 OutAirRatio   should be a float </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;OutAirRatio&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                                 DomesticHotWater calculation   should be a str </span><span class="si">{</span><span class="n">scalar_df_from_excel</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;DomesticHotWater calculation&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                             &quot;&quot;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check the quality of input data</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;conFrac&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. Convective fraction of the heat gain outside boundary condition [0-1]: ConvFrac </span><span class="si">{</span><span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;conFrac&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;sensRec&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. Sensible recovery of the AHU outside boundary condition [0-1]: sensRec </span><span class="si">{</span><span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;sensRec&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;latRec&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. Latent recovery of the AHU outside boundary condition [0-1]: sensRec </span><span class="si">{</span><span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;latRec&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.</span> <span class="o">&lt;=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;outdoorAirRatio&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING Loading end use </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio </span><span class="si">{</span><span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;outdoorAirRatio&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Creating the end use object</span>
+
+        <span class="n">people_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;People sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span> <span class="o">=</span> <span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_saturday</span> <span class="o">=</span> <span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_sunday</span> <span class="o">=</span> <span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span><span class="o">*</span><span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_holiday</span> <span class="o">=</span> <span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;people&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span><span class="o">*</span><span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">starting_day</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span> <span class="o">=</span> <span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">people</span> <span class="o">=</span> <span class="n">People</span><span class="p">(</span>
+            <span class="c1"># The schedule is already in W/m2</span>
+            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;People load </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;W/m2&#39;</span><span class="p">,</span>
+            <span class="n">nominal_value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">people_sched</span><span class="p">,</span>
+            <span class="n">fraction_latent</span><span class="o">=</span><span class="mf">0.43</span><span class="p">,</span>
+            <span class="n">fraction_radiant</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+            <span class="n">fraction_convective</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+            <span class="n">metabolic_rate</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">app_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Appliances sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;appliances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">app</span> <span class="o">=</span> <span class="n">ElectricLoad</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Appliances load </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;W/m2&#39;</span><span class="p">,</span>
+            <span class="n">nominal_value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">app_sched</span><span class="p">,</span>
+            <span class="n">fraction_radiant</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">fraction_convective</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">lights_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Lights sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;lighting&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">lights</span> <span class="o">=</span> <span class="n">Lights</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Lights load </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;W/m2&#39;</span><span class="p">,</span>
+            <span class="n">nominal_value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">lights_sched</span><span class="p">,</span>
+            <span class="n">fraction_radiant</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+            <span class="n">fraction_convective</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">heat_sp_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Heating setpoint </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;temperature&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;heatingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;heatingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;heatingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;heatingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">cool_sp_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Cooling setpoint </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;temperature&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;coolingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;coolingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;coolingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;coolingTSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">hum_sp_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Humidifying setpoint </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;HeatingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;HeatingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;HeatingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;HeatingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">dehum_sp_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Dehumidifying setpoint </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;CoolingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;CoolingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;CoolingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;CoolingRHSP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">heat_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_end_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span>
+        <span class="n">hum_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_end_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span>
+
+        <span class="n">cool_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="mi">150</span>
+        <span class="n">cool_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">150</span>
+
+        <span class="n">dehum_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="n">dehum_sp_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">:]</span> <span class="o">=</span> <span class="mf">1.5</span>
+
+        <span class="n">temp_sp</span> <span class="o">=</span> <span class="n">SetpointDualBand</span><span class="p">(</span>
+            <span class="s2">&quot;t_sp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;temperature&quot;</span><span class="p">,</span>
+            <span class="n">schedule_lower</span><span class="o">=</span><span class="n">heat_sp_sched</span><span class="p">,</span>
+            <span class="n">schedule_upper</span><span class="o">=</span><span class="n">cool_sp_sched</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">heat_sp</span> <span class="o">=</span> <span class="n">SetpointDualBand</span><span class="p">(</span>
+            <span class="s2">&quot;h_sp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;relative_humidity&quot;</span><span class="p">,</span>
+            <span class="n">schedule_lower</span><span class="o">=</span><span class="n">hum_sp_sched</span><span class="p">,</span>
+            <span class="n">schedule_upper</span><span class="o">=</span><span class="n">dehum_sp_sched</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">infiltration</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Infiltration sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;infFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;infFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;infFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;infFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">inf_obj</span> <span class="o">=</span> <span class="n">Infiltration</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;inf_obj&#39;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;Vol/h&#39;</span><span class="p">,</span>
+            <span class="n">nominal_value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">infiltration</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">vent_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ventilation mass flow rate sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ventFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ventFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ventFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ventFlowRate&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">vent_obj</span> <span class="o">=</span> <span class="n">MechanicalVentilation</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vent_obj&#39;</span><span class="p">,</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;m3/(m2 s)&#39;</span><span class="p">,</span>
+            <span class="n">nominal_value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">vent_sched</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">supply_t_heating</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ventilation temperature supply sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">supply_h_heating</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ventilation humidity supply sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_heating&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">supply_t_cooling</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ventilation temperature supply sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                              <span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                            <span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_temperature_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                             <span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">supply_h_cooling</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ventilation humidity supply sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dimensionless&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                              <span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                            <span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s2">&quot;ahu_supply_specific_humidity_cooling&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span>
+                             <span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">],</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Change heating cooling season</span>
+        <span class="n">supply_t_heating</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="n">supply_t_cooling</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">]</span>
+        <span class="n">supply_h_heating</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="n">supply_h_cooling</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">]</span>
+
+        <span class="n">ahu_availability_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_constant_value</span><span class="p">(</span>
+            <span class="s2">&quot;ahu_availability_sched&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;availability&quot;</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">ahu_availability_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">ahu_availability_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_end_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ahu_availability_sched</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">heating_season_start_time_step</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">domestic_hot_water_sched</span> <span class="o">=</span> <span class="n">Schedule</span><span class="o">.</span><span class="n">from_daily_schedule</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;DHW sched </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mass_flow_rate&quot;</span><span class="p">,</span>
+            <span class="n">schedule_week_day</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;dhw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_saturday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;dhw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">24</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_sunday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;dhw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">schedule_holiday</span><span class="o">=</span><span class="n">sched_df</span><span class="p">[</span><span class="s1">&#39;dhw&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">48</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">:</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+            <span class="n">starting_day</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">holidays</span><span class="o">=</span><span class="n">holidays</span>
+        <span class="p">)</span>
+
+        <span class="n">dhw</span> <span class="o">=</span> <span class="n">DomesticHotWater</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;DomesticHotWater </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">calculation_method</span><span class="o">=</span><span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;DomesticHotWater calculation&#39;</span><span class="p">],</span>
+            <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;L/(m2 h)&quot;</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">domestic_hot_water_sched</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">end_use_obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">app</span> <span class="c1"># InternalLoad type</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;lighting&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lights</span> <span class="c1"># InternalLoad type</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">people</span> <span class="c1"># People Type</span>
+
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">domestic_hot_water</span><span class="p">[</span><span class="s1">&#39;domestic_hot_water&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dhw</span>
+
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">infiltration</span><span class="p">[</span><span class="s1">&#39;infiltration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf_obj</span> <span class="c1"># Infiltration Type</span>
+
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;temperature_setpoint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_sp</span> <span class="c1"># SetpointDualBand type</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;humidity_setpoint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_sp</span> <span class="c1"># SetpointDualBand type</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;convective_fraction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;conFrac&#39;</span><span class="p">]</span>
+
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ventilation_flow_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vent_obj</span> <span class="c1"># MechanicalVentilation</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_availability&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ahu_availability_sched</span> <span class="c1"># Schedule</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_humidity_control&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;AHUHUM&#39;</span><span class="p">]</span> <span class="c1"># boolean</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">supply_t_heating</span> <span class="c1"># Schedule</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_humidity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">supply_h_heating</span> <span class="c1"># Schedule</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_sensible_heat_recovery&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;sensRec&#39;</span><span class="p">]</span> <span class="c1"># float</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_latent_heat_recovery&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;latRec&#39;</span><span class="p">]</span> <span class="c1"># float</span>
+        <span class="n">end_use_obj</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;outdoor_air_ratio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scalar_data</span><span class="p">[</span><span class="s1">&#39;outdoorAirRatio&#39;</span><span class="p">]</span> <span class="c1"># float</span>
+
+        <span class="k">return</span> <span class="n">end_use_obj</span></div>
+
+
+    <span class="c1"># @classmethod</span>
+    <span class="c1"># def load_daily_sched(self,daily_df_from_excel, scale_df_from_excel):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Used for ScheduleComp.xlsx Excel file</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#         ----------</span>
+    <span class="c1">#         arch : pandas dataframe</span>
+    <span class="c1">#             This must include all the schedules&#39; keys</span>
+    <span class="c1">#</span>
+    <span class="c1">#         sched : pandas dataframe</span>
+    <span class="c1">#             This dataframe includes all the yearly schedules</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None.</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     # Each schedule is set to a different attribute of the class</span>
+    <span class="c1">#</span>
+    <span class="c1">#     try:</span>
+    <span class="c1">#         self.sched_df[&#39;appliances&#39;] = sched[arch[&#39;Appliances&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;lighting&#39;] = sched[arch[&#39;Lighting&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;people&#39;] = sched[arch[&#39;People (Sensible)&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;vapour&#39;] = sched[arch[&#39;Vapour&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;heatingTSP&#39;] = sched[arch[&#39;HeatTSP&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;coolingTSP&#39;] = sched[arch[&#39;CoolTSP&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;HeatingRHSP&#39;] = sched[arch[&#39;HeatRHSP&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;CoolingRHSP&#39;] = sched[arch[&#39;CoolRHSP&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;ventFlowRate&#39;] = sched[arch[&#39;VentFlowRate&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;infFlowRate&#39;] = sched[arch[&#39;InfFlowRate&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;plantOnOffSens&#39;] = sched[arch[&#39;PlantONOFFSens&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;plantOnOffLat&#39;] = sched[arch[&#39;PlantONOFFLat&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;AHUOnOff&#39;] = sched[arch[&#39;AHUONOFF&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;AHUHUM&#39;] = sched[arch[&#39;AHUHUM&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;AHUTSupp&#39;] = sched[arch[&#39;AHUTSupp&#39;]]</span>
+    <span class="c1">#         self.sched_df[&#39;AHUxSupp&#39;] = sched[arch[&#39;AHUxSupp&#39;]]</span>
+    <span class="c1">#</span>
+    <span class="c1">#         self.scalar_data[&#39;conFrac&#39;] = float(arch[&#39;ConvFrac&#39;])</span>
+    <span class="c1">#         self.scalar_data[&#39;AHUHUM&#39;] = bool(arch[&#39;AHUHum&#39;])</span>
+    <span class="c1">#         self.scalar_data[&#39;sensRec&#39;] = float(arch[&#39;SensRec&#39;])</span>
+    <span class="c1">#         self.scalar_data[&#39;latRec&#39;] = float(arch[&#39;LatRec&#39;])</span>
+    <span class="c1">#         self.scalar_data[&#39;outdoorAirRatio&#39;] = float(arch[&#39;OutAirRatio&#39;])</span>
+    <span class="c1">#     except KeyError:</span>
+    <span class="c1">#         raise KeyError(f&#39;ERROR Archetype object {self.name}: can not find all schedules&#39;)</span>
+
+<div class="viewcode-block" id="EndUse.rescale_df"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.end_uses.EndUse.rescale_df">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">rescale_df</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">sched_df</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Static method to rescale the schedule dataframe from the hour to the simulation time step</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ts : int</span>
+<span class="sd">            Number of time steps per hour</span>
+<span class="sd">        sched_df : pandas.DataFrame</span>
+<span class="sd">            DataFrame to rescale</span>
+<span class="sd">                </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            The rescaled df</span>
+<span class="sd">        &#39;&#39;&#39;</span>   
+        
+        <span class="c1"># Check input data type</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR input ts is not an integer: ts </span><span class="si">{</span><span class="n">ts</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>         
+    
+        <span class="c1"># Rescale </span>
+        
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">60</span><span class="o">/</span><span class="n">ts</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;min&#39;</span>
+        <span class="n">sched_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">sched_df</span><span class="p">,</span><span class="n">sched_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2020-01-01&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">sched_df</span><span class="o">.</span><span class="n">index</span><span class="p">),</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;1h&#39;</span><span class="p">)</span>
+        <span class="n">sched_df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sched_df</span> <span class="o">=</span> <span class="n">sched_df</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span>                               <span class="c1"># Steps interpolation Resampling</span>
+        <span class="k">return</span> <span class="n">sched_df</span></div></div>
+        <span class="c1">#Boundary = Boundary_0.resample(str(ts)+&#39;S&#39;).interpolate(method=&#39;linear&#39;)        # Linear interpolation Resampling</span>
+        <span class="c1"># There are several upsample methods: pad(), bfill(), mean(), interpolate(), apply custum function...</span>
+        <span class="c1"># For info look:</span>
+        <span class="c1">#   https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.resample.html</span>
+        <span class="c1">#   https://machinelearningmastery.com/resample-interpolate-time-series-data-python/</span>
+        
+    <span class="c1"># def create_np(self):</span>
+    <span class="c1">#</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#     Creates the np.array attributes from the self.sched_df dataframe</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Parameters</span>
+    <span class="c1">#         ----------</span>
+    <span class="c1">#</span>
+    <span class="c1">#     Returns</span>
+    <span class="c1">#     -------</span>
+    <span class="c1">#     None.</span>
+    <span class="c1">#     &#39;&#39;&#39;</span>
+    <span class="c1">#</span>
+    <span class="c1">#     self.appliances = self.sched_df[&#39;appliances&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.lighting = self.sched_df[&#39;lighting&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.people = self.sched_df[&#39;people&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.vapour = self.sched_df[&#39;vapour&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.heatingTSP = self.sched_df[&#39;heatingTSP&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.coolingTSP = self.sched_df[&#39;coolingTSP&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.HeatingRHSP = self.sched_df[&#39;HeatingRHSP&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.CoolingRHSP = self.sched_df[&#39;CoolingRHSP&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.ventFlowRate = self.sched_df[&#39;ventFlowRate&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.infFlowRate = self.sched_df[&#39;infFlowRate&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.plantOnOffSens = self.sched_df[&#39;plantOnOffSens&#39;].to_numpy(dtype = np.int_)</span>
+    <span class="c1">#     self.plantOnOffLat = self.sched_df[&#39;plantOnOffLat&#39;].to_numpy(dtype = np.int_)</span>
+    <span class="c1">#     self.AHUOnOff = self.sched_df[&#39;AHUOnOff&#39;].to_numpy(dtype = np.int_)</span>
+    <span class="c1">#     #self.AHUHUM = self.sched_df[&#39;AHUHUM&#39;].to_numpy(dtype = np.bool_)</span>
+    <span class="c1">#     self.AHUTSupp = self.sched_df[&#39;AHUTSupp&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     self.AHUxSupp = self.sched_df[&#39;AHUxSupp&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     #self.conFrac = self.sched_df[&#39;conFrac&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     #self.AHUHumidistat = self.sched_df[&#39;AHUHum&#39;]</span>
+    <span class="c1">#     #self.sensRec = self.sched_df[&#39;sensRec&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     #self.latRec = self.sched_df[&#39;latRec&#39;].to_numpy(dtype = np.float_)</span>
+    <span class="c1">#     #self.outdoorAirRatio = self.sched_df[&#39;outdoorAirRatio&#39;].to_numpy(dtype = np.float_)</span>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

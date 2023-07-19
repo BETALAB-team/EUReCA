@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.construction &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.construction</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.construction</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module includes class for the typical construction</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MaterialPropertyOutsideBoundaries</span><span class="p">,</span>
+    <span class="n">WrongConstructionType</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">eureca_building.material</span> <span class="kn">import</span> <span class="n">Material</span><span class="p">,</span> <span class="n">AirGapMaterial</span>
+<span class="kn">from</span> <span class="nn">eureca_building.units</span> <span class="kn">import</span> <span class="n">units</span>
+
+
+<span class="c1"># %% OpaqueMaterial class</span>
+
+
+<div class="viewcode-block" id="Construction"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction.Construction">[docs]</a><span class="k">class</span> <span class="nc">Construction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class to model constructions and calculate all the construction parameters: U, k_int, k_est</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Class attributes</span>
+
+    <span class="n">tot_heat_trans_coef</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">&quot;Outside&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mf">7.7</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">],</span> <span class="s2">&quot;Inside&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">7.7</span><span class="p">,</span> <span class="mf">7.7</span><span class="p">,</span> <span class="mf">7.7</span><span class="p">,</span> <span class="mf">7.7</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">,</span> <span class="mf">6.7</span><span class="p">]},</span>
+        <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">,</span> <span class="s2">&quot;Roof&quot;</span><span class="p">,</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span> <span class="s2">&quot;IntWall&quot;</span><span class="p">,</span> <span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span> <span class="s2">&quot;IntFloor&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">rad_heat_trans_coef</span> <span class="o">=</span> <span class="mf">5.0</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">materials_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">construction_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ExtWall&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the Construction object</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : string</span>
+<span class="sd">            name</span>
+<span class="sd">        materials_list : list</span>
+<span class="sd">            list of Materials or AirGapMaterials objects (Outside -&gt; Inside)</span>
+<span class="sd">        construction_type : string</span>
+<span class="sd">            Choose from [&quot;ExtWall&quot;, &quot;Roof&quot;, &quot;GroundFloor&quot;, &quot;IntWall&quot;, &quot;IntCeiling&quot;]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input data type</span>
+        <span class="k">for</span> <span class="n">mat</span> <span class="ow">in</span> <span class="n">materials_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">Material</span><span class="p">))</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">AirGapMaterial</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Construction </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. materials_list must be a list of Materials or AirGapMaterial objects. Material </span><span class="si">{</span><span class="n">mat</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">construction_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="s2">&quot;ExtWall&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Roof&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;IntWall&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
+        <span class="p">]:</span>
+            <span class="k">raise</span> <span class="n">WrongConstructionType</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Construction </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">. construction type </span><span class="si">{</span><span class="n">construction_type</span><span class="si">}</span><span class="s1"> not in [&quot;ExtWall&quot;, &quot;Roof&quot;, &quot;GroundFloor&quot;, &quot;IntWall&quot;, &quot;IntCeiling&quot;, &quot;IntFloor&quot;]&#39;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span> <span class="o">=</span> <span class="n">construction_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span> <span class="o">=</span> <span class="n">materials_list</span>
+
+        <span class="c1"># Set outside and inside convective and radiant heat transfer coefficients</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_R_si</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Inside&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_R_se</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Outside&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conv_heat_trans_coef_int</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Inside&quot;</span><span class="p">]</span>
+                <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rad_heat_trans_coef</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conv_heat_trans_coef_ext</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Outside&quot;</span><span class="p">]</span>
+                <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rad_heat_trans_coef</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext_absorptance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">thermal_absorptance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span><span class="p">)</span>
+
+        <span class="c1"># Calculation of the U-values [W/(m2 K)] and creation of some arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">net_thermal_resistance</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thicknesses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conductivities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">densities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_heats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">net_thermal_resistance</span> <span class="o">+=</span> <span class="n">mat</span><span class="o">.</span><span class="n">thermal_resistance</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thicknesses</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">thick</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conductivities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">cond</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">densities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">dens</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec_heats</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">spec_heat</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mat</span><span class="o">.</span><span class="n">thermal_resistance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_thermal_resistance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_si</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_R_se</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_u_value_net</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">net_thermal_resistance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_u_value</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistance</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_u_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_u_value</span> <span class="o">*</span> <span class="mf">0.7</span>
+        <span class="c1"># Run ISO13790params and vdi6007params to calculate further parameters</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_ISO13790_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates ISO13790 params: k_int, k_est</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Set some parameters from the standard</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="mi">86400</span>
+        <span class="n">sigma_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conductivities</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">densities</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_heats</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># Depth of penetration</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma_2</span><span class="p">)</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thicknesses</span> <span class="o">/</span> <span class="n">sigma</span>
+
+        <span class="c1"># Thermal transfer matrix</span>
+
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">):</span>
+            <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span>
+                <span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">conductivities</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="mi">1</span><span class="n">j</span>
+                    <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="p">)</span>
+            <span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conductivities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="mi">1</span><span class="n">j</span>
+                    <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">eps</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="p">)</span>
+        <span class="n">Z_si</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># Internal surface resistance (convection and radiation, ISO 6946)</span>
+        <span class="n">Z_si</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_R_si</span>
+        <span class="n">Z_se</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># External surface resistance (convection and radiation, ISO 6946)</span>
+        <span class="n">Z_se</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_R_se</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">Z</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Z</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">Z</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Z_se</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+        <span class="c1"># Thermal transfer matrix</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">Z_si</span><span class="p">)</span>
+
+        <span class="c1"># Thermal capacitance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_est</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Thermal capacitance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_int</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">Z</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">Z</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_mean</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k_int</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_est</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">_VDI6007_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates vdi6007 params</span>
+
+<span class="sd">        Section 6.3</span>
+
+<span class="sd">        vdi6007params Calculates the parameters (thermal resistance and thermal</span>
+<span class="sd">        capacitance) associated with the building envelope LP according to the 2C</span>
+<span class="sd">        model of standard VDI 6007</span>
+
+<span class="sd">        Inputs (already attributes of the class)</span>
+<span class="sd">          Matrix LP describes building envelope; each row is a building element.</span>
+<span class="sd">          Columns are thickness (s), thermal conductivity (cond), density (rho)</span>
+<span class="sd">          and specific heat (cp)</span>
+<span class="sd">          Total surface area S of wall with building envelope LP</span>
+<span class="sd">          Flag &#39;asim&#39; indicates whether building component LP is asimmetrically</span>
+<span class="sd">          loaded (asim = 1) or not (asim = 0) because in the first case C1_korr</span>
+<span class="sd">          must be considered instead of C1</span>
+
+<span class="sd">        Subscripts</span>
+<span class="sd">        AW external walls and internal walls facing unheated areas</span>
+<span class="sd">        IW internal walls</span>
+
+<span class="sd">        Period T_bt</span>
+<span class="sd">        T_bt = 7 days for a single building component;</span>
+<span class="sd">        T_bt = 2 days for building components where thermal storage masses are</span>
+<span class="sd">        thermally covered on the room side (eg suspended ceilings)</span>
+<span class="sd">        Calculation are conducted with both periods, then the resulting</span>
+<span class="sd">        parameters R1 and C1 are compared and the right T_bt is chosen according</span>
+<span class="sd">        to the criterion given in the standard</span>
+
+<span class="sd">        Outputs</span>
+<span class="sd">           R1 - dynamic rhermal resistance [K/W]</span>
+<span class="sd">           C1 - dynamic thermal capacity [K/W]</span>
+<span class="sd">           Rw - static specific thermal resistance [(m2 K) / W]</span>
+
+<span class="sd">        Determine thermal resistance R and thermal capacitance of layers, which are memorized as attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">R</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistances</span>  <span class="c1"># layers thermal resistance [m2 K / W]</span>
+        <span class="c1"># layers thermal capacitance [J m2 / K]</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_heats</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">densities</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">thicknesses</span>
+
+        <span class="n">T_bt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>  <span class="c1"># days</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega_bt</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mi">86400</span> <span class="o">*</span> <span class="n">T_bt</span><span class="p">)</span>
+        <span class="c1"># T_ra = 5        # days</span>
+        <span class="c1"># omega_ra = 2*pi./(86400*T_ra)</span>
+
+        <span class="n">Z_t2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+        <span class="n">Z_t7</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">):</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            R1 = np.zeros((2,1))</span>
+<span class="sd">            R2 = R1</span>
+<span class="sd">            C1 = R1</span>
+<span class="sd">            C2 = R1 </span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># r_ah = self.massless[i]</span>
+            <span class="n">Av</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+
+            <span class="c1"># if r_ah == 0:</span>
+
+            <span class="k">for</span> <span class="n">om</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_bt</span><span class="p">[</span><span class="n">om</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span> <span class="o">*</span> <span class="n">c</span><span class="p">)</span>
+
+                <span class="n">Re_a11</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="n">Im_a11</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="n">Re_a22</span> <span class="o">=</span> <span class="n">Re_a11</span>
+                <span class="n">Im_a22</span> <span class="o">=</span> <span class="n">Im_a11</span>
+
+                <span class="n">Re_a12</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">r</span>
+                        <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">arg</span><span class="p">)</span>
+                        <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+                <span class="p">)</span>
+                <span class="n">Im_a12</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">r</span>
+                        <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">arg</span><span class="p">)</span>
+                        <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+                <span class="p">)</span>
+
+                <span class="n">Re_a21</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="o">-</span><span class="n">arg</span> <span class="o">/</span> <span class="n">r</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+                <span class="p">)</span>
+                <span class="n">Im_a21</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">arg</span> <span class="o">/</span> <span class="n">r</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+                <span class="p">)</span>
+
+                <span class="n">Av</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">om</span><span class="p">]</span> <span class="o">=</span> <span class="n">Re_a11</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">Im_a11</span>
+                <span class="n">Av</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">om</span><span class="p">]</span> <span class="o">=</span> <span class="n">Re_a22</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">Im_a22</span>
+                <span class="n">Av</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">om</span><span class="p">]</span> <span class="o">=</span> <span class="n">Re_a12</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">Im_a12</span>
+                <span class="n">Av</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">om</span><span class="p">]</span> <span class="o">=</span> <span class="n">Re_a21</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">Im_a21</span>
+            <span class="n">Z_t2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Av</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">Z_t7</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Av</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t7</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="nb">complex</span><span class="p">)</span>
+        <span class="c1"># From inside to outside</span>
+        <span class="c1"># self._A1n_t2 = Z_t2[:, :, -1]</span>
+        <span class="c1"># self._A1n_t7 = Z_t7[:, :, -1]</span>
+        <span class="c1"># for t in range(-2, -self.number_of_layers - 1, -1):</span>
+        <span class="c1">#     self._A1n_t2 = np.matmul(self._A1n_t2, Z_t2[:, :, t])</span>
+        <span class="c1">#     self._A1n_t7 = np.matmul(self._A1n_t7, Z_t7[:, :, t])</span>
+        <span class="c1"># From outside to inside</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t2</span> <span class="o">=</span> <span class="n">Z_t2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t7</span> <span class="o">=</span> <span class="n">Z_t7</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">number_of_layers</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t2</span><span class="p">,</span> <span class="n">Z_t2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t7</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t7</span><span class="p">,</span> <span class="n">Z_t7</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_VDI6007_surface_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sup</span><span class="p">,</span> <span class="n">asim</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates vdi6007 params, those which are calculated using the area of the surface</span>
+
+<span class="sd">        Section 6.4</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sup : float</span>
+<span class="sd">            area of the surface [m2]</span>
+<span class="sd">        asim : bool</span>
+<span class="sd">            Is the surface non-adiabatic? True/False</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            R1,C1: tuple of floats</span>
+<span class="sd">            Resistance and capacitance R1 and C1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sup</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ERROR surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> input sup is not a float: sup </span><span class="si">{</span><span class="n">sup</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asim</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ERROR surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> input asim is not a boolean: asim </span><span class="si">{</span><span class="n">asim</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Procudeure Section 6.4</span>
+
+        <span class="k">if</span> <span class="n">sup</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sup</span> <span class="o">=</span> <span class="mf">0.0000001</span>
+        <span class="n">rw</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thermal_resistances</span><span class="p">)</span> <span class="o">/</span> <span class="n">sup</span>
+
+        <span class="n">R1_t</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">C1_t</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">days</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_A1n_t7</span><span class="p">],</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">omega_bt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega_bt</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                <span class="p">[</span><span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;7&quot;</span><span class="p">],</span>
+        <span class="p">):</span>
+            <span class="c1"># rcValues Given the complex matrix of the building element BT, the function</span>
+            <span class="c1"># calculates the values R1 and C1</span>
+            <span class="n">R1</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="mi">1</span>
+                    <span class="o">/</span> <span class="n">sup</span>
+                    <span class="o">*</span> <span class="p">(</span>
+                            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                            <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="p">)</span>
+                    <span class="o">/</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">asim</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="n">C1</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">sup</span>
+                        <span class="o">*</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                        <span class="o">/</span> <span class="p">(</span>
+                                <span class="n">omega</span>
+                                <span class="o">*</span> <span class="p">(</span>
+                                        <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                                        <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                                <span class="p">)</span>
+                        <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># sarebbe C1_korr per pareti caricate asimmetricamente (pareti AW)</span>
+                <span class="n">C1</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">sup</span>
+                        <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">omega</span> <span class="o">*</span> <span class="n">R1</span> <span class="o">*</span> <span class="n">sup</span><span class="p">))</span>
+                        <span class="o">*</span> <span class="p">(</span>
+                                <span class="n">rw</span> <span class="o">*</span> <span class="n">sup</span>
+                                <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                                <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="p">)</span>
+                        <span class="o">/</span> <span class="p">(</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                                <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">R1_t</span><span class="p">[</span><span class="n">days</span><span class="p">]</span> <span class="o">=</span> <span class="n">R1</span>
+            <span class="n">C1_t</span><span class="p">[</span><span class="n">days</span><span class="p">]</span> <span class="o">=</span> <span class="n">C1</span>
+        <span class="n">rr</span> <span class="o">=</span> <span class="n">R1_t</span><span class="p">[</span><span class="s2">&quot;2&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">R1_t</span><span class="p">[</span><span class="s2">&quot;7&quot;</span><span class="p">]</span>
+        <span class="n">cr</span> <span class="o">=</span> <span class="n">C1_t</span><span class="p">[</span><span class="s2">&quot;2&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">C1_t</span><span class="p">[</span><span class="s2">&quot;7&quot;</span><span class="p">]</span>
+
+        <span class="c1"># versione di jacopo</span>
+        <span class="c1"># if (rr&gt;0.99 and cr&lt;0.95) or (((rr&lt;0.99 and cr&lt;0.95) and (abs(rr-cr)&gt;0.3))):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">rr</span> <span class="o">&gt;</span> <span class="mf">0.99</span> <span class="ow">and</span> <span class="n">cr</span> <span class="o">&lt;</span> <span class="mf">0.95</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="p">((</span><span class="n">rr</span> <span class="o">&lt;</span> <span class="mf">0.95</span> <span class="ow">and</span> <span class="n">cr</span> <span class="o">&lt;</span> <span class="mf">0.95</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">rr</span> <span class="o">-</span> <span class="n">cr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="n">R1</span> <span class="o">=</span> <span class="n">R1_t</span><span class="p">[</span><span class="s2">&quot;2&quot;</span><span class="p">]</span>  <span class="c1"># T_bt = 2 days</span>
+            <span class="n">C1</span> <span class="o">=</span> <span class="n">C1_t</span><span class="p">[</span><span class="s2">&quot;2&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">R1</span> <span class="o">=</span> <span class="n">R1_t</span><span class="p">[</span><span class="s2">&quot;7&quot;</span><span class="p">]</span>  <span class="c1"># T_bt = 7 days</span>
+            <span class="n">C1</span> <span class="o">=</span> <span class="n">C1_t</span><span class="p">[</span><span class="s2">&quot;7&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">R1</span><span class="p">,</span> <span class="n">C1</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Just a print method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Construction: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span>
+<span class="s2">    construction type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">construction_type</span><span class="si">}</span>
+<span class="s2">    U-value: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">units</span><span class="p">[</span><span class="s2">&quot;U_value&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">    number of layers: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">    materias: </span><span class="si">{</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">mat</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">mat</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">materials_list</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Construction.from_U_value"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction.Construction.from_U_value">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_U_value</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">u_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">weight_class</span><span class="p">:</span><span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Medium&quot;</span><span class="p">,</span> <span class="n">construction_type</span><span class="p">:</span><span class="nb">str</span> <span class="o">=</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This is a class method to create Construction object just from the U-value and weight class</span>
+<span class="sd">        It creates just an equivalent material to reach the U-value</span>
+
+<span class="sd">        For specific heat and density, the following assumptions are considered</span>
+
+<span class="sd">        According to A.2.3 ISO 13786</span>
+<span class="sd">        Mass class  Am [m²]	Cm [J/K]	k [J/(m² K)]	Depth penetration [m]	Spc heat [J/kg K]	rho [kg/m3]</span>
+<span class="sd">        Very light	2.5	80000		32000		    0.1			            1000			    453</span>
+<span class="sd">        Light		2.5	110000		44000		    0.1			            1000			    622</span>
+<span class="sd">        Medium		2.5	165000		66000		    0.1			            1000			    933</span>
+<span class="sd">        Heavy		3	260000		86666.66667	    0.1			            1000			    1226</span>
+<span class="sd">        Very heavy	3.5	370000		105714.2857	    0.1			            1000	            1495</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : string</span>
+<span class="sd">            name</span>
+<span class="sd">        u_value : float</span>
+<span class="sd">            u value of the construction [W/(m2 K)]</span>
+<span class="sd">        weight_class : str</span>
+<span class="sd">            class of weight from the following list: [&quot;Very heavy&quot;, &quot;Heavy, &quot;Medium, &quot;Light&quot;, &quot;Very light&quot;]</span>
+<span class="sd">        construction_type : string</span>
+<span class="sd">            Choose from [&quot;ExtWall&quot;, &quot;Roof&quot;, &quot;GroundFloor&quot;, &quot;IntWall&quot;, &quot;IntCeiling&quot;]</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        eureca_building.construction.Construction</span>
+<span class="sd">            Construction object from these values</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Hypothesis 30 cm</span>
+        <span class="n">thickness</span> <span class="o">=</span> <span class="mf">0.3</span>
+        <span class="n">outside_ht_coef</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Outside&quot;</span><span class="p">]</span>
+        <span class="n">inside_ht_coef</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">tot_heat_trans_coef</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">construction_type</span><span class="p">][</span><span class="s2">&quot;Inside&quot;</span><span class="p">]</span>
+        <span class="n">resistance</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">u_value</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">outside_ht_coef</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">inside_ht_coef</span>
+        <span class="n">conductivity</span> <span class="o">=</span> <span class="mf">0.3</span><span class="o">/</span><span class="n">resistance</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	According to A.2.3 ISO 13786					</span>
+<span class="sd">		Am [m²]	Cm [J/K]	k [J/(m² K)]	Depth penetration [m]	Spc heat [J/kg K]	rho [kg/m3]</span>
+<span class="sd">Very light	2.5	80000		32000		    0.1			            1000			    453</span>
+<span class="sd">Light		2.5	110000		44000		    0.1			            1000			    622</span>
+<span class="sd">Medium		2.5	165000		66000		    0.1			            1000			    933</span>
+<span class="sd">Heavy		3	260000		86666.66667	    0.1			            1000			    1226</span>
+<span class="sd">Very heavy	3.5	370000		105714.2857	    0.1			            1000	            1495           </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">density</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;Very heavy&quot;</span><span class="p">:</span> <span class="mf">1495.</span><span class="p">,</span>
+            <span class="s2">&quot;Heavy&quot;</span><span class="p">:</span> <span class="mf">1226.</span><span class="p">,</span>
+            <span class="s2">&quot;Medium&quot;</span><span class="p">:</span> <span class="mf">933.</span><span class="p">,</span>
+            <span class="s2">&quot;Light&quot;</span><span class="p">:</span> <span class="mf">622.</span><span class="p">,</span>
+            <span class="s2">&quot;Very light&quot;</span><span class="p">:</span> <span class="mf">453.</span><span class="p">,</span>
+        <span class="p">}[</span><span class="n">weight_class</span><span class="p">]</span>
+        <span class="n">equivalent_material</span> <span class="o">=</span> <span class="n">Material</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Equivalent material construction </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">thick</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+            <span class="n">cond</span><span class="o">=</span><span class="n">conductivity</span><span class="p">,</span>
+            <span class="n">dens</span><span class="o">=</span><span class="n">density</span><span class="p">,</span>
+            <span class="n">thermal_absorptance</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="n">equivalent_material</span><span class="p">],</span> <span class="n">construction_type</span><span class="p">)</span></div></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

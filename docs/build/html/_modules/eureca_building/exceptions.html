@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.exceptions &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.exceptions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">List of custom exceptions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+
+<div class="viewcode-block" id="PropertyOutsideBoundaries"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.PropertyOutsideBoundaries">[docs]</a><span class="k">class</span> <span class="nc">PropertyOutsideBoundaries</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to raise the exception property outside boundaries</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mat</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">lim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an exception for properties problems</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mat : str</span>
+<span class="sd">            name of the property</span>
+<span class="sd">        prop : str</span>
+<span class="sd">            string with the property</span>
+<span class="sd">        unit : str</span>
+<span class="sd">            unit of the property</span>
+<span class="sd">        lim : list</span>
+<span class="sd">            list with boundaries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">lim</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prop</span> <span class="o">=</span> <span class="n">prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">mat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lim</span> <span class="o">=</span> <span class="n">lim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="MaterialPropertyOutsideBoundaries"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.MaterialPropertyOutsideBoundaries">[docs]</a><span class="k">class</span> <span class="nc">MaterialPropertyOutsideBoundaries</span><span class="p">(</span><span class="n">PropertyOutsideBoundaries</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to raise the exception material property outside boundaries</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MaterialPropertyNotFound"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.MaterialPropertyNotFound">[docs]</a><span class="k">class</span> <span class="nc">MaterialPropertyNotFound</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to raise the exception material property not found</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="WrongConstructionType"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.WrongConstructionType">[docs]</a><span class="k">class</span> <span class="nc">WrongConstructionType</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to raise the exception wrong construction type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="WrongMaterialType"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.WrongMaterialType">[docs]</a><span class="k">class</span> <span class="nc">WrongMaterialType</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to raise the exception wrong construction type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># %% Surfaces exeptions</span>
+<div class="viewcode-block" id="Non3ComponentsVertex"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.Non3ComponentsVertex">[docs]</a><span class="k">class</span> <span class="nc">Non3ComponentsVertex</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="SurfaceWrongNumberOfVertices"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.SurfaceWrongNumberOfVertices">[docs]</a><span class="k">class</span> <span class="nc">SurfaceWrongNumberOfVertices</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="WindowToWallRatioOutsideBoundaries"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.WindowToWallRatioOutsideBoundaries">[docs]</a><span class="k">class</span> <span class="nc">WindowToWallRatioOutsideBoundaries</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidSurfaceType"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.InvalidSurfaceType">[docs]</a><span class="k">class</span> <span class="nc">InvalidSurfaceType</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="NonPlanarSurface"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.NonPlanarSurface">[docs]</a><span class="k">class</span> <span class="nc">NonPlanarSurface</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="NegativeSurfaceArea"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.NegativeSurfaceArea">[docs]</a><span class="k">class</span> <span class="nc">NegativeSurfaceArea</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidScheduleType"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.InvalidScheduleType">[docs]</a><span class="k">class</span> <span class="nc">InvalidScheduleType</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ScheduleOutsideBoundaryCondition"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.ScheduleOutsideBoundaryCondition">[docs]</a><span class="k">class</span> <span class="nc">ScheduleOutsideBoundaryCondition</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidScheduleDimension"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.InvalidScheduleDimension">[docs]</a><span class="k">class</span> <span class="nc">InvalidScheduleDimension</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ScheduleLengthNotConsistent"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.ScheduleLengthNotConsistent">[docs]</a><span class="k">class</span> <span class="nc">ScheduleLengthNotConsistent</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ConvectiveRadiantFractionError"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.ConvectiveRadiantFractionError">[docs]</a><span class="k">class</span> <span class="nc">ConvectiveRadiantFractionError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidHeatGainUnit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.InvalidHeatGainUnit">[docs]</a><span class="k">class</span> <span class="nc">InvalidHeatGainUnit</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="InvalidHeatGainSchedule"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.InvalidHeatGainSchedule">[docs]</a><span class="k">class</span> <span class="nc">InvalidHeatGainSchedule</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="AreaNotProvided"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.AreaNotProvided">[docs]</a><span class="k">class</span> <span class="nc">AreaNotProvided</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PeopleNotProvided"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.PeopleNotProvided">[docs]</a><span class="k">class</span> <span class="nc">PeopleNotProvided</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SetpointTypeNotAllowed"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.SetpointTypeNotAllowed">[docs]</a><span class="k">class</span> <span class="nc">SetpointTypeNotAllowed</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SimulationError"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.exceptions.SimulationError">[docs]</a><span class="k">class</span> <span class="nc">SimulationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
