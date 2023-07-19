@@ -10,13 +10,17 @@ import os
 import sys
 
 
-# def skip(app, what, name, obj, would_skip, options):
-#     if name == "__init__":
-#         return False
-#     return would_skip
-#
-# def setup(app):
-#     app.connect("autodoc-skip-member", skip)
+def skip(app, what, name, obj, would_skip, options):
+    if name == "@property":
+        return False
+    else:
+        return False
+    return None
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
+
+
 
 sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
 
