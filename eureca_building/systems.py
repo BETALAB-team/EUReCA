@@ -1053,9 +1053,11 @@ class Heating_EN15316(System):
 
         Parameters
         ----------
-        args
-        kwargs
-            kwargs must include {heating_system_key : string_of_:heating_system}
+        args : list
+            list of optional arguments
+        kwargs : dict
+            kwargs must include {heating_system_key : string_of_heating_system}
+
         '''
 
         self.system_type = kwargs["heating_system_key"]
