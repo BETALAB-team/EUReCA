@@ -4,22 +4,22 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EUReCA &mdash; EUReCA 0.1 documentation</title>
+  <title>EUReCA &mdash; EUReCA 0.2 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Model reference" href="reference/index.html" />
+    <link rel="next" title="Source code" href="modules.html" />
     <link rel="prev" title="Welcome to EUReCA’s documentation!" href="index.html" /> 
 </head>
 
@@ -55,7 +55,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="reference/index.html">Model reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -74,7 +74,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">EUReCA</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/readme_link.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/readme_link.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -84,27 +84,19 @@
              
   <section id="eureca">
 <h1>EUReCA<a class="headerlink" href="#eureca" title="Permalink to this heading"></a></h1>
-<p><img alt="Insert caption here" src="https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg" /></p>
-<p>The <strong>E</strong>nergy <strong>U</strong>rban <strong>Re</strong>sistance <strong>C</strong>apacitance <strong>A</strong>pproach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.</p>
+<a class="reference external image-reference" href="https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg"><img alt="Insert caption here" src="https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg" /></a>
+<p>The Energy Urban Resistance Capacitance Approach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.</p>
 <p>This research project has been developed within the <a class="reference external" href="https://research.dii.unipd.it/betalab/">BETALAB</a> research group of the University of Padua, Italy.</p>
 <section id="python-environment-set-up">
 <h2>Python environment set up<a class="headerlink" href="#python-environment-set-up" title="Permalink to this heading"></a></h2>
 <p>The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.</p>
-<blockquote>
-<div><p>conda create -n eureca python=3.9</p>
-</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">create</span> <span class="pre">-n</span> <span class="pre">eureca</span> <span class="pre">python=3.9</span></code></p>
 <p>and activate it:</p>
-<blockquote>
-<div><p>conda activate eureca</p>
-</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">activate</span> <span class="pre">eureca</span></code></p>
 <p>Then clone the following package in a separate folder:</p>
-<blockquote>
-<div><p>git clone https://github.com/BETALAB-team/EUReCA.git</p>
-</div></blockquote>
-<p>and install it in the same environement:</p>
-<blockquote>
-<div><p>pip install -e <em>your_path_to_the_folder/eureca-ubem</em></p>
-</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/BETALAB-team/EUReCA.git</span></code>
+and install it in the same environement:
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">*your_path_to_the_folder/eureca-ubem*</span></code></p>
 </section>
 <section id="preparing-and-run-a-simulation">
 <h2>Preparing and run a simulation<a class="headerlink" href="#preparing-and-run-a-simulation" title="Permalink to this heading"></a></h2>
@@ -125,22 +117,24 @@ To simulate cities energy consumption in EUReCA, some input files must be prepar
 <p>Currently, EUReCA can handle two typologies of JSON city models. The recommended methodology consists of importing buildings’ geometries via semantic <a class="reference external" href="https://www.cityjson.org/">CityJSON</a> files, but also 2D shapefiles, encoded in GeoJSON format, can be exploited to build up the city.</p>
 <p>The required attributes are:</p>
 <ul>
-<li><p>CityJSON:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;End Use&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule_type_name&quot;</span><span class="p">,</span> 
-<span class="s2">&quot;Envelope&quot;</span><span class="p">:</span> <span class="s2">&quot;envelope_type_name&quot;</span><span class="p">,</span> 
-<span class="s2">&quot;Heating System&quot;</span><span class="p">:</span> <span class="s2">&quot;heating_system_name&quot;</span><span class="p">,</span> 
+<li><p>CityJSON:
+.. code-block:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;End Use&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule_type_name&quot;</span><span class="p">,</span>
+<span class="s2">&quot;Envelope&quot;</span><span class="p">:</span> <span class="s2">&quot;envelope_type_name&quot;</span><span class="p">,</span>
+<span class="s2">&quot;Heating System&quot;</span><span class="p">:</span> <span class="s2">&quot;heating_system_name&quot;</span><span class="p">,</span>
 <span class="s2">&quot;Cooling System&quot;</span><span class="p">:</span> <span class="s2">&quot;cooling_system_name&quot;</span>
 </pre></div>
 </div>
 </li>
-<li><p>GeoJSON:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">integer</span><span class="p">,</span> 
-<span class="s2">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> 
-<span class="s2">&quot;End Use&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule_archetype_name&quot;</span><span class="p">,</span> 
-<span class="s2">&quot;Envelope&quot;</span><span class="p">:</span> <span class="s2">&quot;envelope_archetype_name&quot;</span><span class="p">,</span> 
-<span class="s2">&quot;Height&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;Nfloors&quot;</span><span class="p">:</span> <span class="n">integer</span><span class="p">,</span> 
-<span class="s2">&quot;Floors&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> 
-<span class="s2">&quot;Heating System&quot;</span><span class="p">:</span> <span class="s2">&quot;heating_system_name&quot;</span><span class="p">,</span> 
+<li><p>GeoJSON:
+.. code-block:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">integer</span><span class="p">,</span>
+<span class="s2">&quot;Name&quot;</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span>
+<span class="s2">&quot;End Use&quot;</span><span class="p">:</span> <span class="s2">&quot;schedule_archetype_name&quot;</span><span class="p">,</span>
+<span class="s2">&quot;Envelope&quot;</span><span class="p">:</span> <span class="s2">&quot;envelope_archetype_name&quot;</span><span class="p">,</span>
+<span class="s2">&quot;Height&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s2">&quot;Nfloors&quot;</span><span class="p">:</span> <span class="n">integer</span><span class="p">,</span>
+<span class="s2">&quot;Floors&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="s2">&quot;Heating System&quot;</span><span class="p">:</span> <span class="s2">&quot;heating_system_name&quot;</span><span class="p">,</span>
 <span class="s2">&quot;Cooling System&quot;</span><span class="p">:</span> <span class="s2">&quot;cooling_system_name&quot;</span>
 </pre></div>
 </div>
@@ -234,18 +228,18 @@ Each file is a csv with the main output variables of each building.</p>
 <section id="how-to-cite-eureca">
 <h3>How to cite EUReCA<a class="headerlink" href="#how-to-cite-eureca" title="Permalink to this heading"></a></h3>
 <p>In case you want to use EUReCA for your own research project, please cite the following paper:</p>
-<p>&#64;article{<br />
-PRATAVIERA2021544,<br />
-title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand},<br />
-journal = {Renewable Energy},<br />
-volume = {173},<br />
-pages = {544-560},<br />
-year = {2021},<br />
-issn = {0960-1481},<br />
-doi = {https://doi.org/10.1016/j.renene.2021.03.144}, <br />
-url = {https://www.sciencedirect.com/science/article/pii/S0960148121005085}, <br />
-author = {Enrico Prataviera and Pierdonato Romano and Laura Carnieletto and Francesco Pirotti and Jacopo Vivian and Angelo Zarrella},<br />
-keywords = {Urban building energy modelling, Lumped-capacitance thermal networks, Semantic georeferenced data, EUReCA, District simulation}<br />
+<p>&#64;article{ <span class="raw-html-md"><br /></span>
+PRATAVIERA2021544, <span class="raw-html-md"><br /></span>
+title = {EUReCA: An open-source urban building energy modelling tool for the efficient evaluation of cities energy demand}, <span class="raw-html-md"><br /></span>
+journal = {Renewable Energy}, <span class="raw-html-md"><br /></span>
+volume = {173}, <span class="raw-html-md"><br /></span>
+pages = {544-560}, <span class="raw-html-md"><br /></span>
+year = {2021}, <span class="raw-html-md"><br /></span>
+issn = {0960-1481}, <span class="raw-html-md"><br /></span>
+doi = {<a class="reference external" href="https://doi.org/10.1016/j.renene.2021.03.144">https://doi.org/10.1016/j.renene.2021.03.144</a>},  <span class="raw-html-md"><br /></span>
+url = {<a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S0960148121005085">https://www.sciencedirect.com/science/article/pii/S0960148121005085</a>},  <span class="raw-html-md"><br /></span>
+author = {Enrico Prataviera and Pierdonato Romano and Laura Carnieletto and Francesco Pirotti and Jacopo Vivian and Angelo Zarrella}, <span class="raw-html-md"><br /></span>
+keywords = {Urban building energy modelling, Lumped-capacitance thermal networks, Semantic georeferenced data, EUReCA, District simulation} <span class="raw-html-md"><br /></span>
 }</p>
 </section>
 </section>
@@ -256,7 +250,7 @@ keywords = {Urban building energy modelling, Lumped-capacitance thermal networks
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Welcome to EUReCA’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="reference/index.html" class="btn btn-neutral float-right" title="Model reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="Source code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
