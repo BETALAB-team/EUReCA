@@ -2,37 +2,38 @@
 
 ![Insert caption here](https://research.dii.unipd.it/betalab/wp-content/uploads/sites/33/2021/03/EUReCA_logo_300x300.jpg)
 
-The **E**nergy **U**rban **Re**sistance **C**apacitance **A**pproach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.
+The Energy Urban Resistance Capacitance Approach provides an efficient and reliable Urban Building Energy Modeling platform, entirely developed in Python, aiming at simulating and predicting cities and urban areas energy consumption. The tool exploits a bottom-up modeling methodology, creating simple and useful dynamic building energy models.
 
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua, Italy.
 
 ## Python environment set up
 The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.
 
-> conda create -n eureca python=3.9
+`conda create -n eureca python=3.9`
 
 and activate it:
 
-> conda activate eureca
+``conda activate eureca``
 
 Then clone the following package in a separate folder:
 
-> git clone https://github.com/BETALAB-team/EUReCA.git
-
+``
+git clone https://github.com/BETALAB-team/EUReCA.git
+``
 and install it in the same environement:
-
-> pip install -e *your_path_to_the_folder/eureca-ubem*
-
+``
+pip install -e *your_path_to_the_folder/eureca-ubem*
+``
 ## Preparing and run a simulation
 ### Input files
 
 The [eureca_ubem/Input](https://github.com/BETALAB-team/EUReCA/tree/main/eureca_ubem/Input) folder has some examples files to run the simulation. 
 To simulate cities energy consumption in EUReCA, some input files must be prepared:
-- A `weather_data.epw` weather file. These files are available at the [EnergyPlus](https://www.energyplus.net/weather) website.
-- A `EnvelopeTypes.xlsx` spreadsheet. It includes the thermo-physic properties of building envelopes. An example is available in the `materials_and_construction_test.xlsx`
-- A `Schedules.xlsx` spreadsheet. It includes the operational schedules of occupancy, appliances, temperature, humidity setpoints, HVAC usage for different end-uses. Example in `Schedules.xlsx`.
-- The `config.json` file, which defines the simulation parameters. Example in [config.json](https://github.com/BETALAB-team/EUReCA/blob/main/eureca_ubem/Input/config.json).
-- The `city.json` model. See the next section for further info on the alternatives.
+ - A `weather_data.epw` weather file. These files are available at the [EnergyPlus](https://www.energyplus.net/weather) website.
+ - A `EnvelopeTypes.xlsx` spreadsheet. It includes the thermo-physic properties of building envelopes. An example is available in the `materials_and_construction_test.xlsx`
+ - A `Schedules.xlsx` spreadsheet. It includes the operational schedules of occupancy, appliances, temperature, humidity setpoints, HVAC usage for different end-uses. Example in `Schedules.xlsx`.
+ - The `config.json` file, which defines the simulation parameters. Example in [config.json](https://github.com/BETALAB-team/EUReCA/blob/main/eureca_ubem/Input/config.json).
+ - The `city.json` model. See the next section for further info on the alternatives.
 
 ### The JSON city model
 Currently, EUReCA can handle two typologies of JSON city models. The recommended methodology consists of importing buildings' geometries via semantic [CityJSON](https://www.cityjson.org/) files, but also 2D shapefiles, encoded in GeoJSON format, can be exploited to build up the city.
