@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -113,7 +113,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Thermal zone class. Manages all the models and time step solution of the sensible and latent systems</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">surface_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">net_floor_area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="ThermalZone.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">surface_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">net_floor_area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Int method. Creates the thermal zone object from a list of eureca_building.surface.Surface.</span>
 <span class="sd">        Checks the inputs through properties</span>
 
@@ -164,7 +164,7 @@
             <span class="s1">&#39;1C&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
             <span class="s1">&#39;2C&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
         <span class="p">}</span>  <span class="c1"># Default convective load</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reset_init_values</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_init_values</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_surface_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>

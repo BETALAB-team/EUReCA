@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -115,7 +115,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Ventilation class</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="Ventilation.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.Ventilation.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -142,7 +142,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span> <span class="o">=</span> <span class="n">nominal_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span> <span class="o">=</span> <span class="n">schedule</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nominal_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -302,7 +302,7 @@
 <div class="viewcode-block" id="NaturalVentilation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation">[docs]</a><span class="k">class</span> <span class="nc">NaturalVentilation</span><span class="p">(</span><span class="n">Ventilation</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Inheritaded from the Ventilation class</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="NaturalVentilation.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -334,7 +334,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">unit</span><span class="p">,</span><span class="n">nominal_value</span><span class="p">,</span><span class="n">schedule</span><span class="p">,</span><span class="n">tag</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_windows_opening</span><span class="p">()</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">weather</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">surfaces_with_opening</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">define_pressure_coef</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span> <span class="n">surfaces_with_opening</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">define_pressure_coef</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span> <span class="n">surfaces_with_opening</span><span class="p">)</span></div>
                 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
