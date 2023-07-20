@@ -12,7 +12,6 @@ contourpy==1.1.0
 cycler==0.11.0
 docutils==0.18.1
 et-xmlfile==1.1.0
--e git+https://github.com/BETALAB-team/EUReCA.git@46d6fbc79c04c1c20ff29baffb3b09c06f4d775b#egg=eureca_ubem
 exceptiongroup==1.1.1
 Fiona==1.9.4.post1
 fonttools==4.40.0
