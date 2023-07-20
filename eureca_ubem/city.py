@@ -556,9 +556,9 @@ class City():
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0]
 
 
-        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
-        bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
