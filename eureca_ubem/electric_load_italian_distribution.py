@@ -9,9 +9,11 @@ __license__ = "MIT"
 __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
-import numpy as np
 from scipy.stats import lognorm
 import matplotlib.pyplot as plt
+import io
+import pandas as pd
+import numpy as np
 
 electric_load_italian_distribution = {
 "Appliances_penetration":
@@ -58,13 +60,7 @@ Sardegna	0.953	0.952	0.998	0.945
 }
 }
 
-# import abc
-import os
-import io
-import logging
-
-import pandas as pd
-import numpy as np
+global electric_load_italian_dict
 electric_load_italian_dict = {}
 v = electric_load_italian_distribution["Appliances_penetration"]
 electric_load_italian_dict["Appliances_penetration"] = pd.read_csv(io.StringIO(v), sep = "\t")
@@ -76,10 +72,29 @@ for k, el in electric_load_italian_distribution["National_distributions"].items(
     else:
         electric_load_italian_dict[f"PDF {k}"] = None
 
-    x = np.linspace(0,
+def get_italian_random_el_loads(number, region):
+    values = pd.DataFrame(np.random.random(size = (number,4)), columns = electric_load_italian_dict["Appliances_penetration"].columns)
+    appl_presence = electric_load_italian_dict["Appliances_penetration"].loc[region] > values
+    # appl = appl_presence[appl_presence == True]
+    # appl = pd.Series(np.random.random(size = len(appl)), index = appl.index)
+    loads = pd.DataFrame()
+    for ap in appl_presence.columns:
+        loads[ap] = electric_load_italian_dict[f"PDF {ap}"].rvs(size = number) * appl_presence[ap]
+
+    return loads
+
+import time
+st = time.time()
+loads = get_italian_random_el_loads(10000,"Veneto")
+
+print(f"{time.time()-st:.2f} s")
+
+df = loads["Televisore"]
+df.hist(bins= 25)
+ax = plt.gca()
+ax_ = ax.twinx()
+x = np.linspace(0,
                     20, 100)
 
-    plt.plot(x, electric_load_italian_dict[f"PDF {k}"].pdf(x), lw=2, alpha=0.6, label=f'{k}')
-plt.legend()
+ax_.plot(x, electric_load_italian_dict[f"PDF {k}"].pdf(x), lw=2, alpha=0.6, label=f'{k}')
 plt.show()
-
