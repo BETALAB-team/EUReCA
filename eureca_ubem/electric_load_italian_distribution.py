@@ -73,6 +73,37 @@ for k, el in electric_load_italian_distribution["National_distributions"].items(
         electric_load_italian_dict[f"PDF {k}"] = None
 
 def get_italian_random_el_loads(number, region):
+    """This function creates a df of stochastic annual appliances electric consumption from ISTAT dataset.
+    The calculation is done for each type of appliance and a input number of dwellings
+
+    Parameters
+    ----------
+    number : int
+        number of dwellings
+    region : str
+        Italian region from which take the data. Available:
+        ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
+        FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
+        Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
+
+    Returns
+    -------
+    pandas.DataFrame
+        Dataframe with row number of units to get, columns appliances types
+
+    Raises
+    ------
+    ValueError
+        Error in case reagion is not an allowed value
+    """
+    if region not in ["ValleDAosta", "Piemonte", "Liguria", "Lombardia", "Veneto", "TrentinoAltoAdige",
+        "FriuliVeneziaGiulia", "EmiliaRomagna", "Umbria", "Toscana", "Marche", "Abruzzo",
+        "Lazio", "Campania", "Basilicata", "Molise", "Puglia", "Calabria", "Sicilia", "Sardegna"]:
+        raise ValueError(f"""
+Region not valid: {region}. Allowed regions: ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
+FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
+Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
+""")
     values = pd.DataFrame(np.random.random(size = (number,4)), columns = electric_load_italian_dict["Appliances_penetration"].columns)
     appl_presence = electric_load_italian_dict["Appliances_penetration"].loc[region] > values
     # appl = appl_presence[appl_presence == True]
@@ -81,20 +112,22 @@ def get_italian_random_el_loads(number, region):
     for ap in appl_presence.columns:
         loads[ap] = electric_load_italian_dict[f"PDF {ap}"].rvs(size = number) * appl_presence[ap]
 
+    loads["Tot"] = loads.sum(axis =1)
+
     return loads
 
-import time
-st = time.time()
-loads = get_italian_random_el_loads(10000,"Veneto")
-
-print(f"{time.time()-st:.2f} s")
-
-df = loads["Televisore"]
-df.hist(bins= 25)
-ax = plt.gca()
-ax_ = ax.twinx()
-x = np.linspace(0,
-                    20, 100)
-
-ax_.plot(x, electric_load_italian_dict[f"PDF {k}"].pdf(x), lw=2, alpha=0.6, label=f'{k}')
-plt.show()
+# import time
+# st = time.time()
+# loads = get_italian_random_el_loads(10000,"Veneto")
+#
+# print(f"{time.time()-st:.2f} s")
+#
+# df = loads["Televisore"]
+# df.hist(bins= 25)
+# ax = plt.gca()
+# ax_ = ax.twinx()
+# x = np.linspace(0,
+#                     20, 100)
+#
+# ax_.plot(x, electric_load_italian_dict[f"PDF {k}"].pdf(x), lw=2, alpha=0.6, label=f'{k}')
+# plt.show()
