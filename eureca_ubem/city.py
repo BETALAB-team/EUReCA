@@ -467,11 +467,11 @@ ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
 FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
 Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
  """)
-                # TODO: Update with real values
+                # TODO: Update with real values.
                 app_nv = italian_el_loads["Tot"].loc[bd_id]
                 app = copy.deepcopy(use.heat_gains['appliances'])
                 app.unit = "W"
-                app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour)
+                app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units
 
                 tz.add_internal_load(
                     app,
