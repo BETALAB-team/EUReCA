@@ -457,6 +457,16 @@ class City():
 
             # TODO: copy.deepcopy
             if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
+                try:
+                    italian_el_loads
+                except NameError:
+                    raise ValueError("""If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:
+For example: city.loads_calculation(region='Piemonte').
+Available regions:
+ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
+FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
+Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
+ """)
                 # TODO: Update with real values
                 app_nv = italian_el_loads["Tot"].loc[bd_id]
                 app = copy.deepcopy(use.heat_gains['appliances'])
