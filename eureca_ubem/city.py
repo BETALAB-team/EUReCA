@@ -448,7 +448,7 @@ class City():
         if isinstance(region, str):
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
             italian_el_loads["Index"] = list(self.buildings_info.keys())
-            italian_el_loads.set_index("Index", drop=True)
+            italian_el_loads.set_index("Index", drop=True, inplace = True)
 
         for bd_id, building_info in self.buildings_info.items():
             building_obj = self.buildings_objects[bd_id]
