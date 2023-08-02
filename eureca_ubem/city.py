@@ -571,11 +571,21 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            gas_consumption["Total"] = gas_consumption.sum()
+            el_consumption["Total"] = el_consumption.sum()
+            oil_consumption["Total"] = oil_consumption.sum()
+            wood_consumption["Total"] = wood_consumption.sum()
             for i in gas_consumption.index:
-                info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
-                info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
-                info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
-                info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+                if i == "Total":
+                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                else:
+                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
