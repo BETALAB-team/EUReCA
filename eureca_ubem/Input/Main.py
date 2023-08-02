@@ -5,8 +5,8 @@ import time as tm
 import logging
 
 import matplotlib
-matplotlib.use('TkAgg')
-matplotlib.interactive(True)
+# matplotlib.use('TkAgg')
+# matplotlib.interactive(True)
 
 from eureca_building.config import load_config
 load_config("config.json")
@@ -33,7 +33,7 @@ city_geojson.simulate(print_single_building_results=True)
 
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
-#
+
 # start = tm.time()
 # # Creation of the City object exit
 # belzoni = City(
