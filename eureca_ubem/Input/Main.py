@@ -18,38 +18,38 @@ schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
-# Creation of the City object exit
-city_geojson = City(
-    city_model=city_model_file,
-    epw_weather_file=weather_file,
-    end_uses_types_file=schedules_file,
-    envelope_types_file=materials_file,
-    shading_calculation=True,
-    building_model = "1C",
-    output_folder=os.path.join(".","geojson")
-)
-city_geojson.loads_calculation(region="Veneto")
-city_geojson.simulate(print_single_building_results=True)
-
-# materials_file = os.path.join(".","total envelope types.xlsx")
-# city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
-#
-# start = tm.time()
 # # Creation of the City object exit
-# belzoni = City(
+# city_geojson = City(
 #     city_model=city_model_file,
 #     epw_weather_file=weather_file,
 #     end_uses_types_file=schedules_file,
 #     envelope_types_file=materials_file,
-#     output_folder=os.path.join(".","belzoni_new_hvac")
+#     shading_calculation=True,
+#     building_model = "1C",
+#     output_folder=os.path.join(".","geojson")
 # )
-# print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
-# start = tm.time()
-# belzoni.loads_calculation(region="Veneto")
-# print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
-# start = tm.time()
-# belzoni.simulate(print_single_building_results=False)
-# print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
+# city_geojson.loads_calculation(region="Veneto")
+# city_geojson.simulate(print_single_building_results=True)
+
+materials_file = os.path.join(".","total envelope types.xlsx")
+city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
+
+start = tm.time()
+# Creation of the City object exit
+belzoni = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    output_folder=os.path.join(".","belzoni_new_hvac")
+)
+print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
+start = tm.time()
+belzoni.loads_calculation(region="Veneto")
+print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
+start = tm.time()
+belzoni.simulate(print_single_building_results=False)
+print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
 # city_model_file = os.path.join(".","PaduaRestricted.json")
 #
