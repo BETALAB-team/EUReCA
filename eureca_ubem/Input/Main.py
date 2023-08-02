@@ -4,9 +4,9 @@ import os
 import time as tm
 import logging
 
-import matplotlib
-matplotlib.use('TkAgg')
-matplotlib.interactive(True)
+# import matplotlib
+# matplotlib.use('TkAgg')
+# matplotlib.interactive(True)
 
 from eureca_building.config import load_config
 load_config("config.json")
