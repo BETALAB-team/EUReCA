@@ -48,7 +48,7 @@ start = tm.time()
 belzoni.loads_calculation(region="Veneto")
 print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
 start = tm.time()
-belzoni.simulate(print_single_building_results=False)
+belzoni.simulate(print_single_building_results=True)
 print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
 # city_model_file = os.path.join(".","PaduaRestricted.json")
