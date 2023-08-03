@@ -18,7 +18,7 @@ schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
-Creation of the City object exit
+# Creation of the City object exit
 city_geojson = City(
     city_model=city_model_file,
     epw_weather_file=weather_file,
