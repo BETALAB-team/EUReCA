@@ -674,11 +674,10 @@ AHU_TOT:\t{self.AHU_demand} W
 
         # Is or not outside the saturation condition? True/False
         pp = p * x / (0.622 + x)
-        a,b = {
-            1:(21.875,265.5),
-            0:(17.269,237.3),
-        }[temp<0]
-        psat = 610.5 * np.exp((a * temp) / (b + temp))
+        if temp < 0:
+            psat = 610.5 * np.exp((21.875 * temp) / (265.5 + temp))
+        else:
+            psat = 610.5 * np.exp((17.269 * temp) / (237.3 + temp))
         if pp - psat > 0.01:
             sat_cond = False
         else:
