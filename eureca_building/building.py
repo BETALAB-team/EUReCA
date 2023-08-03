@@ -301,7 +301,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 os.mkdir(output_folder)
             # total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False, sep =";")
             total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
-            # total.to_hdf(os.path.join(output_folder, f"Results {self.name}.h5"), key='total', mode='w')
 
         return total
 
