@@ -30,6 +30,7 @@ Main_test_DHW.py
 /.idea/
 logging.log
 /eureca_ubem/Input/Zurich_Building_LoD2_V10.city.json
+/eureca_ubem/Input/belzoni_new_hvac/Results
 /eureca_ubem/Input_qgis/.idea/
 /eureca_ubem/logging.log
 eureca_building/__pycache__/
