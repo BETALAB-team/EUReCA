@@ -24,6 +24,7 @@ from eureca_building.ventilation import NaturalVentilation, Infiltration
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_building.domestic_hot_water import DomesticHotWater
 from eureca_building.weather import WeatherFile
+from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.setpoints import Setpoint
 from eureca_building.exceptions import (
     Non3ComponentsVertex,
@@ -765,6 +766,11 @@ Thermal zone {self.name} 2C params:
         self.phi_ia = phi_int['convective [W]']
         self.phi_st = (1 - self.Am / self.Atot - self.Htr_w / (9.1 * self.Atot)) * (phi_int['radiative [W]'] + phi_sol)
         self.phi_m = self.Am / self.Atot * (phi_int['radiative [W]'] + phi_sol)
+
+        # For quasi-steadystate
+        int_gain = phi_int['convective [W]'] + phi_int['radiative [W]']
+        self.monthly_int_gain = get_monthly_value_from_annual_vector(int_gain, method = 'integral') # [J]
+        self.monthly_sol_gain = get_monthly_value_from_annual_vector(phi_sol, method = 'integral') # [J]
 
     def calculate_zone_loads_VDI6007(self, weather):
         '''Calculates zone loads for the vdi 6007 standard
@@ -1551,6 +1557,112 @@ Thermal zone {self.name} 2C params:
         self.zone_air_spec_humidity = x_int
 
         return [air_temp,operative_temp,mean_radiant_temp], air_rel_humidity, self.Tm0, pot, lat_heat_flow
+
+    def solve_quasisteadystate_method(self, weather):
+        # TODO: Docstring
+
+        # This runs the ISO13790 methods to calculates envelope params and monthly int and sol heat gains
+        self._ISO13790_params()
+        self.calculate_zone_loads_ISO13790(weather)
+
+        # Calculation of the hours of heating cooling for each month
+        heating_timesteps = self._temperature_setpoint.schedule_lower.schedule > 17.
+        monthly_heating_timesteps = get_monthly_value_from_annual_vector(heating_timesteps, method = 'sum')
+        cooling_timesteps = self._temperature_setpoint.schedule_upper.schedule < 27.
+        monthly_cooling_timesteps = get_monthly_value_from_annual_vector(cooling_timesteps, method = 'sum')
+
+        # Calculation of average setpoints
+        h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
+        c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
+
+        # [J] = [W/K] * ([°C] - [°C]) * [-] * [s]
+        Q_h_tr_monthly = self.UA_tot * (h_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_heating_timesteps * CONFIG.time_step
+        # Q_h_tr_monthly[Q_h_tr_monthly < 0.] = 0.
+        Q_c_tr_monthly = self.UA_tot * (c_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_cooling_timesteps * CONFIG.time_step
+        # Q_c_tr_monthly[Q_c_tr_monthly > 0.] = 0. # For cooling negative values
+
+        # Infiltration
+        # [W/K] = [kg/s] * [J/kgK]
+        H_ve_inf = self.infiltration_air_flow_rate * air_properties['specific_heat']
+        Q_h_inf = H_ve_inf * (h_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
+        Q_c_inf = H_ve_inf * (c_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
+        Q_h_inf_monthly = get_monthly_value_from_annual_vector(Q_h_inf, method = 'integral') # [J]
+        Q_c_inf_monthly = get_monthly_value_from_annual_vector(Q_c_inf, method = 'integral') # [J]
+
+        # Effect of Mech Ventilation in zone
+        # [W/K] = [kg/s] * [J/kgK]
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * air_properties['specific_heat']
+        Q_h_ve = H_ve_mec * (h_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
+        Q_c_ve = H_ve_mec * (c_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
+        Q_h_ve_monthly = get_monthly_value_from_annual_vector(Q_h_ve, method = 'integral') # [J]
+        Q_c_ve_monthly = get_monthly_value_from_annual_vector(Q_c_ve, method = 'integral') # [J]
+
+        Q_h_ht = Q_h_tr_monthly + Q_h_inf_monthly + Q_h_ve_monthly
+        Q_c_ht = Q_c_tr_monthly + Q_c_inf_monthly + Q_c_ve_monthly
+
+        Q_h_gn = self.monthly_int_gain + self.monthly_sol_gain
+        Q_c_gn = Q_h_gn
+
+        # Eta calculation
+        # Heating
+        tau = self.Cm/3600/(self.UA_tot + np.max(H_ve_inf))
+        a_0 = 1.
+        tau_0 = 15.
+        a_h = a_0 + tau/tau_0
+        gamma_h = Q_h_gn/Q_h_ht
+        eta_h_gn = np.zeros(12)
+        eta_h_gn[gamma_h > 0.] = (1-gamma_h[gamma_h > 0.] ** a_h)/(1-gamma_h[gamma_h > 0.] ** (a_h+1))
+        eta_h_gn[gamma_h == 1.] = (a_h)/(a_h+1)
+        eta_h_gn[gamma_h <= 0.] = 1/gamma_h[gamma_h <= 0.]
+        # Cooling
+        a_c = a_0 + tau/tau_0
+        gamma_c = Q_c_gn / Q_c_ht
+        eta_c_is = np.zeros(12)
+        eta_c_is[gamma_c > 0.] = (1 - gamma_c[gamma_c > 0.] ** (-1*a_c)) / (1 - gamma_c[gamma_c > 0.] ** (-1*a_c - 1))
+        eta_c_is[gamma_c == 1.] = (a_c) / (a_c + 1)
+        eta_c_is[gamma_c <= 0.] = 1
+
+        # Final monthly calc
+        Q_h_sens = Q_h_ht - eta_h_gn * Q_h_gn
+        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht)
+        Q_h_sens[Q_h_sens<0.] = 0.
+        Q_c_sens[Q_c_sens>0.] = 0.
+
+
+        # Latent
+        humidifying_timesteps = self._humidity_setpoint.schedule_lower.schedule > 0.00725
+        lat_int = self.extract_convective_radiative_latent_electric_load()['latent [kg_vap/s]']
+        net_vapuor_in_zone_h = (self.infiltration_vapour_flow_rate + lat_int + self.air_handling_unit.air_flow_rate_kg_S * self.air_handling_unit.supply_specific_humidity.schedule) \
+                             - (self.air_handling_unit.air_flow_rate_kg_S + self.infiltration_vapour_flow_rate) * 0.00725
+        Q_hum_demand = -1 * net_vapuor_in_zone_h * vapour_properties['latent_heat']
+        Q_hum_demand[~humidifying_timesteps] = 0.
+        Q_hum_demand[Q_hum_demand < 0.] = 0.
+
+        dehumidifying_timesteps = self._humidity_setpoint.schedule_upper.schedule < 0.0105
+        lat_int = self.extract_convective_radiative_latent_electric_load()['latent [kg_vap/s]']
+        net_vapuor_in_zone_c = (
+                                           self.infiltration_vapour_flow_rate + lat_int + self.air_handling_unit.air_flow_rate_kg_S * self.air_handling_unit.supply_specific_humidity.schedule) \
+                               - (
+                                           self.air_handling_unit.air_flow_rate_kg_S + self.infiltration_vapour_flow_rate) * 0.0105
+        Q_dehum_demand = -1 * net_vapuor_in_zone_c * vapour_properties['latent_heat']
+        Q_dehum_demand[~dehumidifying_timesteps] = 0.
+        Q_dehum_demand[Q_dehum_demand > 0.] = 0.
+
+        Q_h_lat = get_monthly_value_from_annual_vector(Q_hum_demand, method = 'integral') # [J]
+        Q_c_lat = get_monthly_value_from_annual_vector(Q_dehum_demand, method = 'integral') # [J]
+
+        # Mechanical ventilation
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * air_properties['specific_heat']
+        Q_h_mec_sens = H_ve_mec * (self.air_handling_unit.supply_temperature.schedule - weather.hourly_data['out_air_db_temperature']) # [W]
+        Q_h_mec_sens = get_monthly_value_from_annual_vector(Q_h_mec_sens, method = 'integral') # [J]
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * vapour_properties['latent_heat']
+        Q_h_mec_lat = H_ve_mec * (self.air_handling_unit.supply_specific_humidity.schedule - weather.hourly_data['out_air_specific_humidity']) # [W]
+        Q_h_mec_lat = get_monthly_value_from_annual_vector(Q_h_mec_lat, method = 'integral') # [J]
+
+        self.sensible_zone_demand_qss_method = (Q_h_sens + Q_c_sens)/3600000 # [kWh]
+        self.latent_zone_demand_qss_method = (Q_h_lat + Q_c_lat)/3600000 # [kWh]
+        self.sensible_AHU_demand_qss_method = (Q_h_mec_sens)/3600000 # [kWh]
+        self.latent_AHU_demand_qss_method = (Q_h_mec_lat)/3600000 # [kWh]
 
     def design_heating_load(self, t_ext_design):
         """Preliminary calculation to calculate the heating design temperature.

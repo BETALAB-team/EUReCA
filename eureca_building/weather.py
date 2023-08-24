@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from eureca_building.config import CONFIG
-
+from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 
 # %% ---------------------------------------------------------------------------------------------------
 # Weather class
@@ -148,6 +148,11 @@ class WeatherFile():
         ]))
         self.general_data['average_out_air_db_temperature_cooling_season'] = np.mean(self.hourly_data["out_air_db_temperature"][CONFIG.cooling_season_start_time_step:CONFIG.cooling_season_end_time_step])
         self.general_data['average_out_air_db_temperature'] = np.mean(self.hourly_data["out_air_db_temperature"])
+
+        self.monthly_data = {}
+        self.monthly_data["out_air_specific_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_specific_humidity"], method='mean')
+        self.monthly_data["out_air_relative_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_relative_humidity"], method='mean')
+        self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
 
     def irradiances_calculation(self):
         """Internal method to tun the irrandiances calculation
