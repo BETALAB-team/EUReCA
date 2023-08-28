@@ -1,5 +1,5 @@
 '''IMPORTING MODULES'''
-
+import copy
 import math
 import os
 import json
@@ -20,6 +20,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -236,12 +237,15 @@ class City():
             )
 
             # Creation of thermal zone and building
+            n_units = int(np.around(footprint_area * n_floors / 77.))
+            if n_units == 0: n_units = 1
 
             thermal_zone = ThermalZone(
                 name=f"Bd {name} thermal zone",
                 surface_list=surfaces_list,
                 net_floor_area=footprint_area * n_floors,
-                volume=footprint_area * n_floors * floor_height
+                volume=footprint_area * n_floors * floor_height,
+                number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
             )
 
             {
@@ -441,9 +445,13 @@ class City():
         # Geometric preprocessing
         self.geometric_preprocessing()
 
-    def loads_calculation(self):
+    def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
+        if isinstance(region, str):
+            italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
+            italian_el_loads["Index"] = list(self.buildings_info.keys())
+            italian_el_loads.set_index("Index", drop=True, inplace = True)
 
         for bd_id, building_info in self.buildings_info.items():
             building_obj = self.buildings_objects[bd_id]
@@ -451,12 +459,33 @@ class City():
             tz = building_obj._thermal_zones_list[0]
 
             # TODO: copy.deepcopy
+            if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
+                try:
+                    italian_el_loads
+                except NameError:
+                    raise ValueError("""If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:
+For example: city.loads_calculation(region='Piemonte').
+Available regions:
+ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
+FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
+Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
+ """)
+                # TODO: Update with real values.
+                app_nv = italian_el_loads["Tot"].loc[bd_id]
+                app = copy.deepcopy(use.heat_gains['appliances'])
+                app.unit = "W"
+                app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units
 
-            tz.add_internal_load(
-                use.heat_gains['appliances'],
-                use.heat_gains['people'],
-                use.heat_gains['lighting'],
-            )
+                tz.add_internal_load(
+                    app,
+                    use.heat_gains['people'],
+                )
+            else:
+                tz.add_internal_load(
+                    use.heat_gains['appliances'],
+                    use.heat_gains['people'],
+                    use.heat_gains['lighting'],
+                )
 
             tz.extract_convective_radiative_latent_electric_load()
             {
@@ -542,11 +571,21 @@ class City():
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            gas_consumption["Total"] = gas_consumption.sum()
+            el_consumption["Total"] = el_consumption.sum()
+            oil_consumption["Total"] = oil_consumption.sum()
+            wood_consumption["Total"] = wood_consumption.sum()
             for i in gas_consumption.index:
-                info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
-                info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
-                info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
-                info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+                if i == "Total":
+                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                else:
+                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]

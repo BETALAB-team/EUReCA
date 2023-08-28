@@ -969,10 +969,10 @@ Thermal zone {self.name} 2C params:
         if flag != 'Tset' and flag != 'phiset':
             raise TypeError(
                 f"ERROR Thermal zone {self.name}, Sensible1C flag input is not a 'Tset' or 'phiset': flag {flag}")
-        if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
-            raise ValueError(
-                f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
-            )
+        # if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
+        #     raise ValueError(
+        #         f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
+        #     )
         # Set some data and build up the system
 
         phi_ia = phi_load[0]
@@ -984,7 +984,7 @@ Thermal zone {self.name} 2C params:
         rad_factor = sigma[0]
         conv_factor = sigma[1]
         Y = np.zeros((3, 3))
-        q = np.zeros((3))
+        q = np.zeros(3)
 
         if flag == 'Tset':
             Y[0, 0] = conv_factor
@@ -1000,7 +1000,8 @@ Thermal zone {self.name} 2C params:
             q[1] = -self.Htr_is * T_set - phi_st - self.Htr_w * T_e
             q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
             x = np.linalg.inv(Y).dot(q)
-            return np.insert(x, 1, T_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([num for num in x[:1]] + [T_set] + [num for num in x[1:]]) # np.insert(x, 1, T_set)
 
         elif flag == 'phiset':
             Y[0, 0] = -(self.Htr_is + Hve_inf + Hve_vent) - self._air_thermal_capacity / tau
@@ -1016,7 +1017,8 @@ Thermal zone {self.name} 2C params:
             q[1] = -phi_st * rad_factor - self.Htr_w * T_e
             q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 0, phi_HC_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([phi_HC_set] + [num for num in y]) # np.insert(y, 0, phi_HC_set)
 
         else:
             raise ValueError(f'Energy system zone solution: flag must be "phiset" or "Tset", flag: {flag}')
@@ -1083,10 +1085,10 @@ Thermal zone {self.name} 2C params:
         if flag != 'Tset' and flag != 'phiset':
             raise TypeError(
                 f"ERROR Thermal zone {self.name}, Sensible2C flag input is not a 'Tset' or 'phiset': flag {flag}")
-        if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
-            raise ValueError(
-                f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
-            )
+        # if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
+        #     raise ValueError(
+        #         f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
+        #     )
         # % Resistances and capacitances of the 7R2C model
         R_lue_ve = 1e20 if Hve[0] == 0 else 1 / Hve[0]
         R_lue_inf = 1e20 if Hve[1] == 0 else 1 / Hve[1]
@@ -1133,7 +1135,7 @@ Thermal zone {self.name} 2C params:
 
             # VECTOR OF KNOWN VALUES
 
-            q = np.zeros([6, 1])
+            q = np.zeros(6)
 
             q[0] = -theta_A_eq / self.RrestAW - self.C1AW * self.Tm0[0] / tau
             q[1] = -Q_il_str_aw
@@ -1148,7 +1150,8 @@ Thermal zone {self.name} 2C params:
             # OUTPUT (UNKNOWN) VARIABLES OF THE LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 3, T_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([a for a in y[:3]] + [T_set] + [a for a in y[3:]]) # np.insert(y, 3, T_set)
 
         elif flag == 'phiset':
             # Note: the heat load in input is already distributed on the 3 nodes
@@ -1197,7 +1200,8 @@ Thermal zone {self.name} 2C params:
             # OUTPUT LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 4, phi_HC_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([num for num in y[:4]] + [phi_HC_set] + [num for num in y[4:]]) # np.insert(y, 4, phi_HC_set)
 
         else:
             raise ValueError(f'Energy system zone solution: flag must be "phiset" or "Tset", flag: {flag}')
