@@ -471,7 +471,7 @@ FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
 Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
  """)
                 # TODO: Update with real values.
-                app_nv = italian_el_loads["Tot"].loc[bd_id]
+                app_nv = italian_el_loads["Tot"].loc[bd_id] * 1000 # W/kW
                 app = copy.deepcopy(use.heat_gains['appliances'])
                 app.unit = "W"
                 app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units

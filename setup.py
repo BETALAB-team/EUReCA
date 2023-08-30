@@ -25,6 +25,7 @@ setup(
         "pyclipper",
         "scipy",
         "openpyxl",
+        "pyarrow",
         "xlrd",
         "pvlib",
         "shapely",
