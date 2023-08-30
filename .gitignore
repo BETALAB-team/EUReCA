@@ -32,6 +32,7 @@ logging.log
 /eureca_ubem/Input/Zurich_Building_LoD2_V10.city.json
 /eureca_ubem/Input/belzoni_new_hvac/
 /eureca_ubem/Input_qgis/.idea/
+/eureca_ubem/el_load_dist/
 /eureca_ubem/logging.log
 eureca_building/__pycache__/
 eureca_building/test/__pycache__/
