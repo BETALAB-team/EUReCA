@@ -4,6 +4,8 @@ import os
 import time as tm
 import logging
 
+import pandas as pd
+
 # import matplotlib
 # matplotlib.use('TkAgg')
 # matplotlib.interactive(True)
@@ -19,37 +21,37 @@ materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
 
-city_geojson = City(
-    city_model=city_model_file,
-    epw_weather_file=weather_file,
-    end_uses_types_file=schedules_file,
-    envelope_types_file=materials_file,
-    shading_calculation=True,
-    building_model = "1C",
-    output_folder=os.path.join(".","geojson")
-)
-city_geojson.loads_calculation(region="Veneto")
-city_geojson.simulate(print_single_building_results=True)
-
-# materials_file = os.path.join(".","total envelope types.xlsx")
-# city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
-#
-# start = tm.time()
-# # Creation of the City object exit
-# belzoni = City(
+# city_geojson = City(
 #     city_model=city_model_file,
 #     epw_weather_file=weather_file,
 #     end_uses_types_file=schedules_file,
 #     envelope_types_file=materials_file,
-#     output_folder=os.path.join(".","belzoni_new_hvac")
+#     shading_calculation=True,
+#     building_model = "1C",
+#     output_folder=os.path.join(".","geojson")
 # )
-# print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
-# start = tm.time()
-# belzoni.loads_calculation(region="Veneto")
-# print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
-# start = tm.time()
-# belzoni.simulate(print_single_building_results=True)
-# print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
+# city_geojson.loads_calculation(region="Veneto")
+# city_geojson.simulate(print_single_building_results=True)
+
+materials_file = os.path.join(".","total envelope types.xlsx")
+city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
+
+start = tm.time()
+# Creation of the City object exit
+belzoni = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    output_folder=os.path.join(".","belzoni_new_hvac")
+)
+print(f"Belzoni creation : {(tm.time() - start)/600:.2f} min")
+start = tm.time()
+belzoni.loads_calculation(region="Veneto")
+print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
+start = tm.time()
+belzoni.simulate(print_single_building_results=True)
+print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
 
 # city_model_file = os.path.join(".","PaduaRestricted.json")
 #
@@ -111,7 +113,60 @@ city_geojson.simulate(print_single_building_results=True)
 #     json.dump(cityjson,file)
 
 
-
-
-
-
+#
+# import os
+# import glob
+# import geopandas as gpd
+# snappy_f = glob.glob( os.path.join('belzoni_new_hvac','**.snappy') )
+#
+#
+# info_bui_gs = gpd.read_file(os.path.join('belzoni_new_hvac','Buildings_summary.geojson'), index = "Index")
+# res_bui = info_bui_gs[info_bui_gs["End Use"] == "Residential"]["index"]
+#
+# info_bui = pd.read_csv(os.path.join('belzoni_new_hvac','Buildings_summary.csv'), delimiter = ";", index_col = [0])
+# info_bui = info_bui.loc[res_bui.values]
+#
+# results = pd.DataFrame(index=info_bui.index,columns=['El. Cons [kWh]', 'El. Cons dw [kWh]', 'Dw [-]'])
+#
+#
+# for file in info_bui.index:
+#     df = pd.read_parquet(os.path.join('belzoni_new_hvac',f'Results Bd {file}.parquet.snappy'))
+#     cons = df['Appliances electric consumption [Wh]'].sum().sum()/1000
+#     results['El. Cons [kWh]'].loc[file] = cons
+#     results['El. Cons dw [kWh]'].loc[file] = cons/info_bui['Number of units [-]'].loc[file]
+#     results['Dw [-]'].loc[file]= info_bui['Number of units [-]'].loc[file]
+#
+# import matplotlib.pyplot as plt
+#
+# plt.close()
+#
+# fig, [[ax1, ax2], [ax11,ax21]] = plt.subplots(ncols = 2, nrows=2, figsize=(10,10))
+#
+# ax1.set_axisbelow(True)
+# ax2.set_axisbelow(True)
+# results['El. Cons [kWh]'].hist(ax = ax1, bins = 50)
+# results['El. Cons dw [kWh]'].hist(ax = ax2, bins = 100)
+# ax1.set_title('El. Cons [kWh]')
+# ax2.set_title('El. Cons dw [kWh]')
+# ax1.set_xlabel('El. Cons [kWh]')
+# ax2.set_xlabel('El. Cons [kWh]')
+# ax1.set_ylabel('Num. [-]')
+# ax2.set_ylabel('Num. [-]')
+# ax1.set_xlim(0,150000)
+#
+# results.sort_values('El. Cons dw [kWh]',ascending=True)['El. Cons dw [kWh]'].plot(ax=ax21, grid = True)
+# results.sort_values('El. Cons [kWh]',ascending=True)['El. Cons [kWh]'].plot(ax=ax11, grid = True)
+# # ax11.set_yscale('log')
+# # ax21.set_yscale('log')
+# ax11.set_ylabel('El. Cons [kWh]')
+# ax21.set_ylabel('El. Cons [kWh]')
+# ax11.set_ylabel('El. Cons [kWh]')
+# ax21.set_ylabel('El. Cons [kWh]')
+# ax11.set_xticks([])
+# ax21.set_xticks([])
+# plt.tight_layout()
+#
+# fig.savefig(os.path.join('belzoni_new_hvac','el_loads.svg'))
+# plt.show()
+#
+# s_results = results.sort_values('El. Cons dw [kWh]',ascending=True)
