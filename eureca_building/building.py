@@ -263,23 +263,23 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
-            results['TZ Ta [°C]'][t,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
-            results['TZ To [°C]'][t,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
-            results['TZ Tmr [°C]'][t,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
-            results['TZ RH [-]'][t,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
+            results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
+            results['TZ To [°C]'][t - t_start,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
+            results['TZ Tmr [°C]'][t - t_start,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
+            results['TZ RH [-]'][t - t_start,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
 
-            results['TZ sensible load [W]'][t, :] = [tz.sensible_zone_load for tz in self._thermal_zones_list]
-            results['TZ latent load [W]'][t, :] = [tz.latent_zone_load for tz in self._thermal_zones_list]
+            results['TZ sensible load [W]'][t - t_start, :] = [tz.sensible_zone_load for tz in self._thermal_zones_list]
+            results['TZ latent load [W]'][t - t_start, :] = [tz.latent_zone_load for tz in self._thermal_zones_list]
 
-            results['TZ AHU pre heater load [W]'][t, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
-            results['TZ AHU post heater load [W]'][t, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
+            results['TZ AHU pre heater load [W]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
+            results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
 
 
-            results['Heating system gas consumption [Nm3]'][t,0] = self.heating_system.gas_consumption
-            results['Heating system oil consumption [L]'][t,0] = self.heating_system.oil_consumption
-            results['Heating system wood consumption [kg]'][t,0] = self.heating_system.wood_consumption
-            results['Heating system electric consumption [Wh]'][t,0] = self.heating_system.electric_consumption
-            results['Cooling system electric consumption [Wh]'][t,0] = self.cooling_system.electric_consumption
+            results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
+            results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
+            results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
 
         # Saving results
 

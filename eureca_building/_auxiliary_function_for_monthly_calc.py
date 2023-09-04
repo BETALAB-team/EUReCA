@@ -17,7 +17,9 @@ from eureca_building.config import CONFIG
 
 def get_monthly_value_from_annual_vector(
         array,
-        method='sum'
+        method='sum',
+        # start = CONFIG.start_date,
+        # end = CONFIG.final_date,
     ):
     """Returns the monthly sum or average of a simulation array
 
@@ -33,7 +35,7 @@ def get_monthly_value_from_annual_vector(
     numpy.array
         an array with the resampled array
     """
-    array_year = pd.Series(array, index = pd.date_range(start=CONFIG.start_date,end=CONFIG.final_date,periods=CONFIG.number_of_time_steps))
+    array_year = pd.Series(array, index = pd.date_range(start="01/01/2023 00:00",end="31/12/2023 23:00",freq=f"{CONFIG.time_step}S"))
     monthly_array = {
         'sum': array_year.resample('1M').sum(),
         'integral': array_year.resample('1M').sum()*CONFIG.time_step, # [W]*[s] = [J]
