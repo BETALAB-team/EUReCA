@@ -12,6 +12,7 @@ import logging
 import math
 
 import numpy as np
+import pandas as pd
 
 from eureca_building.config import CONFIG
 from eureca_building.schedule_properties import domestic_hot_water_prop
@@ -19,29 +20,26 @@ from eureca_building.fluids_properties import water_properties
 from eureca_building.schedule import Schedule
 from eureca_building.exceptions import InvalidScheduleType
 
-def distrEventi(n,x,pdf):
-    """DEPRECATED: Not working
-
+def _event_distribution(number_of_daily_events,daily_vector_distibution, number_of_days):
+    """
     Parameters
     ----------
     n
     x
-    pdf
+    pdf vettore distribuzione
 
     Returns
     -------
 
     """
-    y_guess=np.random.rand(int(n))
-    cdf=np.cumsum(pdf)
-    [cdf,index]=np.unique(cdf,1)
+    y_guess = np.random.rand(number_of_days, int(number_of_daily_events))
+    cdf = np.cumsum(daily_vector_distibution)
+    x_event = np.interp(y_guess,cdf,np.arange(len(cdf)))
+    # get randomly som time events from the cdf and y_guess selected randomly
+    return np.round(x_event).astype(int)
 
-    x_event=np.interp(y_guess,cdf,x[index])
-    time_event=np.round(x_event)
-    return time_event
-
-def dhw_calc_calculation(volume_unit, numunits, time_step):
-    """DEPRECATED: not working
+def dhw_calc_calculation(volume_unit, numunits):
+    """
 
     Parameters
     ----------
@@ -53,122 +51,66 @@ def dhw_calc_calculation(volume_unit, numunits, time_step):
     -------
 
     """
+    # The DHW calc is always run with a 5 min time step. At the end it is resapled to the CONFIG time step
+    time_step = 5 # min
+    time_steps_hour = int(60 / time_step)
+    time_steps_day = int(24 * time_steps_hour)
 
-    total_days = domestic_hot_water_prop["total_days"]
-    nuses = domestic_hot_water_prop["nuses"]
-    vol_aver_drawoff = domestic_hot_water_prop["vol_aver_drawoff"]
-    vol_desv_drawoff = domestic_hot_water_prop["vol_desv_drawoff"]
-    time_aver_drawoff = domestic_hot_water_prop["time_aver_drawoff"]
-    proportion_event = domestic_hot_water_prop["proportion_event"]
-    dist = domestic_hot_water_prop["dist"]
+    total_consumed_volume_dw = np.zeros([365*24*time_steps_hour, numunits])
 
-    vol_total_drawoff = vol_aver_drawoff * time_aver_drawoff
+    for unit in range(numunits):
 
-    vol_total_drawoff_use = np.zeros((nuses))
 
-    for j in range(nuses):
-        vol_total_drawoff_use[j] = volume_unit * proportion_event[j]
+        total_days = domestic_hot_water_prop["total_days"]
 
-    draw_offs = np.zeros((nuses))
-    draw_offs_dec = np.zeros((nuses))
+        consumed_volume = np.zeros([total_days, time_steps_day, len(domestic_hot_water_prop["DHWcalc_uses"].items())])
 
-    for j in range(nuses):
-        draw_offs_dec[j] = np.abs(vol_total_drawoff_use[j] / vol_aver_drawoff[j] - int(
-            vol_total_drawoff_use[j] / vol_aver_drawoff[j]))
-        if draw_offs_dec[j] >= 0.5:
-            draw_offs[j] = math.ceil(vol_total_drawoff_use[j] / vol_aver_drawoff[j])
-        else:
-            draw_offs[j] = np.round(vol_total_drawoff_use[j] / vol_aver_drawoff[j])
+        use_number = 0
+        for use, values in domestic_hot_water_prop["DHWcalc_uses"].items():
 
-    time_steps_hour = 60 / time_step
-    time_steps_day = 24 * time_steps_hour
+            average_time_drawoff = values["average_time"]
+            # l/d split by drawoff type
+            daily_vol_total_drawoff_use = volume_unit * values["percentage_to_total_consumption"]
+            daily_drawoff_on_event = np.round(daily_vol_total_drawoff_use / values["mean"]).astype(int)
+            # Maximum number of on events in a timestep for each drawoff
+            # n_max_time_step_on_events = np.ceil(time_step / average_time_drawoff)
 
-    array_time_step = np.zeros(4)
-    for i in range(4):
-        array_time_step[i] = time_step
+            # This does a resampling with a linear interpolation method  to keep 1 as sum of each column
+            temporal_dist = np.interp(np.arange(0, 24, 1 / time_steps_hour), np.arange(0, 24),
+                                      values["temporal_distribution"]) / time_steps_hour
 
-    n_max = array_time_step / time_aver_drawoff
-    for i in range(len(n_max)):
-        n_max[i] = math.ceil(n_max[i])
+            # array with the time steps when the use is on [number of daily on events, number of days]
+            temporal_dist_year = _event_distribution(daily_drawoff_on_event, temporal_dist, total_days)
+            if values["volume_pdf"] == "lognormal":
+                m = values["mean"]
+                v = values["std"]
+                mu = np.log((m ** 2) / np.sqrt(v + m ** 2))
+                sigma = np.sqrt(np.log(v / (m ** 2) + 1))
+                flow_rate = np.random.lognormal(mu, sigma, [total_days, daily_drawoff_on_event])  # l/min
+            elif values["volume_pdf"] == "normal":
+                flow_rate = np.random.normal(values["mean"], values["std"], [total_days, daily_drawoff_on_event])
+            else:
+                raise ValueError(
+                    f'DHW calculation. The volume flow rate probabilty distribution function is not allowed. PDF: {values["volume_pdf"]}. Aloowed PDFs: [lognormal, normal]')
+            volume_use = np.abs(flow_rate)  # l ad accensione
+            # To avoid negative consumptions (possible with normal dist)
+            volume_use[volume_use < 0] = 0.
 
-    Volume_use_daily_array = np.zeros((total_days, int(time_steps_day)))
-    Volume_use_arrayb0 = np.zeros((int(total_days * time_steps_day)))
-    dist_use = np.zeros((24, 12))
-    Volume_use_array = np.zeros((int(time_steps_day * total_days), nuses))
-    Volume_use_sum = np.zeros((1, nuses))
-    Volume_aver_drawoff_final = np.zeros(nuses)
-    Volume_desv_drawoff_final = np.zeros((1, nuses))
-    Volume_use_time = np.zeros(np.int(time_steps_day))
+            for ts in range(daily_drawoff_on_event):
+                consumed_volume[np.arange(total_days), temporal_dist_year[:, ts], use_number] = volume_use[:, ts]
 
-    Volume_use_unit = np.zeros((int(total_days * time_steps_day), numunits))
+            # The rescale needed because otherwise the rounding process provoke an underestimation
+            consumed_volume[:, :, use_number] = consumed_volume[:, :, use_number] / (
+                        consumed_volume[:, :, use_number].sum() / 365) * daily_vol_total_drawoff_use
 
-    for units0 in range(numunits):
+            use_number += 1
 
-        for use in range(nuses):
+        total_consumed_volume_dw[:,unit] = consumed_volume.sum(axis=2).reshape(365*24*time_steps_hour, 1)
 
-            dist_use = np.repeat(dist[:, use], 12, axis=0)
-            dist_use_t = np.reshape(dist_use, (288, 1)) / time_steps_hour
+    total_consumed_volume = total_consumed_volume_dw.sum(axis=1)
+    total_consumed_volume_rs = pd.Series(total_consumed_volume, index = pd.date_range(start='1/1/2018 00:00', periods=8760*time_steps_hour, freq = f"{time_step}min")).resample(f"{CONFIG.time_step}S").sum()
 
-            vol_aver_drawoff_use = vol_aver_drawoff[use]
-            vol_desv_drawoff_use = vol_desv_drawoff[use]
-            time_aver_drawoff_use = time_aver_drawoff[use]
-            draw_offs_use = int(draw_offs[use])
-            n_max1 = n_max[use]
-
-            for day in range(total_days):
-
-                time_event = distrEventi(draw_offs_use, np.arange(0, time_steps_day), dist_use_t)
-
-                if use == 0:
-                    m = vol_aver_drawoff_use
-                    v = vol_desv_drawoff_use
-                    mu = np.log((m ** 2) / np.sqrt(v + m ** 2))
-                    sigma = np.sqrt(np.log(v / (m ** 2) + 1))
-                    Flow_rated = np.random.lognormal(mu, sigma, int(draw_offs_use))
-
-                else:
-                    Flow_rated = np.random.normal(vol_aver_drawoff_use, vol_desv_drawoff_use, int(draw_offs_use))
-
-                Volume_use = np.array(np.double(np.abs(Flow_rated * time_aver_drawoff_use)))
-
-                for i in range(int(time_steps_day)):
-
-                    index = np.where(time_event == i)
-
-                    if len(index) > n_max1:
-                        index1 = index[0, int(n_max1)]
-                    else:
-                        index1 = index
-
-                    if draw_offs_use == 1:
-                        if index1 == 0:
-                            Volume_use_time = Volume_use
-                    else:
-                        Volume_use_time = Volume_use[index1]
-
-                    Volume_use_daily_array[(day, i)] = np.sum(Volume_use_time) / time_aver_drawoff_use
-
-            Volume_use_resh1 = np.reshape(Volume_use_daily_array, (1, int(total_days * time_steps_day)))
-            Volume_use_array[:, use] = Volume_use_resh1
-
-            Volume_use_sum[0, use] = np.sum(Volume_use_array[:, use])
-
-        Volume_use_unit[:, units0] = np.sum(Volume_use_array, axis=1)
-
-        # if numunits>1:
-        Volume_use_arrayb0 = np.sum(Volume_use_unit, axis=1)
-        # else:
-        #     Volume_use_arrayb0=Volume_use_unit[:,0]
-
-    Volume_totalb1 = np.sum(Volume_use_arrayb0)
-
-    number_units = numunits
-
-    volume_profile = Volume_use_arrayb0
-    total_volume = Volume_totalb1
-
-    Volume_meanb1 = ((Volume_totalb1) / numunits) / total_days
-    return volume_profile
+    return total_consumed_volume_rs # [CONFIG.start_time_step:CONFIG.final_time_step]
 
 class DomesticHotWater:
     """DomesticHotWater object
@@ -290,10 +232,8 @@ class DomesticHotWater:
                 volume = np.ones(CONFIG.number_of_time_steps_year) * Vw_single * number_of_units * 365 / CONFIG.number_of_time_steps_year / CONFIG.time_step # To convert from m3/ts to m3/s
 
             if self.calculation_method == "DHW calc":
-                # Broken
                 # TODO: fix stochastic calculation
-                volume = dhw_calc_calculation(Vw_single, number_of_units, CONFIG.time_step / 60)[:CONFIG.number_of_time_steps_year] / 1000 / CONFIG.time_step # to m3/ts to m3/s
-                # L or m3?
+                volume = dhw_calc_calculation(Vw_single, number_of_units)[:CONFIG.number_of_time_steps_year] / 1000 / CONFIG.time_step # to m3/ts to m3/s
 
         Cw = water_properties["specific_heat"]      # [J/(kg K)]
         DTw = domestic_hot_water_prop["target temperature [°C]"] - weather.general_data["average_out_air_db_temperature"]       # [°C]
