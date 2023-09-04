@@ -304,7 +304,7 @@ class EndUse:
             logging.warning(f"WARNING Loading end use {name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {scalar_data['latRec']}")
         if not 0. <= scalar_data['outdoorAirRatio'] <= 1.:
             logging.warning(f"WARNING Loading end use {name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {scalar_data['outdoorAirRatio']}")
-        if scalar_data['DomesticHotWater calculation'] not in ["UNI-TS 11300-2", "Schedule"]:
+        if scalar_data['DomesticHotWater calculation'] not in ["UNI-TS 11300-2", "Schedule", "DHW calc"]:
             raise ValueError(f"End use {name}, DomesticHotWater calculation not allowed: {scalar_data['DomesticHotWater calculation']}. Allowed values: UNI-TS 11300-2, Schedule")
         if scalar_data['Appliances calculation'] not in ["Italian Residential Building Stock", "Schedule"]:
             raise ValueError(f"End use {name}, Appliances calculation not allowed: {scalar_data['Appliances calculation']}. Allowed values: Italian Residential Building Stock, Schedule")

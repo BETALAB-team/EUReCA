@@ -105,7 +105,7 @@ def dhw_calc_calculation(volume_unit, numunits):
 
             use_number += 1
 
-        total_consumed_volume_dw[:,unit] = consumed_volume.sum(axis=2).reshape(365*24*time_steps_hour, 1)
+        total_consumed_volume_dw[:,unit] = consumed_volume.sum(axis=2).reshape(365*24*time_steps_hour)
 
     total_consumed_volume = total_consumed_volume_dw.sum(axis=1)
     total_consumed_volume_rs = pd.Series(total_consumed_volume, index = pd.date_range(start='1/1/2018 00:00', periods=8760*time_steps_hour, freq = f"{time_step}min")).resample(f"{CONFIG.time_step}S").sum()
