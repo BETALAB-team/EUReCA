@@ -52,6 +52,7 @@ def dhw_calc_calculation(volume_unit, numunits):
 
     """
     # The DHW calc is always run with a 5 min time step. At the end it is resapled to the CONFIG time step
+    volume_unit = volume_unit * 1000 # m3 to l
     time_step = 5 # min
     time_steps_hour = int(60 / time_step)
     time_steps_day = int(24 * time_steps_hour)
@@ -100,15 +101,14 @@ def dhw_calc_calculation(volume_unit, numunits):
                 consumed_volume[np.arange(total_days), temporal_dist_year[:, ts], use_number] = volume_use[:, ts]
 
             # The rescale needed because otherwise the rounding process provoke an underestimation
-            consumed_volume[:, :, use_number] = consumed_volume[:, :, use_number] / (
-                        consumed_volume[:, :, use_number].sum() / 365) * daily_vol_total_drawoff_use
+            consumed_volume[:, :, use_number] = consumed_volume[:, :, use_number]/(consumed_volume[:, :, use_number].sum() / 365) * daily_vol_total_drawoff_use
 
             use_number += 1
 
         total_consumed_volume_dw[:,unit] = consumed_volume.sum(axis=2).reshape(365*24*time_steps_hour)
 
     total_consumed_volume = total_consumed_volume_dw.sum(axis=1)
-    total_consumed_volume_rs = pd.Series(total_consumed_volume, index = pd.date_range(start='1/1/2018 00:00', periods=8760*time_steps_hour, freq = f"{time_step}min")).resample(f"{CONFIG.time_step}S").sum()
+    total_consumed_volume_rs = pd.Series(total_consumed_volume, index = pd.date_range(start='1/1/2018 00:00', periods=8760*time_steps_hour, freq = f"{time_step}min")).resample(f"{CONFIG.time_step}S").sum().values
 
     return total_consumed_volume_rs # [CONFIG.start_time_step:CONFIG.final_time_step]
 
@@ -231,7 +231,7 @@ class DomesticHotWater:
             if self.calculation_method == "UNI-TS 11300-2":
                 volume = np.ones(CONFIG.number_of_time_steps_year) * Vw_single * number_of_units * 365 / CONFIG.number_of_time_steps_year / CONFIG.time_step # To convert from m3/ts to m3/s
 
-            if self.calculation_method == "DHW calc":
+            elif self.calculation_method == "DHW calc":
                 # TODO: fix stochastic calculation
                 volume = dhw_calc_calculation(Vw_single, number_of_units)[:CONFIG.number_of_time_steps_year] / 1000 / CONFIG.time_step # to m3/ts to m3/s
 
