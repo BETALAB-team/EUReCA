@@ -210,7 +210,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                  t_start: int = CONFIG.start_time_step,
                  t_stop: int = CONFIG.final_time_step,
                  preprocessing_ts: int = 100 * CONFIG.ts_per_hour,
-                 output_folder: str = None
+                 output_folder: str = None,
+                 output_type: str = "csv",
                  ):
         """Simulate a period and i stores the outputs. Calls solve_timestep method
 
@@ -226,6 +227,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             number of preprocessing timesteps
         output_folder : str, default None
             if not None prints building results in the selected folder
+        output_type : str, default "csv"
+            parquet or csv as output file
 
         Returns
         ----------
@@ -299,9 +302,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         if output_folder != None:
             if not os.path.isdir(output_folder):
                 os.mkdir(output_folder)
-            # total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False, sep =";")
-            total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
-
+            if output_type == 'csv':
+                total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False, sep =";")
+            elif output_type == 'parquet':
+                total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
+            else:
+                raise KeyError(f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
         return total
 
     def get_geojson_feature_parser(self):
