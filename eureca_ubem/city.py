@@ -301,7 +301,7 @@ class City():
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-            name = bd_data["Name"]  # Heating plant of the building
+            name = str(bd_data["Name"]) + "_" + str(i[1])
             envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
             g = self.cityjson.loc[i].geometry
             counter_for_sub_parts = 0
@@ -521,7 +521,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
 
-    def simulate(self, print_single_building_results = False):
+    def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -529,6 +529,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         print_single_building_results : bool, default False
             If True, the prints a file with time step results for each building.
             USE CAREFULLY: It might fill a lot of disk space
+        output_type : str, default 'parquet'
+            It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
         """
         import time
         start = time.time()
@@ -551,6 +553,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             "Electric consumption [Wh]",
             "Oil consumption [L]",
             "Wood consumption [kg]",
+            "TZ sensible load [W]",
+            "TZ latent load [W]",
+            "TZ AHU pre heater load [W]",
+            "TZ AHU post heater load [W]",
+            "TZ DHW demand [W]",
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -562,7 +569,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
-                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
@@ -593,6 +600,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0]
+            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0]
+            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0]
+            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0]
+            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0]
+            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0]
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
