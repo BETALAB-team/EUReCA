@@ -31,7 +31,7 @@ city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 # )
 # city_geojson.loads_calculation(region="Veneto")
 # city_geojson.simulate(print_single_building_results=True)
-
+#
 materials_file = os.path.join(".","total envelope types.xlsx")
 city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
 
