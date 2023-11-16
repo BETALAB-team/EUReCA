@@ -10,6 +10,10 @@ import shapely
 import geopandas as gpd
 import numpy as np
 from cjio import cityjson
+from scipy.spatial import cKDTree
+from shapely.geometry import Polygon
+from shapely.geometry.polygon import orient
+
 
 from eureca_building.config import CONFIG
 from eureca_building.weather import WeatherFile
@@ -21,6 +25,35 @@ from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
+
+def calculate_normal_vector(vertices):
+    v1 = np.array(vertices[1]) - np.array(vertices[0])
+    v2 = np.array(vertices[2]) - np.array(vertices[0])
+    normal_vector = np.cross(v1, v2)
+    if np.linalg.norm(normal_vector)<0.00001:
+        normal_vector=np.array([0,0,1])
+    return normal_vector / np.linalg.norm(normal_vector)
+
+def build_kdtree(polygons):
+    normals = [calculate_normal_vector(polygon) for polygon in polygons]
+    return cKDTree(normals)
+
+def are_parallel(normal_A, normal_B):
+    # Check if the cross product of the normals is zero (indicating parallelism)
+    return np.allclose(np.cross(normal_A, normal_B), [0, 0, 0])
+
+def find_parallel_polygon_indices(A, L, kdtree):
+    normal_A = calculate_normal_vector(A)
+    _, indices = kdtree.query(normal_A, k=10)  # Adjust k as needed
+
+    parallel_indices = [i for i in indices if are_parallel(normal_A, calculate_normal_vector(L[i]))]
+    return parallel_indices
+
+def find_closest_polygon_indices(A, L, kdtree, num_neighbors=1000):
+    normal_A = calculate_normal_vector(A)
+    _, indices = kdtree.query(normal_A, k=num_neighbors)
+
+    return indices
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -131,7 +164,7 @@ class City():
             with open(json_path, 'r') as f:
                 self.cityjson = cityjson.CityJSON(file=f)
         except FileNotFoundError:
-            raise FileNotFoundError(f'ERROR Cityjson object not found: {p}. Give a proper path')
+            raise FileNotFoundError(f'ERROR Cityjson object not found: {json_path}. Give a proper path')
 
         if not(isinstance(self.cityjson.j['vertices'], list)):
             raise ValueError('json file vertices are not a list')
@@ -448,16 +481,20 @@ class City():
     def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
+        
         if isinstance(region, str):
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
-
+        
+        iiii=0
+        jjjj=3608
         for bd_id, building_info in self.buildings_info.items():
+            iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
-
+            
             # TODO: copy.deepcopy
             if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
                 try:
@@ -486,7 +523,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     use.heat_gains['people'],
                     use.heat_gains['lighting'],
                 )
-
+            
             tz.extract_convective_radiative_latent_electric_load()
             {
                 "1C": tz.calculate_zone_loads_ISO13790,
@@ -512,15 +549,17 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 weather = self.weather_file,
                 thermal_zone = tz,
             )
+            
 
             tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+            
             tz.design_heating_load(-5.)
-
+            
             tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-
+            
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
-
+            print(f"{int(100*iiii/jjjj)} %: load calc")
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
@@ -532,6 +571,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         output_type : str, default 'parquet'
             It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
         """
+       
         import time
         start = time.time()
         # parallel simulation commented
@@ -636,13 +676,29 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         toll_theta = CONFIG.urban_shading_tolerances[2]
 
         # Each surface is compared with all the others
+        qqq=len(self.__city_surfaces)
+        qqqq=qqq*(qqq-1)/2
+        iiii=0
+        jjjj=0
+        polygons_in_here = [obj._vertices for obj in self.__city_surfaces]
+        plg_kdtree=build_kdtree(polygons_in_here)
         for x in range(len(self.__city_surfaces)):
-            for y in range(x + 1,len(self.__city_surfaces)):
+            jjjj=jjjj+1
+            print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
+            polygon_in_qstn=polygons_in_here[x]
+            check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
+            solar_check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
+            # for y in range(x + 1,len(self.__city_surfaces)):
+            iiiii=0
+            try:
+                self.__city_surfaces[x].shading_coupled_surfaces
+            except AttributeError:
+                self.__city_surfaces[x].shading_coupled_surfaces = []
+            for y in check_indices:
+                iiii=iiii+1
+                iiiii=iiiii+1
+                # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
-                try:
-                    self.__city_surfaces[x].shading_coupled_surfaces
-                except AttributeError:
-                    self.__city_surfaces[x].shading_coupled_surfaces = []
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
@@ -661,9 +717,15 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                         self.__city_surfaces[y].reduce_area(intersectionArea)
                         self.__city_surfaces[x].reduce_area(intersectionArea)
 
+                # print(f" {int(iiii/jjjj)*100} percent: geometry")
+                try:
+                    self.__city_surfaces[y].shading_coupled_surfaces
+                except AttributeError:
+                    self.__city_surfaces[y].shading_coupled_surfaces = []
+
                 if self.shading_calculation:
                     if dist == 0.0:
-                        pass
+                        theta=0
                     else:
 
                         # Calculation of the vector direction between the centroids of the two surfaces under examination
@@ -745,10 +807,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # SECTION 2: Calculation of the shading effect
             for x in range(len(self.__city_surfaces)):
                 self.__city_surfaces[x].shading_coefficient = 1.
+                iiiii=0
                 if self.__city_surfaces[x].shading_coupled_surfaces != []:
                     self.__city_surfaces[x].shading_calculation = 'On'
                     shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
+                        iiii=iiii+1
+                        iiiii=iiiii+1
+                        print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
                         surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]

@@ -119,6 +119,7 @@ def normal_versor_2(vert_list):
             )
     c = centroid(vert_list)
     crossProd = np.array([0.0, 0, 0])
+    #print(vert_list)
     for i in range(len(vert_list)):
         a = np.array(vert_list[i - 1]) - c
         b = np.array(vert_list[i]) - c
