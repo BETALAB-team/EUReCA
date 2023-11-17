@@ -35,6 +35,7 @@ logging.log
 /eureca_ubem/Input_qgis/.idea/
 /eureca_ubem/el_load_dist/
 /eureca_ubem/logging.log
+/eureca_ubem/old/__pycache__/
 eureca_building/__pycache__/
 eureca_building/test/__pycache__/
 eureca_building/test/hvac_plots/

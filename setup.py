@@ -31,5 +31,6 @@ setup(
         "shapely",
         "geopandas",
         "cjio",
+        "pyogrio",
     ],
 )
