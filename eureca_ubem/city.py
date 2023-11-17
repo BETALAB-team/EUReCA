@@ -11,9 +11,6 @@ import geopandas as gpd
 import numpy as np
 from cjio import cityjson
 from scipy.spatial import cKDTree
-from shapely.geometry import Polygon
-from shapely.geometry.polygon import orient
-
 
 from eureca_building.config import CONFIG
 from eureca_building.weather import WeatherFile
@@ -25,35 +22,6 @@ from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
-
-def calculate_normal_vector(vertices):
-    v1 = np.array(vertices[1]) - np.array(vertices[0])
-    v2 = np.array(vertices[2]) - np.array(vertices[0])
-    normal_vector = np.cross(v1, v2)
-    if np.linalg.norm(normal_vector)<0.00001:
-        normal_vector=np.array([0,0,1])
-    return normal_vector / np.linalg.norm(normal_vector)
-
-def build_kdtree(polygons):
-    normals = [calculate_normal_vector(polygon) for polygon in polygons]
-    return cKDTree(normals)
-
-def are_parallel(normal_A, normal_B):
-    # Check if the cross product of the normals is zero (indicating parallelism)
-    return np.allclose(np.cross(normal_A, normal_B), [0, 0, 0])
-
-def find_parallel_polygon_indices(A, L, kdtree):
-    normal_A = calculate_normal_vector(A)
-    _, indices = kdtree.query(normal_A, k=10)  # Adjust k as needed
-
-    parallel_indices = [i for i in indices if are_parallel(normal_A, calculate_normal_vector(L[i]))]
-    return parallel_indices
-
-def find_closest_polygon_indices(A, L, kdtree, num_neighbors=1000):
-    normal_A = calculate_normal_vector(A)
-    _, indices = kdtree.query(normal_A, k=num_neighbors)
-
-    return indices
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -487,10 +455,10 @@ class City():
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
         
-        iiii=0
-        jjjj=3608
+        # iiii=0
+        # jjjj=3608
         for bd_id, building_info in self.buildings_info.items():
-            iiii=iiii+1
+            # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
@@ -559,7 +527,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
-            print(f"{int(100*iiii/jjjj)} %: load calc")
+            # print(f"{int(100*iiii/jjjj)} %: load calc")
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
@@ -676,30 +644,27 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         toll_theta = CONFIG.urban_shading_tolerances[2]
 
         # Each surface is compared with all the others
-        qqq=len(self.__city_surfaces)
-        qqqq=qqq*(qqq-1)/2
-        iiii=0
-        jjjj=0
+        # qqq=len(self.__city_surfaces)
+        # qqqq=qqq*(qqq-1)/2
+        # iiii=0
+        # jjjj=0
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
         for x in range(len(self.__city_surfaces)):
-            jjjj=jjjj+1
+            # jjjj=jjjj+1
             # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
-            # polygon_in_qstn=polygons_in_here[x]
-            
+           
+            # Function to filter using scipy the nearest points (centroids)
             _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=500)
             
-            # check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
-            # solar_check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
-            # for y in range(x + 1,len(self.__city_surfaces)):
-            iiiii=0
+            # iiiii=0
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
             for y in filtered_indices:
-                iiii=iiii+1
-                iiiii=iiiii+1
+                # iiii=iiii+1
+                # iiiii=iiiii+1
                 # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
                 try:
@@ -810,13 +775,13 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # SECTION 2: Calculation of the shading effect
             for x in range(len(self.__city_surfaces)):
                 self.__city_surfaces[x].shading_coefficient = 1.
-                iiiii=0
+                # iiiii=0
                 if self.__city_surfaces[x].shading_coupled_surfaces != []:
                     self.__city_surfaces[x].shading_calculation = 'On'
                     shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
-                        iiii=iiii+1
-                        iiiii=iiiii+1
+                        # iiii=iiii+1
+                        # iiiii=iiiii+1
                         # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]

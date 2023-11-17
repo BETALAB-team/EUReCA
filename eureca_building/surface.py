@@ -41,7 +41,7 @@ def delete_duplicates(lst):
         # Convert the inner list to a tuple before checking for uniqueness
         item_tuple = tuple(item)
         seen.add(item_tuple)
-    return list(seen)
+    return tuple(seen)
 
 
 
