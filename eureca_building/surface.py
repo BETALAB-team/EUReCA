@@ -419,6 +419,7 @@ class Surface:
                 self._sky_view_factor = (1 + np.cos(np.radians(self._height_round))) / 2
             else:
                 self._height_round = 0  # Only to avoid errors
+                self._sky_view_factor=1 # Also to avoid errors                
         y = np.arange(-180 - delta_a, 180 + 2 * delta_a, 2 * delta_a)
         for n in range(len(y) - 1):
             if self._azimuth >= y[n] and self._azimuth < y[n + 1]:
