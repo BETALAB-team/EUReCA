@@ -1,6 +1,7 @@
 /__pycache__/
 .spyproject
 RCenv.yml
+/eureca_ubem/Input/mk_tests/
 /eureca_ubem/Input/Belzoni.json
 /eureca_ubem/Input_qgis/
 /eureca_ubem/Input/Belzoni/

@@ -35,15 +35,13 @@ from eureca_building._geometry_auxiliary_functions import (
 
 
 # %% Surface class
-def has_duplicates(lst):
+def delete_duplicates(lst):
     seen = set()
     for item in lst:
         # Convert the inner list to a tuple before checking for uniqueness
         item_tuple = tuple(item)
-        if item_tuple in seen:
-            return False
         seen.add(item_tuple)
-    return True
+    return list(seen)
 
 
 
@@ -160,6 +158,7 @@ class Surface:
             value = tuple(value)
         except ValueError:
             raise TypeError(f"Vertices of surface {self.name} are not a tuple: {value}")
+        value = delete_duplicates(value)
         if len(value) < 3:  # Not a plane - no area
             raise SurfaceWrongNumberOfVertices(
                 f"Surface {self.name}. Number of vertices lower than 3: {value}"
@@ -563,14 +562,8 @@ class Surface:
         projB = [_project(x, proj_axis) for x in other_surface._vertices]
         scaledA = pc.scale_to_clipper(projA)
         scaledB = pc.scale_to_clipper(projB)
-        resscaledB=has_duplicates(scaledB)
-        if resscaledB:
-            scaledB=scaledB
-        else:
-            scaledB=[[0,1],[1,1],[1,0],[0,0]]
         clipper = pc.Pyclipper()
         clipper.AddPath(scaledA, poly_type=pc.PT_SUBJECT, closed=True)
-        # print(scaledB)
         clipper.AddPath(scaledB, poly_type=pc.PT_CLIP, closed=True)
         intersections = clipper.Execute(pc.CT_INTERSECTION, pc.PFT_NONZERO, pc.PFT_NONZERO)
         intersections = [pc.scale_from_clipper(i) for i in intersections]
