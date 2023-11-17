@@ -600,6 +600,16 @@ class Surface:
             self._area = 0.0000001
         self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
 
+    def __str__(self):
+        return f"""
+Name: {self.name}
+    Type: {self.surface_type}
+    Azimuth: {self._azimuth:.2f}
+    Height: {self._height:.2f}
+    U value: {self.construction._u_value:.2f}
+    Area: {self._area} ({self._wwr:.1%} glazed)
+"""
+
 # %%---------------------------------------------------------------------------------------------------
 # %% SurfaceInternalMass class
 
