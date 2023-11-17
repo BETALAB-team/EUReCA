@@ -35,6 +35,14 @@ from eureca_building._geometry_auxiliary_functions import (
 
 
 # %% Surface class
+def delete_duplicates(lst):
+    seen = set()
+    for item in lst:
+        # Convert the inner list to a tuple before checking for uniqueness
+        item_tuple = tuple(item)
+        seen.add(item_tuple)
+    return tuple(seen)
+
 
 
 class Surface:
@@ -150,6 +158,7 @@ class Surface:
             value = tuple(value)
         except ValueError:
             raise TypeError(f"Vertices of surface {self.name} are not a tuple: {value}")
+        value = delete_duplicates(value)
         if len(value) < 3:  # Not a plane - no area
             raise SurfaceWrongNumberOfVertices(
                 f"Surface {self.name}. Number of vertices lower than 3: {value}"
@@ -410,6 +419,7 @@ class Surface:
                 self._sky_view_factor = (1 + np.cos(np.radians(self._height_round))) / 2
             else:
                 self._height_round = 0  # Only to avoid errors
+                self._sky_view_factor=1 # Also to avoid errors                
         y = np.arange(-180 - delta_a, 180 + 2 * delta_a, 2 * delta_a)
         for n in range(len(y) - 1):
             if self._azimuth >= y[n] and self._azimuth < y[n + 1]:

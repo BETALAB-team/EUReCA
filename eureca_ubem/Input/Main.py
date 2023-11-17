@@ -19,7 +19,7 @@ weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
-#
+
 city_geojson = City(
     city_model=city_model_file,
     epw_weather_file=weather_file,
@@ -31,6 +31,7 @@ city_geojson = City(
 )
 city_geojson.loads_calculation(region="Veneto")
 city_geojson.simulate(print_single_building_results=True)
+
 #
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
@@ -42,7 +43,9 @@ city_geojson.simulate(print_single_building_results=True)
 #     epw_weather_file=weather_file,
 #     end_uses_types_file=schedules_file,
 #     envelope_types_file=materials_file,
+
 #     output_folder=os.path.join(".","belzoni_new_hvac_DHW_calc")
+
 # )
 # print(f"Belzoni creation : {(tm.time() - start)/60:.2f} min")
 # start = tm.time()
