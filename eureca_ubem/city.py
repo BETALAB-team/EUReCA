@@ -680,21 +680,24 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         qqqq=qqq*(qqq-1)/2
         iiii=0
         jjjj=0
-        polygons_in_here = [obj._vertices for obj in self.__city_surfaces]
-        plg_kdtree=build_kdtree(polygons_in_here)
+        list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
+        plg_kdtree=cKDTree(list_of_centroids)
         for x in range(len(self.__city_surfaces)):
             jjjj=jjjj+1
-            print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
-            polygon_in_qstn=polygons_in_here[x]
-            check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
-            solar_check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
+            # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
+            # polygon_in_qstn=polygons_in_here[x]
+            
+            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=500)
+            
+            # check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
+            # solar_check_indices=find_closest_polygon_indices(polygon_in_qstn, polygons_in_here, plg_kdtree)
             # for y in range(x + 1,len(self.__city_surfaces)):
             iiiii=0
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
-            for y in check_indices:
+            for y in filtered_indices:
                 iiii=iiii+1
                 iiiii=iiiii+1
                 # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
@@ -814,7 +817,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
                         iiii=iiii+1
                         iiiii=iiiii+1
-                        print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
+                        # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
                         surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]
