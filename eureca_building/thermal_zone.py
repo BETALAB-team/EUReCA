@@ -1748,38 +1748,54 @@ Thermal zone {self.name} 2C params:
             "Zone design cooling load [kW]": self.design_sensible_cooling_system_power/1000,
         }
 
-    def print_modelica_class(self, output_folder):
+    def print_modelica_class_with_output_csv(self, output_folder):
         self.modelica_schedules = pd.DataFrame({
-            "time index": np.arange(CONFIG.start_time_step*CONFIG.time_step, CONFIG.final_time_step*CONFIG.time_step, CONFIG.time_step),
+            "time index": np.arange(CONFIG.start_time_step * CONFIG.time_step,
+                                    CONFIG.final_time_step * CONFIG.time_step, CONFIG.time_step),
 
-            "IHG Latent mass flow rate [kg_vap/s]":self.latent_load,
-            "IHG 1C air node load [W]":self.phi_ia,
-            "IHG 1C surface node load [W]":self.phi_st,
-            "IHG 1C mass node load [W]":self.phi_m,
+            "IHG Latent mass flow rate [kg_vap/s]": self.latent_load[CONFIG.start_time_step: CONFIG.final_time_step],
+            "IHG 1C air node load [W]": self.phi_ia[CONFIG.start_time_step: CONFIG.final_time_step],
+            "IHG 1C surface node load [W]": self.phi_st[CONFIG.start_time_step: CONFIG.final_time_step],
+            "IHG 1C mass node load [W]": self.phi_m[CONFIG.start_time_step: CONFIG.final_time_step],
 
-            "Infiltration mass flow rate [kg/s]":self.infiltration_air_flow_rate,
+            "Infiltration mass flow rate [kg/s]": self.infiltration_air_flow_rate[CONFIG.start_time_step: CONFIG.final_time_step],
 
-            "Ventilation mass flow rate [kg/s]":self.air_handling_unit.air_flow_rate_kg_S,
-            "Ventilation supply temperature [degC]":self.air_handling_unit.supply_temperature.schedule,
-            "Ventilation supply humidity [kg_vap/kg]":self.air_handling_unit.supply_specific_humidity.schedule,
+            "Ventilation mass flow rate [kg/s]": self.air_handling_unit.air_flow_rate_kg_S[CONFIG.start_time_step: CONFIG.final_time_step],
+            "Ventilation supply temperature [degC]": self.air_handling_unit.supply_temperature.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
+            "Ventilation supply humidity [kg_vap/kg]": self.air_handling_unit.supply_specific_humidity.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
 
-            "Zone temperature heating setpoint [degC]":self._temperature_setpoint.schedule_lower.schedule,
-            "Zone temperature cooling setpoint [degC]":self._temperature_setpoint.schedule_upper.schedule,
-            "Zone humidification setpoint [-]": self._humidity_setpoint.schedule_lower.schedule,
-            "Zone dehumidification setpoint [-]": self._humidity_setpoint.schedule_upper.schedule,
+            "Zone temperature heating setpoint [K]": self._temperature_setpoint.schedule_lower.schedule[CONFIG.start_time_step: CONFIG.final_time_step] + 273.15,
+            "Zone temperature cooling setpoint [K]": self._temperature_setpoint.schedule_upper.schedule[CONFIG.start_time_step: CONFIG.final_time_step] + 273.15,
+            "Zone humidification setpoint [-]": self._humidity_setpoint.schedule_lower.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
+            "Zone dehumidification setpoint [-]": self._humidity_setpoint.schedule_upper.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
         })
-        string = np.array2string(self.modelica_schedules.values[:,:], formatter={'float_kind': lambda x: "%.2E" % x},
-                        separator=",", threshold = 1E10, max_line_width = 10000).replace("],\n [", ";\n").replace("[[","[").replace("]]","]")
-        name_class = f'Classe_{self.name.replace(" ","_")}'
-        with open(os.path.join(output_folder,f'modello_{self.name.replace(" ","_")}.mo'), "w") as file:
+
+
+        intestazione = f"#1\ndouble tab1({len(self.modelica_schedules.index)},{len(self.modelica_schedules.columns)})    # " + ", ".join(self.modelica_schedules.columns)
+        # with open(os.path.join(output_folder, f'data_{self.name.replace(" ", "_")}.txt'), "w") as file:
+        #     file.write(intestazione)
+        np.savetxt(os.path.join(output_folder, f'data_{self.name.replace(" ", "_")}.txt'),
+                   self.modelica_schedules.values,
+                   delimiter = "\t",
+                   newline='\n',
+                   fmt = ["%.0f","%.2E","%.2E","%.2E","%.2E","%.2E",
+                          "%.2E","%.2E","%.2E","%.2E","%.2E","%.2E",
+                          "%.2E"],
+                   header = intestazione,
+                   comments='',)
+
+        name_class = f'Classe_{self.name.replace(" ", "_")}'
+        with open(os.path.join(output_folder, f'modello_{self.name.replace(" ", "_")}.mo'), "w") as file:
             file.write(
                 f"""
 model {name_class}
 Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
-tableOnFile = false, 
+tableOnFile = true, 
 smoothness = Modelica.Blocks.Types.Smoothness.ConstantSegments, 
-table = {string}) annotation(Placement(transformation(origin = {{-60, 76}}, extent = {{{{-10, -10}}, {{10, 10}}}})));
+tableName = "tab1", fileName = "{output_folder.replace(os.sep,"/") + "/data_Zone_1.txt"}", timeScale = 1, columns = {{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}}) annotation(
+    Placement(transformation(origin = {{-74, 78}}, extent = {{{{-10, -10}}, {{10, 10}}}})));
 equation
+
 annotation(
     experiment(StartTime = {CONFIG.start_time_step*CONFIG.time_step}, StopTime = {CONFIG.final_time_step*CONFIG.time_step}, Interval = {CONFIG.time_step}, Tolerance = 1e-6));
 end {name_class};

@@ -355,13 +355,13 @@ for i in range(1):
 
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
-    bd = Building("Bd 1", thermal_zones_list=[tz1], model="2C")
+    bd = Building("Bd 1", thermal_zones_list=[tz1], model="1C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
                        "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
-    tz1.print_modelica_class("C:\\Users\\pratenr82256\\Desktop\\ModelicaEUReCA\\ClassiDaEUReCA")
+    tz1.print_modelica_class_with_output_csv("C:\\Users\\pratenr82256\\Desktop\\ModelicaEUReCA\\ClassiDaEUReCA")
 
     start = time.time()
 
-    # df_res = bd.simulate(weather_file, output_folder="Results")
+    df_res = bd.simulate(weather_file, output_folder="Results")
     print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
