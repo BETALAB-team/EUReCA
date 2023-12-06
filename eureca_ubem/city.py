@@ -249,12 +249,6 @@ class City():
                 number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
             )
 
-            {
-            "1C":thermal_zone._ISO13790_params,
-            "2C":thermal_zone._VDI6007_params,
-            }[self.building_model]()
-
-
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
             self.buildings_objects[bd_key] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone], model=self.building_model)
@@ -275,6 +269,14 @@ class City():
 
 
         self.geometric_preprocessing()
+
+        for bd_k, bd in self.buildings_objects.items():
+            thermal_zone = bd._thermal_zones_list[0]
+            {
+                "1C": thermal_zone._ISO13790_params,
+                "2C": thermal_zone._VDI6007_params,
+            }[self.building_model]()
+
         # with open(os.path.join("output_geojson.geojson"), 'w') as outfile:
         #     json.dump(self.output_geojson, outfile)
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
@@ -290,6 +292,8 @@ class City():
         '''
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        if "Simulate" not in self.cityjson.columns:
+            self.cityjson["Simulate"] = True
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -303,7 +307,6 @@ class City():
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"]) + "_" + str(i[1])
-            envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
             g = self.cityjson.loc[i].geometry
             counter_for_sub_parts = 0
             # for g in building_parts:
@@ -362,6 +365,8 @@ class City():
             surf_counter = 0
             footprint_area = 0.
             surfaces_list = []
+            if bd_data["Simulate"]:
+                envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
             for vertices in build_surf:
                 surface = Surface(
                         name = f"Bd {name}: surface {surf_counter}",
@@ -379,13 +384,14 @@ class City():
                 if surface.surface_type == "ExtWall":
                     surface._wwr = 0.125
 
-                surface.construction = {
-                    "ExtWall": envelope.external_wall,
-                    "Roof": envelope.roof,
-                    "GroundFloor": envelope.ground_floor,
-                }[surface.surface_type]
+                if bd_data["Simulate"]:
+                    surface.construction = {
+                        "ExtWall": envelope.external_wall,
+                        "Roof": envelope.roof,
+                        "GroundFloor": envelope.ground_floor,
+                    }[surface.surface_type]
 
-                surface.window = envelope.window
+                    surface.window = envelope.window
 
                 surfaces_list.append(surface)
                 surf_counter += 1
@@ -393,58 +399,61 @@ class City():
                 if surface.surface_type == "GroundFloor":
                     footprint_area += surface._area
 
-            # Add internal walls and ceilings 3.3 m height
-            n_floors = int(self.cityjson.loc[i]['Floors'])
-            floor_height = self.cityjson.loc[i]['Height'] / n_floors
-            surf_counter = 0
-            for i in range(1, n_floors):
-                surfaces_list.append(SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter}",
-                    area=footprint_area,
-                    surface_type="IntCeiling",
-                    construction=envelope.interior_ceiling
-                ))
+            if bd_data["Simulate"]:
+                # Add internal walls and ceilings 3.3 m height
+                n_floors = int(self.cityjson.loc[i]['Floors'])
+                floor_height = self.cityjson.loc[i]['Height'] / n_floors
+                surf_counter = 0
+                for i in range(1, n_floors):
+                    surfaces_list.append(SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter}",
+                        area=footprint_area,
+                        surface_type="IntCeiling",
+                        construction=envelope.interior_ceiling
+                    ))
 
-                surfaces_list.append(SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter + 1}",
-                    area=footprint_area,
-                    surface_type="IntFloor",
-                    construction=envelope.interior_floor
-                ))
+                    surfaces_list.append(SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter + 1}",
+                        area=footprint_area,
+                        surface_type="IntFloor",
+                        construction=envelope.interior_floor
+                    ))
 
-                surf_counter += 2
+                    surf_counter += 2
 
-            surfaces_list.append(
-                SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter}",
-                    area=footprint_area * n_floors * 2.5,
-                    surface_type="IntWall",
-                    construction=envelope.interior_wall
+                surfaces_list.append(
+                    SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter}",
+                        area=footprint_area * n_floors * 2.5,
+                        surface_type="IntWall",
+                        construction=envelope.interior_wall
+                    )
                 )
-            )
 
-            n_units = int(np.around(footprint_area * n_floors / 77.))
-            if n_units == 0: n_units = 1
+                n_units = int(np.around(footprint_area * n_floors / 77.))
+                if n_units == 0: n_units = 1
 
-            thermal_zone = ThermalZone(
-                name=f"Bd {name} thermal zone",
-                surface_list=surfaces_list,
-                net_floor_area=footprint_area * n_floors,
-                volume=footprint_area * n_floors * floor_height,
-                number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
-            )
+                thermal_zone = ThermalZone(
+                    name=f"Bd {name} thermal zone",
+                    surface_list=surfaces_list,
+                    net_floor_area=footprint_area * n_floors,
+                    volume=footprint_area * n_floors * floor_height,
+                    number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
+                )
 
-            {
-                    "1C": thermal_zone._ISO13790_params,
-                    "2C": thermal_zone._VDI6007_params,
-            }[self.building_model]()
-
-            self.buildings_info[id] = bd_data
-            self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
-                                                          model=self.building_model)
+                self.buildings_info[id] = bd_data
+                self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
+                                                              model=self.building_model)
 
         # Geometric preprocessing
         self.geometric_preprocessing()
+
+        for bd_k, bd in self.buildings_objects.items():
+            thermal_zone = bd._thermal_zones_list[0]
+            {
+                "1C": thermal_zone._ISO13790_params,
+                "2C": thermal_zone._VDI6007_params,
+            }[self.building_model]()
 
     def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
@@ -651,12 +660,13 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         # jjjj=0
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
+        max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
         for x in range(len(self.__city_surfaces)):
             # jjjj=jjjj+1
             # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
            
             # Function to filter using scipy the nearest points (centroids)
-            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=500)
+            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
             
             # iiiii=0
             try:
