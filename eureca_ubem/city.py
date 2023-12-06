@@ -327,7 +327,7 @@ class City():
                 build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
                                     tuple(coords[n]+[z_soff]),\
                                     tuple(coords[n]+[z_pav]),\
-                                    tuple(coords[n-1]+[z_pav])]))\
+                                    tuple(coords[n-1]+[z_pav])]))
 
             list_of_int_rings = []
             area_of_int_rings = []

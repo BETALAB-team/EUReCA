@@ -36,12 +36,21 @@ from eureca_building._geometry_auxiliary_functions import (
 
 # %% Surface class
 def delete_duplicates(lst):
-    seen = set()
-    for item in lst:
-        # Convert the inner list to a tuple before checking for uniqueness
-        item_tuple = tuple(item)
-        seen.add(item_tuple)
-    return tuple(seen)
+
+    # initialize a null list
+    unique_list = []
+
+    # traverse for all elements
+    for x in lst:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    # seen = set()
+    # for item in lst:
+    #     # Convert the inner list to a tuple before checking for uniqueness
+    #     item_tuple = tuple(item)
+    #     seen.add(item_tuple)
+    return unique_list
 
 
 
@@ -154,11 +163,11 @@ class Surface:
 
     @_vertices.setter
     def _vertices(self, value: tuple):
+        value = delete_duplicates(value)
         try:
             value = tuple(value)
         except ValueError:
             raise TypeError(f"Vertices of surface {self.name} are not a tuple: {value}")
-        value = delete_duplicates(value)
         if len(value) < 3:  # Not a plane - no area
             raise SurfaceWrongNumberOfVertices(
                 f"Surface {self.name}. Number of vertices lower than 3: {value}"
@@ -180,10 +189,10 @@ class Surface:
                 raise ValueError(
                     f"Surface {self.name}. One vertex contains non float values: {vtx}"
                 )
-            # Check coplanarity
+        # Check coplanarity
 
-            if not check_complanarity(value):
-                raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
+        if not check_complanarity(value):
+            raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
         self.__vertices = value
 
     @property
@@ -607,7 +616,7 @@ Name: {self.name}
     Azimuth: {self._azimuth:.2f}
     Height: {self._height:.2f}
     U value: {self.construction._u_value:.2f}
-    Area: {self._area} ({self._wwr:.1%} glazed)
+    Area: {self._area:.1f} ({self._wwr:.1%} glazed)
 """
 
 # %%---------------------------------------------------------------------------------------------------
