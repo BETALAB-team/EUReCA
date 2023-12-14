@@ -247,7 +247,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ latent load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU pre heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU post heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU electric consumption [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU electric load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
@@ -278,7 +278,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['TZ AHU pre heater load [W]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
             results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
-            results['TZ AHU electric consumption [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
+            results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
                                                                       self._thermal_zones_list]
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
@@ -286,7 +286,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
-            results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric consumption [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
+            results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
 
         # Saving results
 
