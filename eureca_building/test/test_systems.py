@@ -11,7 +11,7 @@ __maintainer__ = "Enrico Prataviera"
 import os
 from eureca_building.config import load_config
 
-config_path = os.path.join('.', 'eureca_building', 'test', 'config.ini')
+config_path = os.path.join('.', 'eureca_building', 'test', 'config.json')
 load_config(config_path)
 from eureca_building.config import CONFIG
 import pytest
@@ -59,7 +59,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         heating_system = hvac_heating_systems_classes["TraditionalBoiler"]()
         for pw in range(1,500000,10000):
@@ -74,7 +74,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         heating_system = hvac_heating_systems_classes["CondensingBoiler"]()
         for pw in range(1,500000,10000):
@@ -88,7 +88,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         cooling_system = hvac_cooling_systems_classes["SplitAirCooler"]()
         for pw in range(-1,-500000,-10000):
@@ -102,7 +102,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         cooling_system = hvac_cooling_systems_classes["SplitAirConditioner"]()
         for pw in range(-1,-500000,-10000):
@@ -116,7 +116,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         cooling_system = hvac_cooling_systems_classes["ChillerAirtoWater"]()
         for pw in range(-1,-500000,-10000):
@@ -130,7 +130,7 @@ class TestSystem:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        weather = WeatherFile(path, time_steps=4)
+        weather = WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
         relevant_hvac = [x for x in hvac_heating_systems_classes.keys() if x not in [
             "IdealLoad",

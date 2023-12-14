@@ -17,7 +17,7 @@ import numpy as np
 # Loads a global config object
 from eureca_building.config import load_config
 
-config_path = os.path.join('.', 'eureca_building', 'test', 'config.ini')
+config_path = os.path.join('.', 'eureca_building', 'test', 'config.json')
 load_config(config_path)
 from eureca_building.config import CONFIG
 
@@ -213,8 +213,8 @@ class TestSurface:
     """
 
     def test_creation_of_surface_zero(self):
-        surf = Surface("Surface 1")
-        print(surf._vertices)
+        with pytest.raises(SurfaceWrongNumberOfVertices):
+            surf = Surface("Surface 1")
 
     def test_creation_of_surface(self):
         surf = Surface("Surface 1", vertices=((0, 0, 0), (0, 1, 1), (0, 1, 2),))
