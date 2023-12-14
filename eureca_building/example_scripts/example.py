@@ -8,11 +8,12 @@ __license__ = "MIT"
 __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
+import copy
 import os
 import time
 
-
 import matplotlib
+
 matplotlib.use('TkAgg')
 matplotlib.interactive(True)
 import matplotlib.pyplot as plt
@@ -36,12 +37,13 @@ from eureca_building.surface import Surface, SurfaceInternalMass
 from eureca_building.internal_load import People, Lights, ElectricLoad
 from eureca_building.ventilation import Infiltration, MechanicalVentilation
 from eureca_building.thermal_zone import ThermalZone
-from eureca_building.air_handling_unit import AirHandlingUnit
+from eureca_building.air_handling_unit import AirHandlingUnit, HeatRecoveryUnit
 from eureca_building.schedule import Schedule
 from eureca_building.construction_dataset import ConstructionDataset
 from eureca_building.construction import Construction
 from eureca_building.setpoints import SetpointDualBand
 from eureca_building.building import Building
+from eureca_building.domestic_hot_water import DomesticHotWater
 
 #########################################################
 # Epw loading
@@ -57,16 +59,17 @@ path = os.path.join(
     "materials_and_construction_test.xlsx",
 )
 # Define some constructions
+
 dataset = ConstructionDataset.read_excel(path)
 roof_cs = dataset.constructions_dict[13]
 ceiling_cs = dataset.constructions_dict[17]
 floor_cs = dataset.constructions_dict[16]
-ext_wall_cs = dataset.constructions_dict[14]
-int_wall_cs = dataset.constructions_dict[18]
+ext_wall_cs = dataset.constructions_dict[70]
+int_wall_cs = dataset.constructions_dict[70]
 window_cs = dataset.windows_dict[2]
 mat_cs = dataset.materials_dict[1]
 
-ext_wall_from_U = Construction.from_U_value("ExtWall from U", 0.7,weight_class="Medium", construction_type="ExtWall")
+ext_wall_from_U = Construction.from_U_value("ExtWall from U", 0.7, weight_class="Medium", construction_type="ExtWall")
 #########################################################
 
 # Definition of surfaces
@@ -118,7 +121,7 @@ roof = Surface(
 )
 intwall = SurfaceInternalMass(
     "IntWall",
-    area=floor._area*2.5*2,
+    area=floor._area * 2.5 * 2,
     surface_type="IntWall",
     construction=int_wall_cs,
 )
@@ -132,12 +135,14 @@ intceiling = SurfaceInternalMass(
 #########################################################
 # Loads
 
+ts_h = CONFIG.ts_per_hour
+delay_ts = 8760 * ts_h + 1 - ts_h
 
 # A schedule
 people_sched = Schedule(
     "PeopleOccupancy1",
     "percent",
-    np.array(([0.1] * 7 * 2 + [0.6] * 2 * 2 + [0.4] * 5 * 2 + [0.6] * 10 * 2) * 365)[:-1],
+    np.array(([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 # Loads
@@ -172,44 +177,44 @@ pc = ElectricLoad(
 #########################################################
 # Setpoints
 heat_t = Schedule.from_daily_schedule(
-    name = "t_heat",
+    name="t_heat",
     schedule_type="temperature",
-    schedule_week_day=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2),
-    schedule_saturday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) -5,
-    schedule_sunday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) - 10,
-    schedule_holiday=np.array([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) * 0,
-    holidays = (10,11,12,13,14),
-    starting_day = 3,
+    schedule_week_day=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
+    schedule_saturday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) - 5,
+    schedule_sunday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) - 10,
+    schedule_holiday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 0,
+    holidays=(10, 11, 12, 13, 14),
+    starting_day=3,
 )
 
 heat_t = Schedule.from_constant_value(
-    name = "t_heat",
+    name="t_heat",
     schedule_type="temperature",
-    value = 15.
+    value=15.
 )
 
 heat_t = Schedule(
     "t_heat",
     "temperature",
-    np.array(([18] * 7 * 2 + [21] * 2 * 2 + [18] * 5 * 2 + [21] * 10 * 2) * 365)[:-1],
+    np.array(([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_t = Schedule(
     "t_cool",
     "temperature",
-    np.array(([28] * 8 * 2 + [26] * 2 * 2 + [28] * 4 * 2 + [26] * 10 * 2) * 365)[:-1],
+    np.array(([28] * 8 * ts_h + [26] * 2 * ts_h + [28] * 4 * ts_h + [26] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 heat_h = Schedule(
     "h_heat",
     "dimensionless",
-    np.array(([0.1] * 7 * 2 + [0.3] * 2 * 2 + [.1] * 5 * 2 + [.3] * 10 * 2) * 365)[:-1],
+    np.array(([0.1] * 7 * ts_h + [0.3] * 2 * ts_h + [.1] * 5 * ts_h + [.3] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_h = Schedule(
     "h_cool",
     "dimensionless",
-    np.array(([.9] * 8 * 2 + [.5] * 2 * 2 + [.9] * 4 * 2 + [.5] * 10 * 2) * 365)[:-1],
+    np.array(([.9] * 8 * ts_h + [.5] * 2 * ts_h + [.9] * 4 * ts_h + [.5] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 t_sp = SetpointDualBand(
@@ -230,7 +235,7 @@ h_sp = SetpointDualBand(
 infiltration_sched = Schedule(
     "inf_sched",
     "dimensionless",
-    np.array(([.3] * 8 * 2 + [.5] * 2 * 2 + [.3] * 4 * 2 + [.5] * 10 * 2) * 365)[:-1],
+    np.array(([.3] * 8 * ts_h + [.5] * 2 * ts_h + [.3] * 4 * ts_h + [.5] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 inf_obj = Infiltration(
@@ -240,13 +245,12 @@ inf_obj = Infiltration(
     schedule=infiltration_sched,
 )
 
-
 #########################################################
 # Mechanical ventilation
 vent_sched = Schedule(
     "vent_sched",
     "dimensionless",
-    np.array(([.0] * 8 * 2 + [1] * 2 * 2 + [0] * 4 * 2 + [1] * 10 * 2) * 365)[:-1],
+    np.array(([.0] * 8 * ts_h + [1] * 2 * ts_h + [0] * 4 * ts_h + [1] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 vent_obj = MechanicalVentilation(
@@ -259,38 +263,56 @@ vent_obj = MechanicalVentilation(
 T_supply_sched = Schedule(
     "T_supply_sched",
     "temperature",
-    np.array(([23.] * 8 * 2 + [23.] * 2 * 2 + [23.] * 4 * 2 + [23.] * 10 * 2) * 365)[:-1],
+    np.array(([23.] * 8 * ts_h + [23.] * 2 * ts_h + [23.] * 4 * ts_h + [23.] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 x_supply_sched = Schedule(
     "x_supply_sched",
     "dimensionless",
-    np.array(([0.0101] * 8 * 2 + [0.0101] * 2 * 2 + [0.0101] * 4 * 2 + [0.0101] * 10 * 2) * 365)[:-1]*0.7,
+    np.array(([0.0101] * 8 * ts_h + [0.0101] * 2 * ts_h + [0.0101] * 4 * ts_h + [0.0101] * 10 * ts_h) * 365)[
+    :delay_ts] * 0.7,
 )
 
-availability_sched = np.array(([0] * 8 * 2 + [1] * 2 * 2 + [0] * 4 * 2 + [1] * 10 * 2) * 365)[:-1]
-availability_sched[120*24*2:273*24*2] = -1*availability_sched[120*24*2:273*24*2]
+availability_sched = np.array(([0] * 8 * ts_h + [1] * 2 * ts_h + [0] * 4 * ts_h + [1] * 10 * ts_h) * 365)[:delay_ts]
+availability_sched[120 * 24 * ts_h:273 * 24 * ts_h] = -1 * availability_sched[120 * 24 * ts_h:273 * 24 * ts_h]
 ahu_availability_sched = Schedule(
     "ahu_availability_sched",
     "availability",
     availability_sched,
 )
 
+# DHW
 
+dhw_flow_rate = Schedule(
+    "dhw_flow_rate",
+    "mass_flow_rate",
+    np.array(([.0] * 12 * ts_h + [.05] * 12 * ts_h ) * 365)[:delay_ts] * 0,
+)
+
+dhw_1 = DomesticHotWater(
+    "dhw_1",
+    calculation_method="Schedule",
+    unit="L/(m2 h)",
+    schedule=dhw_flow_rate,
+
+)
+
+dhw_2 = DomesticHotWater(
+    "dhw_2",
+    calculation_method="UNI-TS 11300-2",
+)
 
 #########################################################
 
 zones = []
 
 for i in range(1):
-    print(i)
-
     # Create zone
     tz1 = ThermalZone(
         name="Zone 1",
         surface_list=[wall_south, wall_east, wall_north, wall_west, roof, floor, intwall, intceiling],
-        net_floor_area=floor._area*2,
-        volume=floor._area*3.3*2)
+        net_floor_area=floor._area * 2,
+        volume=floor._area * 3.3 * 2)
 
     zones.append(tz1)
     tz1._ISO13790_params()
@@ -300,7 +322,7 @@ for i in range(1):
     tz1.add_internal_load(lights, pc)
 
     # IHG preprocessing
-    tz_loads = tz1.extract_convective_radiative_latent_load()
+    tz_loads = tz1.extract_convective_radiative_latent_electric_load()
     tz1.calculate_zone_loads_ISO13790(weather_file)
     # tz1._plot_ISO13790_IHG()
 
@@ -315,26 +337,113 @@ for i in range(1):
     tz1.add_infiltration(inf_obj)
     tz_inf = tz1.calc_infiltration(weather_file)
 
-    ahu = AirHandlingUnit(
-    "ahu",
-    vent_obj,
-    T_supply_sched,
-    x_supply_sched,
-    ahu_availability_sched,
-    True,
-    0.5,
-    0.5,
-    0.9,
-    weather_file,
-    tz1,
-)
+    tz2 = copy.deepcopy(tz1)
 
-    cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model = "1C")
+    ahu = AirHandlingUnit(
+        "ahu",
+        vent_obj,
+        T_supply_sched,
+        x_supply_sched,
+        ahu_availability_sched,
+        True,
+        0.5,
+        0.5,
+        0.9,
+        weather_file,
+        tz1,
+    )
+
+
+    cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model="1C")
     heating_peak_load = tz1.design_heating_load(-5.)
 
-    bd = Building("Bd 1", thermal_zones_list=[tz1], model = "1C")
-    start = time.time()
-    bd.set_hvac_system("CondensingBoiler", "SplitAirConditioner")
+    lim = 0, 8760*2 - 1
+    tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+
+    bd = Building("Bd 1", thermal_zones_list=[tz1], model="2C")
+    bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
+                       "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
-    df_res = bd.simulate(weather_file, output_folder="Results")
+    start = time.time()
+    df_res = bd.simulate(weather_file, output_folder="Results", t_start=lim[0], t_stop=lim[1])
     print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
+    # tz1.solve_quasisteadystate_method(weather_file)
+    print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
+
+    hru = HeatRecoveryUnit(
+        "ahu",
+        vent_obj,
+        0.5,
+        0.5,
+        weather_file,
+        tz2,
+    )
+
+    cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model="1C")
+    heating_peak_load = tz2.design_heating_load(-5.)
+
+    lim = 0, 8760*2 - 1
+    tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+
+    bd = Building("Bd 1", thermal_zones_list=[tz2], model="2C")
+    bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
+                       "A-W chiller, Centralized, Radiant surface")
+    bd.set_hvac_system_capacity(weather_file)
+    start = time.time()
+    df_res_2 = bd.simulate(weather_file, output_folder="Results", t_start=lim[0], t_stop=lim[1])
+    print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
+    # tz1.solve_quasisteadystate_method(weather_file)
+    print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
+
+import matplotlib.pyplot as plt
+
+fig, [ax1,ax2, ax3] = plt.subplots(nrows = 3, figsize =(15,10))
+
+df_res = df_res.droplevel(axis = 1, level = 1)
+
+df_res['Heating system gas consumption [Nm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
+df_res[['Heating system electric consumption [Wh]',
+       'Cooling system electric consumption [Wh]',
+       'Appliances electric consumption [Wh]', ]].plot(ax = ax1, legend = True)
+
+df_res[['TZ sensible load [W]',
+       'TZ latent load [W]', 'TZ AHU pre heater load [W]',
+       'TZ AHU post heater load [W]','TZ DHW demand [W]']].plot(ax = ax2, legend = True)
+
+df_res[['TZ Ta [°C]', 'TZ To [°C]' ]].plot(ax = ax3, legend = True)
+
+ax1.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+ax2.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+ax3.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+
+fig, [ax1,ax2, ax3] = plt.subplots(nrows = 3, figsize =(15,10))
+
+df_res_2 = df_res_2.droplevel(axis = 1, level = 1)
+
+df_res_2['Heating system gas consumption [Nm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
+df_res_2[['Heating system electric consumption [Wh]',
+       'Cooling system electric consumption [Wh]',
+       'Appliances electric consumption [Wh]', ]].plot(ax = ax1, legend = True)
+
+df_res_2[['TZ sensible load [W]',
+       'TZ latent load [W]', 'TZ AHU pre heater load [W]',
+       'TZ AHU post heater load [W]','TZ DHW demand [W]']].plot(ax = ax2, legend = True)
+
+df_res_2[['TZ Ta [°C]', 'TZ To [°C]' ]].plot(ax = ax3, legend = True)
+
+ax1.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+ax2.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+ax3.set_xlim(lim[0] - lim[0],lim[1] - lim[0])
+
+
+fig, [ax1,ax2, ax3] = plt.subplots(nrows = 3, figsize =(15,10))
+
+df_res['TZ sensible load [W]'].plot(ax = ax1, legend = True)
+df_res_2['TZ sensible load [W]'].plot(ax = ax1, legend = True)
+df_res['TZ Ta [°C]'].plot(ax = ax2, legend = True)
+df_res_2['TZ Ta [°C]'].plot(ax = ax2, legend = True)
+df_res['TZ AHU electric consumption [W]'].plot(ax = ax3, legend = True)
+df_res_2['TZ AHU electric consumption [W]'].plot(ax = ax3, legend = True)
+
+# ax1.set_xlim(350,700)
+# ax2.set_xlim(350,700)
