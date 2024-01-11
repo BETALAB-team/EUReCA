@@ -71,6 +71,49 @@ class Surface:
     
     _discharge_coefficient_nat_vent = 0.6
 
+    @classmethod
+    def from_area_azimuth_height(
+            cls,
+            name: str,
+            area: float,
+            height: float,
+            azimuth: float,
+            wwr=None,
+            subdivisions_solar_calc=None,
+            surface_type=None,
+            construction=None,
+            window=None,
+            n_window_layers: int = 1
+    ):
+        phi_x = np.deg2rad(height)
+        phi_z = np.deg2rad(-azimuth)
+
+        R_x = np.array([[1, 0, 0], [0, np.cos(phi_x), -np.sin(phi_x)], [0, np.sin(phi_x), np.cos(phi_x)]])
+        R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0], [np.sin(phi_z), np.cos(phi_z), 0], [0, 0, 1]])
+
+        resize_factor = 1
+        square_l = np.sqrt(area)
+        v = np.array([
+            [0, 0, 0],
+            [resize_factor * square_l, 0, 0],
+            [resize_factor * square_l, square_l / resize_factor, 0],
+            [0, square_l / resize_factor, 0],
+        ])
+
+        v_ = tuple(map(tuple, np.matmul(R_z, np.dot(R_x, v.T)).T))
+
+        s = cls(
+            name = name,
+            vertices=v_,
+            wwr = wwr,
+            subdivisions_solar_calc=subdivisions_solar_calc,
+            surface_type=surface_type,
+            construction=construction,
+            window=window,
+            n_window_layers = n_window_layers,
+        )
+        return s
+
     def __init__(
             self,
             name: str,
