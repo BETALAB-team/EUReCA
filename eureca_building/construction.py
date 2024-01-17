@@ -408,7 +408,7 @@ Construction: {self.name}
         For specific heat and density, the following assumptions are considered
 
         According to A.2.3 ISO 13786
-                Am [m²]	Cm [J/K]	k [J/(m² K)]	Depth penetration [m]	Spc heat [J/kg K]	rho [kg/m3]
+        Mass class  Am [m²]	Cm [J/K]	k [J/(m² K)]	Depth penetration [m]	Spc heat [J/kg K]	rho [kg/m3]
         Very light	2.5	80000		32000		    0.1			            1000			    453
         Light		2.5	110000		44000		    0.1			            1000			    622
         Medium		2.5	165000		66000		    0.1			            1000			    933
@@ -430,6 +430,7 @@ Construction: {self.name}
         ----------
         eureca_building.construction.Construction
             Construction object from these values
+
         """
 
         # Hypothesis 30 cm

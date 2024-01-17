@@ -24,6 +24,7 @@ from eureca_building.ventilation import NaturalVentilation, Infiltration
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_building.domestic_hot_water import DomesticHotWater
 from eureca_building.weather import WeatherFile
+from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.setpoints import Setpoint
 from eureca_building.exceptions import (
     Non3ComponentsVertex,
@@ -766,6 +767,11 @@ Thermal zone {self.name} 2C params:
         self.phi_st = (1 - self.Am / self.Atot - self.Htr_w / (9.1 * self.Atot)) * (phi_int['radiative [W]'] + phi_sol)
         self.phi_m = self.Am / self.Atot * (phi_int['radiative [W]'] + phi_sol)
 
+        # For quasi-steadystate
+        int_gain = phi_int['convective [W]'] + phi_int['radiative [W]']
+        self.monthly_int_gain = get_monthly_value_from_annual_vector(int_gain, method = 'integral') # [J]
+        self.monthly_sol_gain = get_monthly_value_from_annual_vector(phi_sol, method = 'integral') # [J]
+
     def calculate_zone_loads_VDI6007(self, weather):
         '''Calculates zone loads for the vdi 6007 standard
         Also the external equivalent temperature
@@ -937,8 +943,8 @@ Thermal zone {self.name} 2C params:
         sigma : list, default [0., 1.]
             list of 2 floats
             portion of the heating/cooling load to:
-                sigma[0]: radiant to surface
-                sigma[1]: convective to air node
+            sigma[0]: radiant to surface
+            sigma[1]: convective to air node
             sum must be 1
         T_set : float, default 20.
             time step setpoint temperature [°C]
@@ -950,12 +956,12 @@ Thermal zone {self.name} 2C params:
         numpy.array
             array with system load, air temperature, surfaces equivalent temperature and mass equivalent temperature
             e.g.
-                [
-                    demand [W],
-                    T_air [°C],
-                    T_s [°C],
-                    T_m [°C]
-                ]
+            [
+            demand [W],
+            T_air [°C],
+            T_s [°C],
+            T_m [°C]
+            ]
         '''
 
         # Check input data type
@@ -963,10 +969,10 @@ Thermal zone {self.name} 2C params:
         if flag != 'Tset' and flag != 'phiset':
             raise TypeError(
                 f"ERROR Thermal zone {self.name}, Sensible1C flag input is not a 'Tset' or 'phiset': flag {flag}")
-        if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
-            raise ValueError(
-                f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
-            )
+        # if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
+        #     raise ValueError(
+        #         f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
+        #     )
         # Set some data and build up the system
 
         phi_ia = phi_load[0]
@@ -978,7 +984,7 @@ Thermal zone {self.name} 2C params:
         rad_factor = sigma[0]
         conv_factor = sigma[1]
         Y = np.zeros((3, 3))
-        q = np.zeros((3))
+        q = np.zeros(3)
 
         if flag == 'Tset':
             Y[0, 0] = conv_factor
@@ -994,7 +1000,8 @@ Thermal zone {self.name} 2C params:
             q[1] = -self.Htr_is * T_set - phi_st - self.Htr_w * T_e
             q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
             x = np.linalg.inv(Y).dot(q)
-            return np.insert(x, 1, T_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([num for num in x[:1]] + [T_set] + [num for num in x[1:]]) # np.insert(x, 1, T_set)
 
         elif flag == 'phiset':
             Y[0, 0] = -(self.Htr_is + Hve_inf + Hve_vent) - self._air_thermal_capacity / tau
@@ -1010,7 +1017,8 @@ Thermal zone {self.name} 2C params:
             q[1] = -phi_st * rad_factor - self.Htr_w * T_e
             q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 0, phi_HC_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([phi_HC_set] + [num for num in y]) # np.insert(y, 0, phi_HC_set)
 
         else:
             raise ValueError(f'Energy system zone solution: flag must be "phiset" or "Tset", flag: {flag}')
@@ -1040,9 +1048,9 @@ Thermal zone {self.name} 2C params:
         sigma: list, default [0., 0., 1.]
             list of 3 floats
             portion of the heating cooling load to:
-                sigma[0]: radiant to non adiabatic
-                sigma[1]: radiant to adiabatic
-                sigma[2]: convective to air node
+            sigma[0]: radiant to non adiabatic
+            sigma[1]: radiant to adiabatic
+            sigma[2]: convective to air node
             The sum must be 1
         T_set : float, default 20.
             time step setpoint of considered thermal zone [°C]
@@ -1061,15 +1069,15 @@ Thermal zone {self.name} 2C params:
             theta_s_iw surface of IW building components [°C]
             theta_m_iw thermal mass of IW building components [°C]
             e.g.
-                [
-                    theta_m_aw [°C],
-                    theta_s_aw [°C],
-                    theta_lu_star [°C],
-                    theta_I_lu [°C],
-                    Q_hk_ges [W]
-                    theta_s_iw [°C],
-                    theta_m_iw [°C],
-                ]
+            [
+            theta_m_aw [°C],
+            theta_s_aw [°C],
+            theta_lu_star [°C],
+            theta_I_lu [°C],
+            Q_hk_ges [W]
+            theta_s_iw [°C],
+            theta_m_iw [°C],
+            ]
         """
 
         # Check input data type
@@ -1077,10 +1085,10 @@ Thermal zone {self.name} 2C params:
         if flag != 'Tset' and flag != 'phiset':
             raise TypeError(
                 f"ERROR Thermal zone {self.name}, Sensible2C flag input is not a 'Tset' or 'phiset': flag {flag}")
-        if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
-            raise ValueError(
-                f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
-            )
+        # if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
+        #     raise ValueError(
+        #         f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
+        #     )
         # % Resistances and capacitances of the 7R2C model
         R_lue_ve = 1e20 if Hve[0] == 0 else 1 / Hve[0]
         R_lue_inf = 1e20 if Hve[1] == 0 else 1 / Hve[1]
@@ -1127,7 +1135,7 @@ Thermal zone {self.name} 2C params:
 
             # VECTOR OF KNOWN VALUES
 
-            q = np.zeros([6, 1])
+            q = np.zeros(6)
 
             q[0] = -theta_A_eq / self.RrestAW - self.C1AW * self.Tm0[0] / tau
             q[1] = -Q_il_str_aw
@@ -1142,7 +1150,8 @@ Thermal zone {self.name} 2C params:
             # OUTPUT (UNKNOWN) VARIABLES OF THE LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 3, T_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([a for a in y[:3]] + [T_set] + [a for a in y[3:]]) # np.insert(y, 3, T_set)
 
         elif flag == 'phiset':
             # Note: the heat load in input is already distributed on the 3 nodes
@@ -1191,7 +1200,8 @@ Thermal zone {self.name} 2C params:
             # OUTPUT LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
-            return np.insert(y, 4, phi_HC_set)
+            # Seems to be more computationally efficient then np.insert
+            return np.array([num for num in y[:4]] + [phi_HC_set] + [num for num in y[4:]]) # np.insert(y, 4, phi_HC_set)
 
         else:
             raise ValueError(f'Energy system zone solution: flag must be "phiset" or "Tset", flag: {flag}')
@@ -1227,11 +1237,11 @@ Thermal zone {self.name} 2C params:
         tuple
             array with zone specific humidity [kg_v, kg_as], zone relative humidity [-], latent demand [W]
             e.g.
-                [
-                    zone specific humidity [kg_v, kg_as],
-                    zone relative humidity [-],
-                    latent demand [W],
-                ]
+            [
+            zone specific humidity [kg_v, kg_as],
+            zone relative humidity [-],
+            latent demand [W],
+            ]
 
         """
 
@@ -1551,6 +1561,112 @@ Thermal zone {self.name} 2C params:
         self.zone_air_spec_humidity = x_int
 
         return [air_temp,operative_temp,mean_radiant_temp], air_rel_humidity, self.Tm0, pot, lat_heat_flow
+
+    def solve_quasisteadystate_method(self, weather):
+        # TODO: Docstring
+
+        # This runs the ISO13790 methods to calculates envelope params and monthly int and sol heat gains
+        self._ISO13790_params()
+        self.calculate_zone_loads_ISO13790(weather)
+
+        # Calculation of the hours of heating cooling for each month
+        heating_timesteps = self._temperature_setpoint.schedule_lower.schedule > 17.
+        monthly_heating_timesteps = get_monthly_value_from_annual_vector(heating_timesteps, method = 'sum')
+        cooling_timesteps = self._temperature_setpoint.schedule_upper.schedule < 27.
+        monthly_cooling_timesteps = get_monthly_value_from_annual_vector(cooling_timesteps, method = 'sum')
+
+        # Calculation of average setpoints
+        h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
+        c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
+
+        # [J] = [W/K] * ([°C] - [°C]) * [-] * [s]
+        Q_h_tr_monthly = self.UA_tot * (h_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_heating_timesteps * CONFIG.time_step
+        # Q_h_tr_monthly[Q_h_tr_monthly < 0.] = 0.
+        Q_c_tr_monthly = self.UA_tot * (c_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_cooling_timesteps * CONFIG.time_step
+        # Q_c_tr_monthly[Q_c_tr_monthly > 0.] = 0. # For cooling negative values
+
+        # Infiltration
+        # [W/K] = [kg/s] * [J/kgK]
+        H_ve_inf = self.infiltration_air_flow_rate * air_properties['specific_heat']
+        Q_h_inf = H_ve_inf * (h_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
+        Q_c_inf = H_ve_inf * (c_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
+        Q_h_inf_monthly = get_monthly_value_from_annual_vector(Q_h_inf, method = 'integral') # [J]
+        Q_c_inf_monthly = get_monthly_value_from_annual_vector(Q_c_inf, method = 'integral') # [J]
+
+        # Effect of Mech Ventilation in zone
+        # [W/K] = [kg/s] * [J/kgK]
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * air_properties['specific_heat']
+        Q_h_ve = H_ve_mec * (h_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
+        Q_c_ve = H_ve_mec * (c_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
+        Q_h_ve_monthly = get_monthly_value_from_annual_vector(Q_h_ve, method = 'integral') # [J]
+        Q_c_ve_monthly = get_monthly_value_from_annual_vector(Q_c_ve, method = 'integral') # [J]
+
+        Q_h_ht = Q_h_tr_monthly + Q_h_inf_monthly + Q_h_ve_monthly
+        Q_c_ht = Q_c_tr_monthly + Q_c_inf_monthly + Q_c_ve_monthly
+
+        Q_h_gn = self.monthly_int_gain + self.monthly_sol_gain
+        Q_c_gn = Q_h_gn
+
+        # Eta calculation
+        # Heating
+        tau = self.Cm/3600/(self.UA_tot + np.max(H_ve_inf))
+        a_0 = 1.
+        tau_0 = 15.
+        a_h = a_0 + tau/tau_0
+        gamma_h = Q_h_gn/Q_h_ht
+        eta_h_gn = np.zeros(12)
+        eta_h_gn[gamma_h > 0.] = (1-gamma_h[gamma_h > 0.] ** a_h)/(1-gamma_h[gamma_h > 0.] ** (a_h+1))
+        eta_h_gn[gamma_h == 1.] = (a_h)/(a_h+1)
+        eta_h_gn[gamma_h <= 0.] = 1/gamma_h[gamma_h <= 0.]
+        # Cooling
+        a_c = a_0 + tau/tau_0
+        gamma_c = Q_c_gn / Q_c_ht
+        eta_c_is = np.zeros(12)
+        eta_c_is[gamma_c > 0.] = (1 - gamma_c[gamma_c > 0.] ** (-1*a_c)) / (1 - gamma_c[gamma_c > 0.] ** (-1*a_c - 1))
+        eta_c_is[gamma_c == 1.] = (a_c) / (a_c + 1)
+        eta_c_is[gamma_c <= 0.] = 1
+
+        # Final monthly calc
+        Q_h_sens = Q_h_ht - eta_h_gn * Q_h_gn
+        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht)
+        Q_h_sens[Q_h_sens<0.] = 0.
+        Q_c_sens[Q_c_sens>0.] = 0.
+
+
+        # Latent
+        humidifying_timesteps = self._humidity_setpoint.schedule_lower.schedule > 0.00725
+        lat_int = self.extract_convective_radiative_latent_electric_load()['latent [kg_vap/s]']
+        net_vapuor_in_zone_h = (self.infiltration_vapour_flow_rate + lat_int + self.air_handling_unit.air_flow_rate_kg_S * self.air_handling_unit.supply_specific_humidity.schedule) \
+                             - (self.air_handling_unit.air_flow_rate_kg_S + self.infiltration_vapour_flow_rate) * 0.00725
+        Q_hum_demand = -1 * net_vapuor_in_zone_h * vapour_properties['latent_heat']
+        Q_hum_demand[~humidifying_timesteps] = 0.
+        Q_hum_demand[Q_hum_demand < 0.] = 0.
+
+        dehumidifying_timesteps = self._humidity_setpoint.schedule_upper.schedule < 0.0105
+        lat_int = self.extract_convective_radiative_latent_electric_load()['latent [kg_vap/s]']
+        net_vapuor_in_zone_c = (
+                                           self.infiltration_vapour_flow_rate + lat_int + self.air_handling_unit.air_flow_rate_kg_S * self.air_handling_unit.supply_specific_humidity.schedule) \
+                               - (
+                                           self.air_handling_unit.air_flow_rate_kg_S + self.infiltration_vapour_flow_rate) * 0.0105
+        Q_dehum_demand = -1 * net_vapuor_in_zone_c * vapour_properties['latent_heat']
+        Q_dehum_demand[~dehumidifying_timesteps] = 0.
+        Q_dehum_demand[Q_dehum_demand > 0.] = 0.
+
+        Q_h_lat = get_monthly_value_from_annual_vector(Q_hum_demand, method = 'integral') # [J]
+        Q_c_lat = get_monthly_value_from_annual_vector(Q_dehum_demand, method = 'integral') # [J]
+
+        # Mechanical ventilation
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * air_properties['specific_heat']
+        Q_h_mec_sens = H_ve_mec * (self.air_handling_unit.supply_temperature.schedule - weather.hourly_data['out_air_db_temperature']) # [W]
+        Q_h_mec_sens = get_monthly_value_from_annual_vector(Q_h_mec_sens, method = 'integral') # [J]
+        H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * vapour_properties['latent_heat']
+        Q_h_mec_lat = H_ve_mec * (self.air_handling_unit.supply_specific_humidity.schedule - weather.hourly_data['out_air_specific_humidity']) # [W]
+        Q_h_mec_lat = get_monthly_value_from_annual_vector(Q_h_mec_lat, method = 'integral') # [J]
+
+        self.sensible_zone_demand_qss_method = (Q_h_sens + Q_c_sens)/3600000 # [kWh]
+        self.latent_zone_demand_qss_method = (Q_h_lat + Q_c_lat)/3600000 # [kWh]
+        self.sensible_AHU_demand_qss_method = (Q_h_mec_sens)/3600000 # [kWh]
+        self.latent_AHU_demand_qss_method = (Q_h_mec_lat)/3600000 # [kWh]
 
     def design_heating_load(self, t_ext_design):
         """Preliminary calculation to calculate the heating design temperature.

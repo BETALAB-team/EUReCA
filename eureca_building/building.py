@@ -210,7 +210,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                  t_start: int = CONFIG.start_time_step,
                  t_stop: int = CONFIG.final_time_step,
                  preprocessing_ts: int = 100 * CONFIG.ts_per_hour,
-                 output_folder: str = None
+                 output_folder: str = None,
+                 output_type: str = "csv",
                  ):
         """Simulate a period and i stores the outputs. Calls solve_timestep method
 
@@ -226,6 +227,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             number of preprocessing timesteps
         output_folder : str, default None
             if not None prints building results in the selected folder
+        output_type : str, default "csv"
+            parquet or csv as output file
 
         Returns
         ----------
@@ -263,23 +266,23 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
-            results['TZ Ta [°C]'][t,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
-            results['TZ To [°C]'][t,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
-            results['TZ Tmr [°C]'][t,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
-            results['TZ RH [-]'][t,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
+            results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
+            results['TZ To [°C]'][t - t_start,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
+            results['TZ Tmr [°C]'][t - t_start,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
+            results['TZ RH [-]'][t - t_start,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
 
-            results['TZ sensible load [W]'][t, :] = [tz.sensible_zone_load for tz in self._thermal_zones_list]
-            results['TZ latent load [W]'][t, :] = [tz.latent_zone_load for tz in self._thermal_zones_list]
+            results['TZ sensible load [W]'][t - t_start, :] = [tz.sensible_zone_load for tz in self._thermal_zones_list]
+            results['TZ latent load [W]'][t - t_start, :] = [tz.latent_zone_load for tz in self._thermal_zones_list]
 
-            results['TZ AHU pre heater load [W]'][t, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
-            results['TZ AHU post heater load [W]'][t, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
+            results['TZ AHU pre heater load [W]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
+            results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
 
 
-            results['Heating system gas consumption [Nm3]'][t,0] = self.heating_system.gas_consumption
-            results['Heating system oil consumption [L]'][t,0] = self.heating_system.oil_consumption
-            results['Heating system wood consumption [kg]'][t,0] = self.heating_system.wood_consumption
-            results['Heating system electric consumption [Wh]'][t,0] = self.heating_system.electric_consumption
-            results['Cooling system electric consumption [Wh]'][t,0] = self.cooling_system.electric_consumption
+            results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
+            results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
+            results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
 
         # Saving results
 
@@ -299,8 +302,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         if output_folder != None:
             if not os.path.isdir(output_folder):
                 os.mkdir(output_folder)
-            total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False)
-
+            if output_type == 'csv':
+                total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False, sep =";")
+            elif output_type == 'parquet':
+                total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
+            else:
+                raise KeyError(f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
         return total
 
     def get_geojson_feature_parser(self):

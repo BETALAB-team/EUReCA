@@ -35,6 +35,23 @@ from eureca_building._geometry_auxiliary_functions import (
 
 
 # %% Surface class
+def delete_duplicates(lst):
+
+    # initialize a null list
+    unique_list = []
+
+    # traverse for all elements
+    for x in lst:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    # seen = set()
+    # for item in lst:
+    #     # Convert the inner list to a tuple before checking for uniqueness
+    #     item_tuple = tuple(item)
+    #     seen.add(item_tuple)
+    return unique_list
+
 
 
 class Surface:
@@ -53,6 +70,49 @@ class Surface:
     __warning_height_subdivisions = False
     
     _discharge_coefficient_nat_vent = 0.6
+
+    @classmethod
+    def from_area_azimuth_height(
+            cls,
+            name: str,
+            area: float,
+            height: float,
+            azimuth: float,
+            wwr=None,
+            subdivisions_solar_calc=None,
+            surface_type=None,
+            construction=None,
+            window=None,
+            n_window_layers: int = 1
+    ):
+        phi_x = np.deg2rad(height)
+        phi_z = np.deg2rad(-azimuth)
+
+        R_x = np.array([[1, 0, 0], [0, np.cos(phi_x), -np.sin(phi_x)], [0, np.sin(phi_x), np.cos(phi_x)]])
+        R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0], [np.sin(phi_z), np.cos(phi_z), 0], [0, 0, 1]])
+
+        resize_factor = 1
+        square_l = np.sqrt(area)
+        v = np.array([
+            [0, 0, 0],
+            [resize_factor * square_l, 0, 0],
+            [resize_factor * square_l, square_l / resize_factor, 0],
+            [0, square_l / resize_factor, 0],
+        ])
+
+        v_ = tuple(map(tuple, np.matmul(R_z, np.dot(R_x, v.T)).T))
+
+        s = cls(
+            name = name,
+            vertices=v_,
+            wwr = wwr,
+            subdivisions_solar_calc=subdivisions_solar_calc,
+            surface_type=surface_type,
+            construction=construction,
+            window=window,
+            n_window_layers = n_window_layers,
+        )
+        return s
 
     def __init__(
             self,
@@ -81,10 +141,10 @@ class Surface:
             'height_subdivisions': 3,
             }
             keys:
-                azimuth_subdivisions : int, optional
-                    Number of azimuth discretization for radiation purposes. The default is 8.
-                height_subdivisions : int, optional
-                    Number of height discretization for radiation purposes. The default is 3.
+            azimuth_subdivisions : int, optional
+            Number of azimuth discretization for radiation purposes. The default is 8.
+            height_subdivisions : int, optional
+            Number of height discretization for radiation purposes. The default is 3.
         surface_type : str, default None
             Type of surface 'ExtWall' or 'GroundFloor' or 'Roof'.
             If not provided autocalculate.
@@ -146,6 +206,7 @@ class Surface:
 
     @_vertices.setter
     def _vertices(self, value: tuple):
+        value = delete_duplicates(value)
         try:
             value = tuple(value)
         except ValueError:
@@ -171,10 +232,10 @@ class Surface:
                 raise ValueError(
                     f"Surface {self.name}. One vertex contains non float values: {vtx}"
                 )
-            # Check coplanarity
+        # Check coplanarity
 
-            if not check_complanarity(value):
-                raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
+        if not check_complanarity(value):
+            raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
         self.__vertices = value
 
     @property
@@ -410,6 +471,7 @@ class Surface:
                 self._sky_view_factor = (1 + np.cos(np.radians(self._height_round))) / 2
             else:
                 self._height_round = 0  # Only to avoid errors
+                self._sky_view_factor=1 # Also to avoid errors                
         y = np.arange(-180 - delta_a, 180 + 2 * delta_a, 2 * delta_a)
         for n in range(len(y) - 1):
             if self._azimuth >= y[n] and self._azimuth < y[n + 1]:
@@ -589,6 +651,16 @@ class Surface:
         else:
             self._area = 0.0000001
         self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
+
+    def __str__(self):
+        return f"""
+Name: {self.name}
+    Type: {self.surface_type}
+    Azimuth: {self._azimuth:.2f}
+    Height: {self._height:.2f}
+    U value: {self.construction._u_value:.2f}
+    Area: {self._area:.1f} ({self._wwr:.1%} glazed)
+"""
 
 # %%---------------------------------------------------------------------------------------------------
 # %% SurfaceInternalMass class

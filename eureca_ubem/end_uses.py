@@ -47,7 +47,7 @@ def load_schedules(path):
     end_uses_sheet_dict = pd.read_excel(path,sheet_name=None,header=[0],index_col=[0], skiprows = 0)
     general_data = end_uses_sheet_dict["GeneralData"][['System Convective Fraction', 'AHU humidity control',
                                    'AHU sensible heat recovery', 'AHU latent heat recovery',
-                                   'Outdoor Air Ratio','DomesticHotWater calculation']]
+                                   'Outdoor Air Ratio','DomesticHotWater calculation','Appliances calculation']]
 
     holidays = [int(i) for i in list(end_uses_sheet_dict["GeneralData"]["Holidays from 0 to 364"].iloc[0].split(','))]
 
@@ -223,10 +223,11 @@ class EndUse:
         daily_df_from_excel : pandas.DataFrame
             DataFrame containing schedules from the end_use
         scalar_df_from_excel : pandas.DataFrame
-            This series includes some additional data about the archetype (from the GeneralInfo page in the spreadsheet)
-                                                                            (Sensible and
-                                                                           Latent AHU recovery,
-                                                                           Convective fraction of internal gains)
+            This series includes some additional data about the archetype
+            (from the GeneralInfo page in the spreadsheet)
+            (Sensible and
+            Latent AHU recovery,
+            Convective fraction of internal gains)
 
         Returns
         -------
@@ -277,6 +278,7 @@ class EndUse:
             scalar_data['latRec'] = float(scalar_df_from_excel.loc[name]['AHU latent heat recovery'])
             scalar_data['outdoorAirRatio'] = float(scalar_df_from_excel.loc[name]['Outdoor Air Ratio'])
             scalar_data['DomesticHotWater calculation'] = str(scalar_df_from_excel.loc[name]['DomesticHotWater calculation'])
+            scalar_data['Appliances calculation'] = str(scalar_df_from_excel.loc[name]['Appliances calculation'])
         except KeyError:
             raise KeyError(
                 f"ERROR Loading end use {name}. GeneralData does not have the correct columns names: ConvFrac, AHUHum, SensRec, LatRec, OutAirRatio")
@@ -290,6 +292,7 @@ class EndUse:
                                  LatRec  should be a float {scalar_df_from_excel.loc[name]['LatRec']}
                                  OutAirRatio   should be a float {scalar_df_from_excel.loc[name]['OutAirRatio']}
                                  DomesticHotWater calculation   should be a str {scalar_df_from_excel.loc[name]['DomesticHotWater calculation']}
+                                 Appliances calculation   should be a str {scalar_df_from_excel.loc[name]['Appliances calculation']}
                              """)
 
         # Check the quality of input data
@@ -301,6 +304,10 @@ class EndUse:
             logging.warning(f"WARNING Loading end use {name}. Latent recovery of the AHU outside boundary condition [0-1]: sensRec {scalar_data['latRec']}")
         if not 0. <= scalar_data['outdoorAirRatio'] <= 1.:
             logging.warning(f"WARNING Loading end use {name}. Outdoor air ratio of the AHU outside boundary condition [0-1]: outdoorAirRatio {scalar_data['outdoorAirRatio']}")
+        if scalar_data['DomesticHotWater calculation'] not in ["UNI-TS 11300-2", "Schedule", "DHW calc"]:
+            raise ValueError(f"End use {name}, DomesticHotWater calculation not allowed: {scalar_data['DomesticHotWater calculation']}. Allowed values: UNI-TS 11300-2, Schedule")
+        if scalar_data['Appliances calculation'] not in ["Italian Residential Building Stock", "Schedule"]:
+            raise ValueError(f"End use {name}, Appliances calculation not allowed: {scalar_data['Appliances calculation']}. Allowed values: Italian Residential Building Stock, Schedule")
 
         # Creating the end use object
 
@@ -552,6 +559,7 @@ class EndUse:
         )
 
         end_use_obj = cls(name)
+        end_use_obj.scalar_data = scalar_data
 
         end_use_obj.heat_gains['appliances'] = app # InternalLoad type
         end_use_obj.heat_gains['lighting'] = lights # InternalLoad type

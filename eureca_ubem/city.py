@@ -1,5 +1,5 @@
 '''IMPORTING MODULES'''
-
+import copy
 import math
 import os
 import json
@@ -10,6 +10,7 @@ import shapely
 import geopandas as gpd
 import numpy as np
 from cjio import cityjson
+from scipy.spatial import cKDTree
 
 from eureca_building.config import CONFIG
 from eureca_building.weather import WeatherFile
@@ -20,6 +21,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -130,7 +132,7 @@ class City():
             with open(json_path, 'r') as f:
                 self.cityjson = cityjson.CityJSON(file=f)
         except FileNotFoundError:
-            raise FileNotFoundError(f'ERROR Cityjson object not found: {p}. Give a proper path')
+            raise FileNotFoundError(f'ERROR Cityjson object not found: {json_path}. Give a proper path')
 
         if not(isinstance(self.cityjson.j['vertices'], list)):
             raise ValueError('json file vertices are not a list')
@@ -236,19 +238,16 @@ class City():
             )
 
             # Creation of thermal zone and building
+            n_units = int(np.around(footprint_area * n_floors / 77.))
+            if n_units == 0: n_units = 1
 
             thermal_zone = ThermalZone(
                 name=f"Bd {name} thermal zone",
                 surface_list=surfaces_list,
                 net_floor_area=footprint_area * n_floors,
-                volume=footprint_area * n_floors * floor_height
+                volume=footprint_area * n_floors * floor_height,
+                number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
             )
-
-            {
-            "1C":thermal_zone._ISO13790_params,
-            "2C":thermal_zone._VDI6007_params,
-            }[self.building_model]()
-
 
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
@@ -270,6 +269,14 @@ class City():
 
 
         self.geometric_preprocessing()
+
+        for bd_k, bd in self.buildings_objects.items():
+            thermal_zone = bd._thermal_zones_list[0]
+            {
+                "1C": thermal_zone._ISO13790_params,
+                "2C": thermal_zone._VDI6007_params,
+            }[self.building_model]()
+
         # with open(os.path.join("output_geojson.geojson"), 'w') as outfile:
         #     json.dump(self.output_geojson, outfile)
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
@@ -285,6 +292,8 @@ class City():
         '''
         # Case of GeoJSON file availability:
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        if "Simulate" not in self.cityjson.columns:
+            self.cityjson["Simulate"] = True
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -297,8 +306,7 @@ class City():
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-            name = bd_data["Name"]  # Heating plant of the building
-            envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
+            name = str(bd_data["Name"]) + "_" + str(i[1])
             g = self.cityjson.loc[i].geometry
             counter_for_sub_parts = 0
             # for g in building_parts:
@@ -322,7 +330,7 @@ class City():
                 build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
                                     tuple(coords[n]+[z_soff]),\
                                     tuple(coords[n]+[z_pav]),\
-                                    tuple(coords[n-1]+[z_pav])]))\
+                                    tuple(coords[n-1]+[z_pav])]))
 
             list_of_int_rings = []
             area_of_int_rings = []
@@ -357,6 +365,8 @@ class City():
             surf_counter = 0
             footprint_area = 0.
             surfaces_list = []
+            if bd_data["Simulate"]:
+                envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
             for vertices in build_surf:
                 surface = Surface(
                         name = f"Bd {name}: surface {surf_counter}",
@@ -374,13 +384,14 @@ class City():
                 if surface.surface_type == "ExtWall":
                     surface._wwr = 0.125
 
-                surface.construction = {
-                    "ExtWall": envelope.external_wall,
-                    "Roof": envelope.roof,
-                    "GroundFloor": envelope.ground_floor,
-                }[surface.surface_type]
+                if bd_data["Simulate"]:
+                    surface.construction = {
+                        "ExtWall": envelope.external_wall,
+                        "Roof": envelope.roof,
+                        "GroundFloor": envelope.ground_floor,
+                    }[surface.surface_type]
 
-                surface.window = envelope.window
+                    surface.window = envelope.window
 
                 surfaces_list.append(surface)
                 surf_counter += 1
@@ -388,76 +399,108 @@ class City():
                 if surface.surface_type == "GroundFloor":
                     footprint_area += surface._area
 
-            # Add internal walls and ceilings 3.3 m height
-            n_floors = int(self.cityjson.loc[i]['Floors'])
-            floor_height = self.cityjson.loc[i]['Height'] / n_floors
-            surf_counter = 0
-            for i in range(1, n_floors):
-                surfaces_list.append(SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter}",
-                    area=footprint_area,
-                    surface_type="IntCeiling",
-                    construction=envelope.interior_ceiling
-                ))
+            if bd_data["Simulate"]:
+                # Add internal walls and ceilings 3.3 m height
+                n_floors = int(self.cityjson.loc[i]['Floors'])
+                floor_height = self.cityjson.loc[i]['Height'] / n_floors
+                surf_counter = 0
+                for i in range(1, n_floors):
+                    surfaces_list.append(SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter}",
+                        area=footprint_area,
+                        surface_type="IntCeiling",
+                        construction=envelope.interior_ceiling
+                    ))
 
-                surfaces_list.append(SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter + 1}",
-                    area=footprint_area,
-                    surface_type="IntFloor",
-                    construction=envelope.interior_floor
-                ))
+                    surfaces_list.append(SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter + 1}",
+                        area=footprint_area,
+                        surface_type="IntFloor",
+                        construction=envelope.interior_floor
+                    ))
 
-                surf_counter += 2
+                    surf_counter += 2
 
-            surfaces_list.append(
-                SurfaceInternalMass(
-                    name=f"Bd {name}: internal surface {surf_counter}",
-                    area=footprint_area * n_floors * 2.5,
-                    surface_type="IntWall",
-                    construction=envelope.interior_wall
+                surfaces_list.append(
+                    SurfaceInternalMass(
+                        name=f"Bd {name}: internal surface {surf_counter}",
+                        area=footprint_area * n_floors * 2.5,
+                        surface_type="IntWall",
+                        construction=envelope.interior_wall
+                    )
                 )
-            )
 
-            n_units = int(np.around(footprint_area * n_floors / 77.))
-            if n_units == 0: n_units = 1
+                n_units = int(np.around(footprint_area * n_floors / 77.))
+                if n_units == 0: n_units = 1
 
-            thermal_zone = ThermalZone(
-                name=f"Bd {name} thermal zone",
-                surface_list=surfaces_list,
-                net_floor_area=footprint_area * n_floors,
-                volume=footprint_area * n_floors * floor_height,
-                number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
-            )
+                thermal_zone = ThermalZone(
+                    name=f"Bd {name} thermal zone",
+                    surface_list=surfaces_list,
+                    net_floor_area=footprint_area * n_floors,
+                    volume=footprint_area * n_floors * floor_height,
+                    number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
+                )
 
-            {
-                    "1C": thermal_zone._ISO13790_params,
-                    "2C": thermal_zone._VDI6007_params,
-            }[self.building_model]()
-
-            self.buildings_info[id] = bd_data
-            self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
-                                                          model=self.building_model)
+                self.buildings_info[id] = bd_data
+                self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
+                                                              model=self.building_model)
 
         # Geometric preprocessing
         self.geometric_preprocessing()
 
-    def loads_calculation(self):
+        for bd_k, bd in self.buildings_objects.items():
+            thermal_zone = bd._thermal_zones_list[0]
+            {
+                "1C": thermal_zone._ISO13790_params,
+                "2C": thermal_zone._VDI6007_params,
+            }[self.building_model]()
+
+    def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
-
+        
+        if isinstance(region, str):
+            italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
+            italian_el_loads["Index"] = list(self.buildings_info.keys())
+            italian_el_loads.set_index("Index", drop=True, inplace = True)
+        
+        # iiii=0
+        # jjjj=3608
         for bd_id, building_info in self.buildings_info.items():
+            # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
-
+            
             # TODO: copy.deepcopy
+            if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
+                try:
+                    italian_el_loads
+                except NameError:
+                    raise ValueError("""If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:
+For example: city.loads_calculation(region='Piemonte').
+Available regions:
+ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
+FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
+Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
+ """)
+                # TODO: Update with real values.
+                app_nv = italian_el_loads["Tot"].loc[bd_id] * 1000 # W/kW
+                app = copy.deepcopy(use.heat_gains['appliances'])
+                app.unit = "W"
+                app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units
 
-            tz.add_internal_load(
-                use.heat_gains['appliances'],
-                use.heat_gains['people'],
-                use.heat_gains['lighting'],
-            )
-
+                tz.add_internal_load(
+                    app,
+                    use.heat_gains['people'],
+                )
+            else:
+                tz.add_internal_load(
+                    use.heat_gains['appliances'],
+                    use.heat_gains['people'],
+                    use.heat_gains['lighting'],
+                )
+            
             tz.extract_convective_radiative_latent_electric_load()
             {
                 "1C": tz.calculate_zone_loads_ISO13790,
@@ -483,16 +526,18 @@ class City():
                 weather = self.weather_file,
                 thermal_zone = tz,
             )
+            
 
             tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+            
             tz.design_heating_load(-5.)
-
+            
             tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-
+            
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
-
-    def simulate(self, print_single_building_results = False):
+            # print(f"{int(100*iiii/jjjj)} %: load calc")
+    def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -500,7 +545,10 @@ class City():
         print_single_building_results : bool, default False
             If True, the prints a file with time step results for each building.
             USE CAREFULLY: It might fill a lot of disk space
+        output_type : str, default 'parquet'
+            It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
         """
+       
         import time
         start = time.time()
         # parallel simulation commented
@@ -522,18 +570,23 @@ class City():
             "Electric consumption [Wh]",
             "Oil consumption [L]",
             "Wood consumption [kg]",
+            "TZ sensible load [W]",
+            "TZ latent load [W]",
+            "TZ AHU pre heater load [W]",
+            "TZ AHU post heater load [W]",
+            "TZ DHW demand [W]",
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
             if counter%10 == 0:
-                print(f"{counter} buildings simulated over {n_buildings}")
+                print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
-                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
@@ -542,11 +595,21 @@ class City():
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            gas_consumption["Total"] = gas_consumption.sum()
+            el_consumption["Total"] = el_consumption.sum()
+            oil_consumption["Total"] = oil_consumption.sum()
+            wood_consumption["Total"] = wood_consumption.sum()
             for i in gas_consumption.index:
-                info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
-                info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
-                info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
-                info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+                if i == "Total":
+                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                else:
+                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
@@ -554,15 +617,21 @@ class City():
             district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0]
+            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0]
+            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0]
+            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0]
+            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0]
+            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0]
 
 
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
-        bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"))
+        # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
-        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"))
+        new_geojson.drop("geometry",axis = 1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep =";")
 
         print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
 
@@ -585,13 +654,30 @@ class City():
         toll_theta = CONFIG.urban_shading_tolerances[2]
 
         # Each surface is compared with all the others
+        # qqq=len(self.__city_surfaces)
+        # qqqq=qqq*(qqq-1)/2
+        # iiii=0
+        # jjjj=0
+        list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
+        plg_kdtree=cKDTree(list_of_centroids)
+        max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
         for x in range(len(self.__city_surfaces)):
-            for y in range(x + 1,len(self.__city_surfaces)):
+            # jjjj=jjjj+1
+            # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
+           
+            # Function to filter using scipy the nearest points (centroids)
+            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
+            
+            # iiiii=0
+            try:
+                self.__city_surfaces[x].shading_coupled_surfaces
+            except AttributeError:
+                self.__city_surfaces[x].shading_coupled_surfaces = []
+            for y in filtered_indices:
+                # iiii=iiii+1
+                # iiiii=iiiii+1
+                # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
-                try:
-                    self.__city_surfaces[x].shading_coupled_surfaces
-                except AttributeError:
-                    self.__city_surfaces[x].shading_coupled_surfaces = []
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
@@ -610,9 +696,15 @@ class City():
                         self.__city_surfaces[y].reduce_area(intersectionArea)
                         self.__city_surfaces[x].reduce_area(intersectionArea)
 
+                # print(f" {int(iiii/jjjj)*100} percent: geometry")
+                try:
+                    self.__city_surfaces[y].shading_coupled_surfaces
+                except AttributeError:
+                    self.__city_surfaces[y].shading_coupled_surfaces = []
+
                 if self.shading_calculation:
                     if dist == 0.0:
-                        pass
+                        theta=0
                     else:
 
                         # Calculation of the vector direction between the centroids of the two surfaces under examination
@@ -694,10 +786,14 @@ class City():
             # SECTION 2: Calculation of the shading effect
             for x in range(len(self.__city_surfaces)):
                 self.__city_surfaces[x].shading_coefficient = 1.
+                # iiiii=0
                 if self.__city_surfaces[x].shading_coupled_surfaces != []:
                     self.__city_surfaces[x].shading_calculation = 'On'
                     shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
+                        # iiii=iiii+1
+                        # iiiii=iiiii+1
+                        # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
                         surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]

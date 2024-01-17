@@ -25,10 +25,12 @@ setup(
         "pyclipper",
         "scipy",
         "openpyxl",
+        "pyarrow",
         "xlrd",
         "pvlib",
         "shapely",
         "geopandas",
         "cjio",
+        "pyogrio",
     ],
 )

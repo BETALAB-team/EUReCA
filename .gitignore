@@ -1,5 +1,7 @@
+/__pycache__/
 .spyproject
 RCenv.yml
+/eureca_ubem/Input/mk_tests/
 /eureca_ubem/Input/Belzoni.json
 /eureca_ubem/Input_qgis/
 /eureca_ubem/Input/Belzoni/
@@ -29,8 +31,11 @@ Main_test_DHW.py
 /.idea/
 logging.log
 /eureca_ubem/Input/Zurich_Building_LoD2_V10.city.json
+/eureca_ubem/Input/belzoni_new_hvac/
 /eureca_ubem/Input_qgis/.idea/
+/eureca_ubem/el_load_dist/
 /eureca_ubem/logging.log
+/eureca_ubem/old/__pycache__/
 eureca_building/__pycache__/
 eureca_building/test/__pycache__/
 eureca_building/test/hvac_plots/
@@ -54,3 +59,4 @@ logging.log
 /eureca_building/example_scripts/logging.log
 /eureca_building/example_scripts/materials_and_construction_test_MV.xlsx
 /eureca_ubem/Input/Belzoni_2023_July_Update.json
+/eureca_ubem/Input/belzoni_new_hvac/

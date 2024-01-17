@@ -665,12 +665,12 @@ AHU_TOT:\t{self.AHU_demand} W
             raise TypeError(f'ERROR input x is not an interger: x {x}')
 
         # Control input data quality
-        if temp < -40 or temp > 70:
-            logging.warning(
-                f"WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {temp}"
-            )
-        if x < 0.0005 or x > 0.040:
-            logging.warning(f"WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}")
+        # if temp < -40 or temp > 70:
+        #     logging.warning(
+        #         f"WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {temp}"
+        #     )
+        # if x < 0.0005 or x > 0.040:
+        #     logging.warning(f"WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}")
 
         # Is or not outside the saturation condition? True/False
         pp = p * x / (0.622 + x)

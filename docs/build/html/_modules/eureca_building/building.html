@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eureca_building.building &mdash; EUReCA 0.2 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EUReCA
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EUReCA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">eureca_building.building</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for eureca_building.building</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module includes functions to model the building and it includes the Building class</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+<span class="n">__credits__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Enrico Prataviera&quot;</span><span class="p">]</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;MIT&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1&quot;</span>
+<span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+<span class="kn">from</span> <span class="nn">eureca_building.thermal_zone</span> <span class="kn">import</span> <span class="n">ThermalZone</span>
+<span class="kn">from</span> <span class="nn">eureca_building.weather</span> <span class="kn">import</span> <span class="n">WeatherFile</span>
+<span class="kn">from</span> <span class="nn">eureca_building.systems</span> <span class="kn">import</span> <span class="n">hvac_heating_systems_classes</span><span class="p">,</span> <span class="n">hvac_cooling_systems_classes</span><span class="p">,</span> <span class="n">System</span>
+<span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="n">SimulationError</span>
+<span class="c1"># %% Building class</span>
+<div class="viewcode-block" id="Building"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building">[docs]</a><span class="k">class</span> <span class="nc">Building</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class is a wrapper for ThermalZone objects and HVAC objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">thermal_zones_list</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span>  <span class="n">model</span><span class="p">:</span><span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;2C&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructor of the building class. Memorizes the attributes by means of properties setter.</span>
+<span class="sd">        Checks also the validity of some attributes</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the building</span>
+<span class="sd">        thermal_zone : list</span>
+<span class="sd">            list of ThermalZone ibjects objects</span>
+<span class="sd">        model : str, default 2C</span>
+<span class="sd">            model to be used: 1C or 2C</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span> <span class="o">=</span> <span class="n">thermal_zones_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_thermal_zones_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__thermal_zones_list</span>
+
+    <span class="nd">@_thermal_zones_list</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_thermal_zones_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, the thermal_zone_list must be a list or a tuple: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tz</span><span class="p">,</span> <span class="n">ThermalZone</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, non ThermalZone object in thermal_zones_list. &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__thermal_zones_list</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__model</span>
+
+    <span class="nd">@_model</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, the model must be a str: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;1C&quot;</span><span class="p">,</span><span class="s2">&quot;2C&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, model must be 1C or 2C. Model = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__model</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">heating_system</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">System</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_heating_system</span>
+
+    <span class="nd">@heating_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">heating_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">System</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">System</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, the heating system must be a System object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_heating_system</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cooling_system</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">System</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cooling_system</span>
+
+    <span class="nd">@cooling_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">cooling_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">System</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">System</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, the cooling system must be a System object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cooling_system</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="Building.set_hvac_system"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building.set_hvac_system">[docs]</a>    <span class="k">def</span> <span class="nf">set_hvac_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heating_system</span><span class="p">,</span> <span class="n">cooling_system</span><span class="p">):</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Sets using roperties the heating and cooling system type (strings)</span>
+
+<span class="s2">        Available heating systems: </span><span class="si">{</span><span class="n">hvac_heating_systems_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span>
+<span class="s2">        Available cooling systems: </span><span class="si">{</span><span class="n">hvac_cooling_systems_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span>
+
+<span class="s2">        Parameters</span>
+<span class="s2">        ----------</span>
+<span class="s2">        heating_system : str</span>
+<span class="s2">            string to define building heating system</span>
+<span class="s2">        cooling_system : str</span>
+<span class="s2">            string to define building cooling system</span>
+
+<span class="s2">        Raises</span>
+<span class="s2">        ------</span>
+<span class="s2">        KeyError</span>
+<span class="s2">            if the heating/cooling system is not included in the available list (See above)</span>
+<span class="s2">        TypeError</span>
+<span class="s2">            if the heating system does not comply with the Systems metaclass, which is necessary for simulations</span>
+
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span> <span class="o">=</span> <span class="n">hvac_heating_systems_classes</span><span class="p">[</span><span class="n">heating_system</span><span class="p">](</span><span class="n">heating_system_key</span> <span class="o">=</span> <span class="n">heating_system</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, heating system not allowed: current heating system </span><span class="si">{</span><span class="n">heating_system</span><span class="si">}</span><span class="s2">. Available heating systems:</span><span class="se">\n</span><span class="si">{</span><span class="n">hvac_heating_systems_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="p">,</span> <span class="n">System</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, heating system does not comply with System class. The heating system class must be created using System interface&quot;</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span> <span class="o">=</span> <span class="n">hvac_cooling_systems_classes</span><span class="p">[</span><span class="n">cooling_system</span><span class="p">](</span><span class="n">cooling_system_key</span> <span class="o">=</span> <span class="n">cooling_system</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, cooling system not allowed: current cooling system </span><span class="si">{</span><span class="n">cooling_system</span><span class="si">}</span><span class="s2">. Available cooling systems:</span><span class="se">\n</span><span class="si">{</span><span class="n">hvac_cooling_systems_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span><span class="p">,</span> <span class="n">System</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">((</span><span class="sa">f</span><span class="s2">&quot;Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, cooling system does not comply with System class. The cooling system class must be created using System interface&quot;</span><span class="p">))</span>
+
+        <span class="c1"># This overrides the convective and radiative fraction to zone</span>
+        <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">heating_sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">sigma</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">cooling_sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span><span class="o">.</span><span class="n">sigma</span></div>
+
+<div class="viewcode-block" id="Building.set_hvac_system_capacity"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building.set_hvac_system_capacity">[docs]</a>    <span class="k">def</span> <span class="nf">set_hvac_system_capacity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather_object</span><span class="p">):</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Calls the thermal zone heating and cooling capacity for all themrmal zones (must be run after the calculation of zone loads)</span>
+
+<span class="s2">        Parameters</span>
+<span class="s2">        ----------</span>
+<span class="s2">        weather_object : eureca_building.weather.WeatherFile</span>
+<span class="s2">            WeatherFile object to use to simulate </span>
+<span class="s2">            </span>
+
+<span class="s2">        Raises</span>
+<span class="s2">        ------</span>
+<span class="s2">        SimulationError</span>
+<span class="s2">            if thermal_zone design load calculation has not been carried out yet</span>
+
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">heating_capacity</span><span class="p">,</span> <span class="n">cooling_capacity</span> <span class="o">=</span> <span class="mf">0.</span> <span class="p">,</span><span class="mf">0.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+                <span class="n">cooling_capacity</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">design_sensible_cooling_system_power</span>
+                <span class="n">heating_capacity</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">design_heating_system_power</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Building </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. </span>
+<span class="s2">Please run thermal zones design_sensible_cooling_load and design_heating_load</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">set_system_capacity</span><span class="p">(</span><span class="n">heating_capacity</span><span class="p">,</span> <span class="n">weather_object</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span><span class="o">.</span><span class="n">set_system_capacity</span><span class="p">(</span><span class="n">cooling_capacity</span><span class="p">,</span> <span class="n">weather_object</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Building.solve_timestep"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building.solve_timestep">[docs]</a>    <span class="k">def</span> <span class="nf">solve_timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">weather</span><span class="p">:</span> <span class="n">WeatherFile</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs the thermal zone and hvac systems simulation for the timestep t</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : int</span>
+<span class="sd">            timestep</span>
+<span class="sd">        weather_object : eureca_building.weather.WeatherFile</span>
+<span class="sd">            WeatherFile object to use to simulate</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">heat_load</span><span class="p">,</span> <span class="n">cool_load</span><span class="p">,</span> <span class="n">air_t</span><span class="p">,</span> <span class="n">air_rh</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span>
+        <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">solve_timestep</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+            <span class="n">air_t</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">zone_air_temperature</span>
+            <span class="n">air_rh</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">zone_air_rel_humidity</span>
+            <span class="k">if</span> <span class="n">tz</span><span class="o">.</span><span class="n">sensible_zone_load</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                <span class="n">heat_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">sensible_zone_load</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cool_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">sensible_zone_load</span>
+
+            <span class="k">if</span> <span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">preh_deu_Dem</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                <span class="n">heat_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">preh_deu_Dem</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cool_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">preh_deu_Dem</span>
+            <span class="n">heat_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">posth_Dem</span>
+
+            <span class="c1"># For the moment not latent</span>
+            <span class="c1"># if tz.latent_zone_load &gt; 0.:</span>
+            <span class="c1">#     heat_load += tz.latent_zone_load</span>
+            <span class="c1"># else:</span>
+            <span class="c1">#     cool_load += tz.latent_zone_load</span>
+
+            <span class="c1"># if tz.latent_zone_load &gt; 0.:</span>
+            <span class="c1">#     heat_load += tz.latent_zone_load</span>
+            <span class="c1"># else:</span>
+            <span class="c1">#     cool_load += tz.latent_zone_load</span>
+
+            <span class="c1"># DHW</span>
+            <span class="n">heat_load</span> <span class="o">+=</span> <span class="n">tz</span><span class="o">.</span><span class="n">domestic_hot_water_demand</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="n">air_t</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)</span>
+        <span class="n">air_rh</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">solve_system</span><span class="p">(</span><span class="n">heat_load</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">air_t</span><span class="p">,</span> <span class="n">air_rh</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span><span class="o">.</span><span class="n">solve_system</span><span class="p">(</span><span class="n">cool_load</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">air_t</span><span class="p">,</span> <span class="n">air_rh</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Building.simulate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">weather_object</span><span class="p">:</span> <span class="n">WeatherFile</span><span class="p">,</span>
+                 <span class="n">t_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">,</span>
+                 <span class="n">t_stop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">,</span>
+                 <span class="n">preprocessing_ts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">,</span>
+                 <span class="n">output_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+                 <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulate a period and i stores the outputs. Calls solve_timestep method</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        weather_object : eureca_building.weather.WeatherFile</span>
+<span class="sd">            WeatherFile object to use to simulate (must be appliad after the calculation of zone loads</span>
+<span class="sd">        t_start : int (Default first timestep of simulation)</span>
+<span class="sd">            starting timestep</span>
+<span class="sd">        t_stop : int (last timestep of simulation)</span>
+<span class="sd">            stop timestep</span>
+<span class="sd">        preprocessing_ts : int</span>
+<span class="sd">            number of preprocessing timesteps</span>
+<span class="sd">        output_folder : str, default None</span>
+<span class="sd">            if not None prints building results in the selected folder</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pandas.DataFrame</span>
+<span class="sd">            building time step results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+            <span class="n">tz</span><span class="o">.</span><span class="n">reset_init_values</span><span class="p">()</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;TZ Ta [°C]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ To [°C]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ Tmr [°C]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ RH [-]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ sensible load [W]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ latent load [W]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ AHU pre heater load [W]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ AHU post heater load [W]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ DHW volume flow rate [L/s]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+            <span class="s1">&#39;TZ DHW demand [W]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">)]),</span>
+
+            <span class="s1">&#39;Heating system gas consumption [Nm3]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Heating system oil consumption [L]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Heating system wood consumption [kg]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Heating system electric consumption [Wh]&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Cooling system electric consumption [Wh]&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+            <span class="s1">&#39;Appliances electric consumption [Wh]&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="p">}</span>
+
+        <span class="n">electric_consumption</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tz</span><span class="o">.</span><span class="n">electric_load</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Appliances electric consumption [Wh]&#39;</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">electric_consumption</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">]</span>
+
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ DHW volume flow rate [L/s]&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tz</span><span class="o">.</span><span class="n">domestic_hot_water_volume_flow_rate</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">]</span>
+        <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ DHW demand [W]&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tz</span><span class="o">.</span><span class="n">domestic_hot_water_demand</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">t_start</span> <span class="o">-</span> <span class="n">preprocessing_ts</span><span class="p">,</span> <span class="n">t_stop</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">solve_timestep</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">weather_object</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ Ta [°C]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">zone_air_temperature</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ To [°C]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">zone_operative_temperature</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ Tmr [°C]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">zone_mean_radiant_temperature</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ RH [-]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">zone_air_rel_humidity</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ sensible load [W]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">sensible_zone_load</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ latent load [W]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">latent_zone_load</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ AHU pre heater load [W]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">preh_deu_Dem</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;TZ AHU post heater load [W]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">posth_Dem</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+
+
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Heating system gas consumption [Nm3]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">gas_consumption</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Heating system oil consumption [L]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">oil_consumption</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Heating system wood consumption [kg]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">wood_consumption</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Heating system electric consumption [Wh]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">heating_system</span><span class="o">.</span><span class="n">electric_consumption</span>
+            <span class="n">results</span><span class="p">[</span><span class="s1">&#39;Cooling system electric consumption [Wh]&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cooling_system</span><span class="o">.</span><span class="n">electric_consumption</span>
+
+        <span class="c1"># Saving results</span>
+
+        <span class="n">tz_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;TZ&quot;</span><span class="p">)]</span>
+        <span class="n">bd_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;TZ&quot;</span><span class="p">)]</span>
+        <span class="n">tz_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">tz</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">]</span>
+        <span class="n">columns_tz</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">tz_labels</span><span class="p">,</span><span class="n">tz_names</span><span class="p">])</span>
+        <span class="n">columns_bd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">bd_labels</span><span class="p">,[</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]])</span>
+        <span class="n">tz</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">),</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">columns_tz</span><span class="p">)</span>
+        <span class="n">bd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">),</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">columns_bd</span><span class="p">)</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bd</span><span class="p">,</span> <span class="n">tz</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tz_result_label</span> <span class="ow">in</span> <span class="n">tz_labels</span><span class="p">:</span>
+            <span class="n">total</span><span class="p">[</span><span class="n">tz_result_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">tz_result_label</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">bd_result_label</span> <span class="ow">in</span> <span class="n">bd_labels</span><span class="p">:</span>
+            <span class="n">total</span><span class="p">[</span><span class="n">bd_result_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">bd_result_label</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">output_folder</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">)</span>
+            <span class="n">total</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Results </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">),</span> <span class="n">float_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%.2f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">total</span></div>
+
+<div class="viewcode-block" id="Building.get_geojson_feature_parser"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.building.Building.get_geojson_feature_parser">[docs]</a>    <span class="k">def</span> <span class="nf">get_geojson_feature_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to get the json dictionary of building properties to stamp the output geojson</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dict</span>
+<span class="sd">            dict with some info of the building</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">floors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_surface_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                <span class="n">vtxs</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">_vertices</span>
+                <span class="n">vtxs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">vtx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vtx</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">vtx</span> <span class="ow">in</span> <span class="n">vtxs</span><span class="p">]</span>
+                <span class="n">floors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vtxs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;Feature&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;new_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;Name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="s2">&quot;geometry&quot;</span><span class="p">:{</span>
+                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;MultiPolygon&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">floors</span><span class="p">]</span>
+            <span class="p">}</span>
+        <span class="p">}</span></div></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Enrico Prataviera, Jacopo Vivian.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
