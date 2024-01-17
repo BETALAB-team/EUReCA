@@ -294,6 +294,10 @@ class City():
         self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
         if "Simulate" not in self.cityjson.columns:
             self.cityjson["Simulate"] = True
+        if "ExtWallCoeff" not in self.cityjson.columns:
+            self.cityjson["ExtWallCoeff"] = 1.
+        if "VolCoeff" not in self.cityjson.columns:
+            self.cityjson["VolCoeff"] = 1.
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -385,6 +389,8 @@ class City():
                     surface._wwr = 0.125
 
                 if bd_data["Simulate"]:
+                    if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
+                        surface.apply_ext_surf_coeff(bd_data["ExtWallCoeff"])
                     surface.construction = {
                         "ExtWall": envelope.external_wall,
                         "Roof": envelope.roof,
@@ -437,7 +443,7 @@ class City():
                     name=f"Bd {name} thermal zone",
                     surface_list=surfaces_list,
                     net_floor_area=footprint_area * n_floors,
-                    volume=footprint_area * n_floors * floor_height,
+                    volume=footprint_area * n_floors * floor_height * bd_data["VolCoeff"],
                     number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                 )
 

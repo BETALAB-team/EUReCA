@@ -652,6 +652,32 @@ class Surface:
             self._area = 0.0000001
         self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
 
+    def apply_ext_surf_coeff(self, ext_wall_correction_coef):
+        '''Reduces the area of the surface by an input correction coeffienct
+
+        Parameters
+        ----------
+        ext_wall_correction_coef : float
+            the factor to multiply [-] to the total area
+        '''
+
+        # Check Input data type
+
+        if not isinstance(ext_wall_correction_coef, float) or ext_wall_correction_coef < 0.:
+            try:
+                ext_wall_correction_coef = float(ext_wall_correction_coef)
+            except ValueError:
+                raise ValueError(
+                    f"ERROR Surface class, surface {self.name}, apply_ext_surf_coeff. The factor is not a positive float: factor {ext_wall_correction_coef}")
+
+        # Area reduction
+
+        if self._area * ext_wall_correction_coef > 0.0000001:
+            self._area = self._area * ext_wall_correction_coef
+        else:
+            self._area = 0.0000001
+        self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
+
     def __str__(self):
         return f"""
 Name: {self.name}
