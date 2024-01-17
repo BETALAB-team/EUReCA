@@ -424,9 +424,13 @@ class NaturalVentilation(Ventilation):
         # To be completed and commented
         
         opening_percentage = self.windows_opening[ts]
-        
+        # Avoid singularity in neutral plane calc
+        if abs(weather.hourly_data["out_air_db_temperature"][ts] - t_zone) <= 0.2:
+            __t_zone__ = weather.hourly_data["out_air_db_temperature"][ts] - 0.2
+        else:
+            __t_zone__ = t_zone
         a_coeff = [s._a_coeff * opening_percentage for s in self.surfaces_with_opening]
-        b_coeff = (2*(t_zone - weather.hourly_data["out_air_db_temperature"][ts])*gravitational_acceleration)/(t_zone +273.15)   # Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate
+        b_coeff = (2*(__t_zone__ - weather.hourly_data["out_air_db_temperature"][ts])*gravitational_acceleration)/(__t_zone__ +273.15)   # Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate
         c_coeff = [s._c_coeff[ts] for s in self.surfaces_with_opening]
         
         z_n = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
@@ -435,8 +439,6 @@ class NaturalVentilation(Ventilation):
         for floor in range(len(self.surfaces_with_opening[0]._h_bottom_windows)):
             h_top = [s._h_top_windows[floor] for s in self.surfaces_with_opening]
             h_bottom = [s._h_bottom_windows[floor] for s in self.surfaces_with_opening]
-            
-            #if abs(weather.hourly_data["out_air_db_temperature"][ts] - t_zone) >= 0.1:
             res = fsolve(calc_neutral_plane_nat_vent, 5., args = (a_coeff, b_coeff, c_coeff, h_top, h_bottom))
             z_n[floor] = res[0]
             # else:
