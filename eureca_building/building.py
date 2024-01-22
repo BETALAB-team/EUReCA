@@ -14,9 +14,11 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import least_squares
 
 from eureca_building.config import CONFIG
 from eureca_building.thermal_zone import ThermalZone
+from eureca_building.surface import Surface
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -339,5 +341,66 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 "coordinates": [floors]
             }
         }
+
+
+    def update_wall_factor_and_setpoint(self, ext_wall_coef, t_set, weather):
+        for s in self._thermal_zones_list[0]._surface_list:
+            if isinstance(s, Surface):
+                if s.surface_type in ["ExtWall", "Roof"]:
+                    s.apply_ext_surf_coeff(ext_wall_coef)
+        # self._thermal_zones_list[0].number_of_units = int(ext_wall_coef * self._thermal_zones_list[0].number_of_units)
+        # self._thermal_zones_list[0]._net_floor_area = ext_wall_coef * self._thermal_zones_list[0]._net_floor_area
+        # self._thermal_zones_list[0]._volume = ext_wall_coef * self._thermal_zones_list[0]._volume
+
+        {
+            "1C": self._thermal_zones_list[0]._ISO13790_params,
+            "2C": self._thermal_zones_list[0]._VDI6007_params,
+        }[self._model]()
+
+        delta_T = t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule.max()
+        set = copy.deepcopy(self._thermal_zones_list[0].temperature_setpoint)
+        self._thermal_zones_list[0].temperature_setpoint = set
+        self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule = self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule + delta_T
+
+        self._thermal_zones_list[0].design_sensible_cooling_load(weather, model=self._model)
+        self._thermal_zones_list[0].design_heating_load(-5.)
+        self.set_hvac_system_capacity(weather)
+
+    def costfun(self, data, weather = None, gas_meas = None):
+        ext_wall_coef, t_set = data
+        self.update_wall_factor_and_setpoint(ext_wall_coef, t_set, weather)
+        results = self.simulate(weather, output_folder=None)
+        gas_cons = results["Heating system gas consumption [Nm3]"][f"Bd {self.name}"].sum()
+        self.update_wall_factor_and_setpoint(1/ext_wall_coef, 20., weather)
+        return np.abs(gas_cons - gas_meas)
+
+    def calibrate(self, c_gas_meas, weather,
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]
+                  ):
+
+        T_sp_init = 20.
+        f_w_init = 1.
+        x0 = [f_w_init, T_sp_init]
+        lb = limits_fwalls[0], limits_setpoint[0]
+        ub = limits_fwalls[1], limits_setpoint[1]
+        opt = least_squares(self.costfun,
+                            x0,
+                            bounds = (lb,ub),
+                            method = 'trf',
+                            max_nfev = 50,
+                            kwargs={"weather":weather,"gas_meas":c_gas_meas})
+
+        # Read the solution
+        x_opt = opt.x
+        fmin = opt.cost
+        residuals = opt.fun
+        nfev = opt.nfev
+
+        # Verbal description of the termination reason.
+        print(opt.message)
+
+        return x_opt, fmin, residuals, nfev
+
 
 
