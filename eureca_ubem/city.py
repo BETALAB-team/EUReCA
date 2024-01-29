@@ -1277,6 +1277,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info["ExtWallCoef_cal"] = cal_res[0][0]
                 info["TSet_cal"] = cal_res[0][1]
                 info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
             else:
                 cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"], self.weather_file)
                 self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0], cal_res[0][1],
@@ -1287,6 +1289,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info["ExtWallCoef_cal"] = cal_res[0][0]
                 info["TSet_cal"] = cal_res[0][1]
                 info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
             results.index = index
             monthly = results.resample("M").sum()
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
