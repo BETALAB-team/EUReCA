@@ -387,7 +387,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         opt = least_squares(self.costfun,
                             x0,
                             ftol=1e-04,
-                            xtol=[1e-04,1e-04],
+                            # xtol=[1e-04,1e-04],
                             bounds = (lb,ub),
                             method = 'trf',
                             max_nfev = 50,
