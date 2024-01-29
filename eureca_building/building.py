@@ -400,7 +400,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         # Verbal description of the termination reason.
         print(opt.message)
 
-        return x_opt, fmin, residuals, nfev
+        return x_opt, fmin, residuals, nfev, opt.message
 
 
 
