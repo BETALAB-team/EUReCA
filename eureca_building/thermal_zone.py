@@ -387,27 +387,6 @@ class ThermalZone(object):
         self.infiltration_vapour_flow_rate = infiltration_vapour_flow_rate
         return {'infiltration_air_flow_rate [kg/s]': infiltration_air_flow_rate,
                 'infiltration_vapour_flow_rate [kg/s]': infiltration_vapour_flow_rate, }
-    
-    def add_natural_ventilation(self, natural_ventilation, weather):
-        """Function to associate a natural ventilation object to the thermal zone
-
-        Parameters
-        ----------
-        natural_ventilation : eureca_building.ventilation.Infiltration
-            As many eureca_building.ventilation.Infiltration can be provided
-
-        """
-        if not isinstance(natural_ventilation, NaturalVentilation):
-            raise TypeError(
-                f"ThermalZone {self.name}, add_infiltration() method: infiltrion not of Infiltration type: {type(natural_ventilation)}"
-            )
-        self.natural_ventilation = natural_ventilation
-        ext_wall_list = [s for s in self._surface_list if s.surface_type == "ExtWall"]
-        self.natural_ventilation.define_pressure_coef(
-            weather = weather,
-            surfaces_with_opening = ext_wall_list,
-        )
-        
 
     def add_air_handling_unit(self, ahu, weather):
         """Function to associate an air_handling_unit object to the thermal zone
@@ -1358,8 +1337,8 @@ Thermal zone {self.name} 2C params:
             phi_load = [self.Q_il_kon_I[t], self.Q_il_str_aw[t], self.Q_il_str_iw[t]]
 
         # Natural Ventilation
-        nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
-        G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
+
+        G_OA_nat_vent = self.infiltration_air_flow_rate[t]  # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 
         # Ventilation

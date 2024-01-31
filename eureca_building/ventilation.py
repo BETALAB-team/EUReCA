@@ -461,10 +461,9 @@ class NaturalVentilation(Ventilation):
             #         vol_flow_sopra[floor] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
             #     if s._h_top_windows[floor] > z_n[floor]:
             #         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-        vol_flow_tot = vol_flow.sum()
-        mass_flow_tot = vol_flow_tot * air_properties["density"] # kg/s
-        # vapour_flow_tot = mass_flow_tot * weather.hourly_data["out_air_specific_humidity"][ts] # kg_vap/s
-        return mass_flow_tot #, vapour_flow_tot
+                
+            
+        return z_n, vol_flow, vol_flow_sopra
 
 
 
