@@ -372,6 +372,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results = self.simulate(weather, output_folder=None)
         gas_cons = results["Heating system gas consumption [Nm3]"][f"Bd {self.name}"].sum()
         self.update_wall_factor_and_setpoint(1/ext_wall_coef, 20., weather)
+        print("One function eval")
         return (gas_cons - gas_meas)
 
     def calibrate(self, c_gas_meas, weather,
@@ -386,12 +387,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         ub = limits_fwalls[1], limits_setpoint[1]
         opt = least_squares(self.costfun,
                             x0,
-                            ftol=1e-04,
-                            # xtol=[1e-04,1e-04],
+                            # ftol=1e-04,
+                            xtol=1e-04,
                             bounds = (lb,ub),
                             method = 'trf',
                             max_nfev = 50,
                             kwargs={"weather":weather,"gas_meas":c_gas_meas})
+
 
         # Read the solution
         x_opt = opt.x
