@@ -170,23 +170,20 @@ vect_t_zona = []
 vect_v = []
 t_zona = 23.
 z_n_tot = []
-vol_flow_rate_tot = []
-vol_flow_rate_sopra_tot = []
+mass_flow_rate_tot = []
 ts_to_sim = 25
 for t in range(5000 * 2, 5000 * 2 + ts_to_sim):
     t_zona += 1.*random.randint(-100,100)/100
-    t_zona = weather_file.hourly_data["out_air_db_temperature"][t]
-    z_n, vol_flow_rate, vol_flow_rate_sopra = inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file)
+    # t_zona = weather_file.hourly_data["out_air_db_temperature"][t]
+    mass_flow_rate= inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file)
 
     vect_t_zona.append(t_zona)
-    z_n_tot.append(z_n)
-    vol_flow_rate_tot.append(vol_flow_rate[0])
-    vol_flow_rate_sopra_tot.append(vol_flow_rate_sopra)
-
+    # z_n_tot.append(z_n)
+    mass_flow_rate_tot.append(mass_flow_rate)
+   
 wall_south._h_bottom_windows
-z_n_tot = np.array(z_n_tot)
-vol_flow_rate_tot = np.array(vol_flow_rate_tot)
-vol_flow_rate_sopra_tot = np.array(vol_flow_rate_sopra_tot)
+# z_n_tot = np.array(z_n_tot)
+mass_flow_rate_tot = np.array(mass_flow_rate_tot)
 
 x_lim = [0,24]
 
@@ -197,26 +194,26 @@ ax11.plot(weather_file.hourly_data["out_air_db_temperature"][5000 * 2: 5000 * 2 
 ax11_.plot(weather_file.hourly_data["wind_speed"][5000 * 2: 5000 * 2 + ts_to_sim])
 ax11.set_ylabel("Zone temperature [°C]")
 ax11.set_xlim(x_lim)
-ax12.hlines(wall_south._h_bottom_windows, xmin=0, xmax=len(z_n_tot)-1,color = "b")
-ax12.hlines(wall_south._h_top_windows, xmin=0, xmax=len(z_n_tot)-1,color = "k")
-ax12.plot(z_n_tot, color = "r")
-ax12.set_ylabel("Neutral plane height\n[-----]")
-ax12.set_xlim(x_lim)
+# ax12.hlines(wall_south._h_bottom_windows, xmin=0, xmax=len(z_n_tot)-1,color = "b")
+# ax12.hlines(wall_south._h_top_windows, xmin=0, xmax=len(z_n_tot)-1,color = "k")
+# ax12.plot(z_n_tot, color = "r")
+# ax12.set_ylabel("Neutral plane height\n[-----]")
+# ax12.set_xlim(x_lim)
 
 
-ax13.plot(vol_flow_rate_tot[:,0], color = "b")
-ax13.plot(vol_flow_rate_tot[:,1], color = "r")
-ax13.set_ylim([-0.04,0.04])
+#ax13.plot(vol_flow_rate_tot[:], color = "b")
+#ax13.plot(vol_flow_rate_tot[:,1], color = "r")
+#ax13.set_ylim([-0.04,0.04])
 ax13.set_xlim(x_lim)
-# ax13.plot(vol_flow_rate_sopra_tot, color = "r")
+ax13.plot(mass_flow_rate_tot, color = "r")
 ax13.set_ylabel("Natural ventilation\nmass flow rate [-----]")
 
 
 # ax14.plot(wall_west.wind_pressure_coeff, color = "b")
 # ax14.plot(wall_east.wind_pressure_coeff, color = "k")
-ax14.set_ylabel("Natural ventilation\nmass flow rate [-----]")
+# ax14.set_ylabel("Natural ventilation\nmass flow rate [-----]")
 
-print(np.max(np.abs(vol_flow_rate_sopra_tot)))
+# print(np.max(np.abs(vol_flow_rate_sopra_tot)))
 
 
 
