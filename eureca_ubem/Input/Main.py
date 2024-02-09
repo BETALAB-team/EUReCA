@@ -26,7 +26,7 @@ city_geojson = City(
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
     shading_calculation=True,
-    building_model = "1C",
+    building_model = "2C",
     output_folder=os.path.join(".","geojson_corr")
 )
 city_geojson.loads_calculation(region="Veneto")
