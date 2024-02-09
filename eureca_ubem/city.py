@@ -311,7 +311,7 @@ class City():
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
-            building_parts = list(self.cityjson.loc[2].geometry.geoms)
+            building_parts = list(self.cityjson.loc[i].geometry.geoms)
             counter_for_sub_parts = 0
             surf_counter = 0
             footprint_area = 0.
