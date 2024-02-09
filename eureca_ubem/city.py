@@ -291,7 +291,7 @@ class City():
 
         '''
         # Case of GeoJSON file availability:
-        self.cityjson = gpd.read_file(json_path).explode(index_parts=True)
+        self.cityjson = gpd.read_file(json_path)# .explode(index_parts=True)
         if "Simulate" not in self.cityjson.columns:
             self.cityjson["Simulate"] = True
         if "ExtWallCoeff" not in self.cityjson.columns:
@@ -305,105 +305,107 @@ class City():
 
         # Extrusion from the footprint operation
         for i in self.cityjson.index:
-            id = str(self.cityjson.loc[i]['id']) + "_" + str(i[1])
+            id = str(self.cityjson.loc[i]['id'])#  + "_" + str(i[1])
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
-            name = str(bd_data["Name"]) + "_" + str(i[1])
-            g = self.cityjson.loc[i].geometry
+            name = str(bd_data["Name"])#  + "_" + str(i[1])
+            building_parts = list(self.cityjson.loc[i].geometry.geoms)
             counter_for_sub_parts = 0
-            # for g in building_parts:
-            x,y = g.exterior.coords.xy
-            coords = np.dstack((x,y)).tolist()
-            coords=coords[0]
-            coords.pop()
-            build_surf=[]
-            pavimento = []
-            soffitto = []
-            z_pav = 0
-            z_soff = self.cityjson.loc[i]['Height']
-            normal = normal_versor_2(tuple([tuple(coords[n] + [z_pav]) for n in range(len(coords))]))
-            if normal[2] > 0.:
-                # Just to adjust in case of anticlockwise perimeter
-                coords.reverse()
-            for n in range(len(coords)):
-                pavimento.append(tuple(coords[n]+[z_pav]))
-                soffitto.append(tuple(coords[-n]+[z_soff]))
-            for n in range(len(coords)):
-                build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
-                                    tuple(coords[n]+[z_soff]),\
-                                    tuple(coords[n]+[z_pav]),\
-                                    tuple(coords[n-1]+[z_pav])]))
-
-            list_of_int_rings = []
-            area_of_int_rings = []
-            for int_rings in g.interiors:
-                x,y = int_rings.coords.xy
-                coords_int = np.dstack((x,y)).tolist()[0]
-                coords_int.pop()
-                normal = normal_versor_2(tuple([tuple(coords_int[n] + [z_pav]) for n in range(len(coords_int))]))
-                if normal[2] > 0.:
-                    # Just to adjust in case of anticlockwise perimeter
-                    coords_int.reverse()
-                list_of_int_rings.append(tuple(coords_int))
-                area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
-
-                # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
-                for n in range(len(coords_int)):
-                    build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
-                                        tuple(coords_int[n-1]+[z_pav]),\
-                                        tuple(coords_int[n]+[z_pav]),\
-                                        tuple(coords_int[n]+[z_soff]),]))
-
-            build_surf.append(tuple(pavimento))
-            build_surf.append(tuple(soffitto))
-
-            area_of_int_rings = np.array(area_of_int_rings).sum()
-
-            # TODO: implement volume and external wall multiplication coefficients
-            self.rh_net = 1.
-            self.rh_gross = 1.
-
-            # Creation of surfaces
             surf_counter = 0
             footprint_area = 0.
             surfaces_list = []
-            if bd_data["Simulate"]:
-                envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
-            for vertices in build_surf:
-                surface = Surface(
-                        name = f"Bd {name}: surface {surf_counter}",
-                        vertices = vertices,
-                    )
+            for g in building_parts:
+                x,y = g.exterior.coords.xy
+                coords = np.dstack((x,y)).tolist()
+                coords=coords[0]
+                coords.pop()
+                build_surf=[]
+                pavimento = []
+                soffitto = []
+                z_pav = 0
+                z_soff = self.cityjson.loc[i]['Height']
+                normal = normal_versor_2(tuple([tuple(coords[n] + [z_pav]) for n in range(len(coords))]))
+                if normal[2] > 0.:
+                    # Just to adjust in case of anticlockwise perimeter
+                    coords.reverse()
+                for n in range(len(coords)):
+                    pavimento.append(tuple(coords[n]+[z_pav]))
+                    soffitto.append(tuple(coords[-n]+[z_soff]))
+                for n in range(len(coords)):
+                    build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
+                                        tuple(coords[n]+[z_soff]),\
+                                        tuple(coords[n]+[z_pav]),\
+                                        tuple(coords[n-1]+[z_pav])]))
 
-                if surface.surface_type != "GroundFloor":
-                    self.__city_surfaces.append(surface)
+                list_of_int_rings = []
+                area_of_int_rings = []
+                for int_rings in g.interiors:
+                    x,y = int_rings.coords.xy
+                    coords_int = np.dstack((x,y)).tolist()[0]
+                    coords_int.pop()
+                    normal = normal_versor_2(tuple([tuple(coords_int[n] + [z_pav]) for n in range(len(coords_int))]))
+                    if normal[2] > 0.:
+                        # Just to adjust in case of anticlockwise perimeter
+                        coords_int.reverse()
+                    list_of_int_rings.append(tuple(coords_int))
+                    area_of_int_rings.append(shapely.geometry.Polygon(int_rings).area)
 
-                if surface.surface_type in ["GroundFloor","Roof"]:
-                    surface.reduce_area(area_of_int_rings)
+                    # aggiunta delle superfici dei cortili interni nell'edificio (muri verticali)
+                    for n in range(len(coords_int)):
+                        build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
+                                            tuple(coords_int[n-1]+[z_pav]),\
+                                            tuple(coords_int[n]+[z_pav]),\
+                                            tuple(coords_int[n]+[z_soff]),]))
 
-                # TODO: Update wwr calculation
+                build_surf.append(tuple(pavimento))
+                build_surf.append(tuple(soffitto))
 
-                if surface.surface_type == "ExtWall":
-                    surface._wwr = 0.125
+                area_of_int_rings = np.array(area_of_int_rings).sum()
 
+                # TODO: implement volume and external wall multiplication coefficients
+                # self.rh_net = 1.
+                # self.rh_gross = 1.
+
+                # Creation of surfaces
                 if bd_data["Simulate"]:
-                    if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
-                        surface.apply_ext_surf_coeff(bd_data["ExtWallCoeff"])
-                    surface.construction = {
-                        "ExtWall": envelope.external_wall,
-                        "Roof": envelope.roof,
-                        "GroundFloor": envelope.ground_floor,
-                    }[surface.surface_type]
+                    envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
+                for vertices in build_surf:
+                    surface = Surface(
+                            name = f"Bd {name}: surface {surf_counter}",
+                            vertices = vertices,
+                        )
 
-                    surface.window = envelope.window
+                    if surface.surface_type != "GroundFloor":
+                        self.__city_surfaces.append(surface)
 
-                surfaces_list.append(surface)
-                surf_counter += 1
+                    if surface.surface_type in ["GroundFloor","Roof"]:
+                        surface.reduce_area(area_of_int_rings)
 
-                if surface.surface_type == "GroundFloor":
-                    footprint_area += surface._area
+                    # TODO: Update wwr calculation
+
+                    if surface.surface_type == "ExtWall":
+                        surface._wwr = 0.125
+
+                    if bd_data["Simulate"]:
+                        if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
+                            surface.apply_ext_surf_coeff(bd_data["ExtWallCoeff"])
+                        surface.construction = {
+                            "ExtWall": envelope.external_wall,
+                            "Roof": envelope.roof,
+                            "GroundFloor": envelope.ground_floor,
+                        }[surface.surface_type]
+
+                        surface.window = envelope.window
+
+                    surfaces_list.append(surface)
+                    surf_counter += 1
+
+                    if surface.surface_type == "GroundFloor":
+                        footprint_area += surface._area
+
+                    counter_for_sub_parts += 1
 
             if bd_data["Simulate"]:
                 # Add internal walls and ceilings 3.3 m height
