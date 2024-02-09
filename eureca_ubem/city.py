@@ -454,7 +454,7 @@ class City():
                                                               model=self.building_model)
 
         # Geometric preprocessing
-        # self.geometric_preprocessing()
+        self.geometric_preprocessing()
 
         for bd_k, bd in self.buildings_objects.items():
             thermal_zone = bd._thermal_zones_list[0]
