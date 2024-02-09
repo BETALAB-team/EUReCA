@@ -407,4 +407,3 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         return x_opt, fmin, residuals, nfev, opt.message, opt.status
 
 
-
