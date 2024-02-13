@@ -25,6 +25,7 @@ setup(
         "pyclipper",
         "scipy",
         "openpyxl",
+        "requests",
         "pyarrow",
         "xlrd",
         "pvlib",

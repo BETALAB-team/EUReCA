@@ -8,8 +8,10 @@ __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
 import logging
+import io
 
 import pvlib
+import requests
 import numpy as np
 import pandas as pd
 
@@ -55,6 +57,8 @@ class WeatherFile():
         # Importing and processing weather data from .epw
         try:
             epw = pvlib.iotools.read_epw(epw, coerce_year=year)  # Reading the epw via pvlib
+        except OSError:
+            epw = pvlib.iotools.parse_epw(epw)
         except FileNotFoundError:
             raise FileNotFoundError \
                 (f"ERROR Weather epw file not found in the Input folder.")
@@ -189,6 +193,43 @@ class WeatherFile():
         self.hourly_data_irradiances[0][0]['direct'] = POA['POA_B'].values
         self.hourly_data_irradiances[0][0]['AOI'] = POA['AOI'].values
 
+    @classmethod
+    def from_pvgis(cls,
+                   lat: float,
+                   long: float,
+                   country = None,
+                   city = None,
+                   year=None,
+                   time_steps: int = 1,
+                   irradiances_calculation: bool = True,
+                   azimuth_subdivisions: int = 8,
+                   height_subdivisions: int = 3,
+                   urban_shading_tol=[80., 100., 80.]
+        ):
+
+        api_url = f'https://re.jrc.ec.europa.eu/api/v5_2/tmy?lat={lat:.4f}&lon={long:.4f}&outputformat=epw'
+
+        response = requests.get(api_url).content.decode()
+        loc = "unknown" if city == None else city
+        ctr = "unknown" if country == None else country
+        response = response.replace("LOCATION,unknown,-,unknown", f"LOCATION,{loc},-,{ctr}")
+        # with open("test_epw.epw", 'w') as f:
+        #     f.write("\n".join(response.splitlines()))
+
+        w = cls(
+            io.StringIO(response),
+            year=None,
+            time_steps= time_steps,
+            irradiances_calculation = irradiances_calculation,
+            azimuth_subdivisions = azimuth_subdivisions,
+            height_subdivisions = height_subdivisions,
+            urban_shading_tol = urban_shading_tol
+        )
+
+        return w
+
+
+
 
 def _TskyCalc(T_ext, T_dp, P_, n_opaque, time_steps):
     '''Apparent sky temperature calculation procedure
@@ -300,3 +341,31 @@ def _get_irradiance(weather_obj, surf_tilt, surf_az):
                          'POA_D': POA_irradiance['poa_global'] - POA_irradiance['poa_direct'],
                          'AOI': AOI,
                          'solar zenith': weather_obj.hourly_data["solar_position_apparent_zenith"]})
+
+if __name__ == "__main__":
+    lat = 45.234
+    long = 11.154
+    country = "Italia"
+    city = "Venezia"
+    api_url = f'https://re.jrc.ec.europa.eu/api/v5_2/tmy?lat={lat:.4f}&lon={long:.4f}&outputformat=epw'
+
+    response = requests.get(api_url).content.decode()
+    loc = "unknown" if city == None else city
+    ctr = "unknown" if country == None else country
+    response = response.replace("LOCATION,unknown,-,unknown", f"LOCATION,{loc},-,{ctr}")
+    # with open("test_epw.epw", 'w')as f:
+    #     f.write("\n".join(response.splitlines()))
+
+    epw = pvlib.iotools.parse_epw(io.StringIO(response))  # Reading the epw via pvlib
+
+    w = WeatherFile.from_pvgis(
+                   lat= 45.124,
+                   long= 11.124,
+                   country = "Italy",
+                   city = "Venice",
+        year=None,
+        time_steps=1,
+        irradiances_calculation=True,
+        azimuth_subdivisions=10,
+        height_subdivisions=4,
+    )
