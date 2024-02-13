@@ -38,7 +38,7 @@ class TestSchedule:
         Schedule(
             "Temperature1",
             "temperature",
-            np.random.rand(8760) + 10,
+            np.random.rand(8760*4-3) + 10,
         )
 
     def test_schedule_2(self):
@@ -47,7 +47,7 @@ class TestSchedule:
             Schedule(
                 "Temperature1",
                 "temperature",
-                np.random.rand(8760) + 10,
+                np.random.rand(8760*4-3) + 10,
                 upper_limit=5,
                 lower_limit=-10,
             )
@@ -71,7 +71,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760 / 4)),
+            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
             upper_limit=1.,
             lower_limit=0.,
         )
@@ -98,7 +98,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760 / 4)),
+            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
         )
 
         people1 = People(
@@ -129,7 +129,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760 / 4)),
+            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
         )
 
         people1 = People(
@@ -170,7 +170,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760 / 4)),
+            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
         )
 
         el1 = ElectricLoad(

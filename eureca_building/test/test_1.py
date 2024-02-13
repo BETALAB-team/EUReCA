@@ -213,7 +213,7 @@ class TestSurface:
     """
 
     def test_creation_of_surface_zero(self):
-        surf = Surface("Surface 1")
+        surf = Surface("Surface 1", vertices=((0, 0, 0), (0, 1, 1), (0, 1, 2),))
         print(surf._vertices)
 
     def test_creation_of_surface(self):

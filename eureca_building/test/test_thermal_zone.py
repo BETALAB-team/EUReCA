@@ -57,7 +57,7 @@ class TestWeatherFile:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        WeatherFile(path, azimuth_subdivisions=6, height_subdivisions=2)
+        WeatherFile(path, time_steps= 4, azimuth_subdivisions=6, height_subdivisions=2)
 
 
 class TestThermalZone:
