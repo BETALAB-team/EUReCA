@@ -11,7 +11,7 @@ __maintainer__ = "Enrico Prataviera"
 import os
 from eureca_building.config import load_config
 
-config_path = os.path.join('.', 'eureca_building', 'test', 'config.ini')
+config_path = os.path.join('.', 'eureca_building', 'test', 'config.json')
 load_config(config_path)
 from eureca_building.config import CONFIG
 
@@ -38,7 +38,7 @@ class TestSchedule:
         Schedule(
             "Temperature1",
             "temperature",
-            np.random.rand(8760*4-3) + 10,
+            np.random.rand(CONFIG.number_of_time_steps_year) + 10,
         )
 
     def test_schedule_2(self):
@@ -71,7 +71,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
+            np.array([0.1, .2, .3, .5] * int(CONFIG.number_of_time_steps_year / 4+ 1))[:-CONFIG.ts_per_hour + 1],
             upper_limit=1.,
             lower_limit=0.,
         )
@@ -98,7 +98,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
+            np.array([0.1, .2, .3, .5] * int(CONFIG.number_of_time_steps_year / 4+ 1))[:-CONFIG.ts_per_hour + 1],
         )
 
         people1 = People(
@@ -129,7 +129,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
+            np.array([0.1, .2, .3, .5] * int(CONFIG.number_of_time_steps_year / 4+ 1))[:-CONFIG.ts_per_hour + 1],
         )
 
         people1 = People(
@@ -170,7 +170,7 @@ class TestInternalHeatGains:
         sched = Schedule(
             "Percent1",
             "percent",
-            np.array([0.1, .2, .3, .5] * int(8760*4 / 4))[:-3],
+            np.array([0.1, .2, .3, .5] * int(CONFIG.number_of_time_steps_year / 4 + 1))[:-CONFIG.ts_per_hour + 1],
         )
 
         el1 = ElectricLoad(

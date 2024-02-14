@@ -28,19 +28,188 @@ from eureca_building.exceptions import (
     PropertyOutsideBoundaries
 )
 
-#%%---------------------------------------------------------------------------------------------------
-# AHU class
-class AirHandlingUnit:
-    '''This class manages the air handling unit.
-    Some general variables are set as class variables while the __init__ memorizes the inputs
+class _BaseAirHandlingUnit:
+    '''This class is a class to be inherited by different Mechanical Ventilation Unit objects.
+    Some generic methods are stored
     '''
 
-    
     # Class Variables
     cp_air = air_properties["specific_heat"]         # [J/(kg K)]
+    rho_air = air_properties["density"]              # [kg/m3]
     p_atm = air_properties["atmospheric_pressure"]   # [Pa]
     r_0 = vapour_properties["latent_heat"]           # [J/kg]
     cpv = vapour_properties["specific_heat"]         # [J/(kg K)]
+
+    def checkSatCond(self, temp, x, p):
+        '''
+        Check Saturation Condition
+
+        This function takes as inputs temperature [°C] and humidity ratio
+        [kg_vap/kg_as] to check if a point is outside saturation conditions
+
+        Parameters
+        ----------
+        temp : float
+            Temperature [°C]
+        x : float
+            Specific Humidity [kg_vap/kg_as].
+        p : float
+            Pressure [Pa].
+
+        Returns
+        -------
+        tuple
+            boolean (wheter saturation is reached), and Saturation Pressure [Pa].
+
+        '''
+
+        # Check input data type
+
+        if not isinstance(temp, float):
+            raise TypeError(f'ERROR input T is not an interger: T {temp}')
+        if not isinstance(x, float):
+            raise TypeError(f'ERROR input x is not an interger: x {x}')
+
+        # Control input data quality
+        # if temp < -40 or temp > 70:
+        #     logging.warning(
+        #         f"WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {temp}"
+        #     )
+        # if x < 0.0005 or x > 0.040:
+        #     logging.warning(f"WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}")
+
+        # Is or not outside the saturation condition? True/False
+        pp = p * x / (0.622 + x)
+        if temp < 0:
+            psat = 610.5 * np.exp((21.875 * temp) / (265.5 + temp))
+        else:
+            psat = 610.5 * np.exp((17.269 * temp) / (237.3 + temp))
+        if pp - psat > 0.01:
+            sat_cond = False
+        else:
+            sat_cond = True
+        return sat_cond, psat
+
+    def electric_consumption_based_on_mass_flow_rate(self, mass_flow):
+        """
+        ######################## Warning #############################
+        Typical electric consumption from catalogue data.
+        This method calculates a very rough estimation
+        of the electric consumption based on the mass flow rate.
+        It does not account for real pressure drops or other phenomena
+
+        Parameters
+        ----------
+        mass_flow : numpy.array
+            ventialation mass flow rate [kg/s]
+
+        Returns
+        -------
+        np.array
+            consumption [W].
+        """
+
+        vol_flow_m3_h = mass_flow / self.rho_air * 3600
+        # consumption_W = -3E-05 * vol_flow_m3_h ** 2 + 0.5251 * vol_flow_m3_h + 8.0258
+        consumption_W = 0.4176*vol_flow_m3_h + 54.377
+        return consumption_W
+
+    def properties(self):
+            """ Just a function to print the memorized conditions
+            """
+            return f"""
+    HR :\tT {self._chart_T_hr:.1f} °C,\tx {self._chart_x_hr:.5f} kg/kg,\th {self.h_hr:.1f} J/kg
+    MIX:\tT {self._chart_T_mix:.1f} °C,\tx {self._chart_x_mix:.5f} kg/kg,\th {self.h_mix:.1f} J/kg
+    PRE:\tT {self._chart_T_preh_deu:.1f} °C,\tx {self._chart_x_preh_deu:.5f} kg/kg,\th {self.h_ph:.1f} J/kg
+    AS :\tT {self._chart_T_as:.1f} °C,\tx {self._chart_x_as:.5f} kg/kg,\th {self.h_as:.1f} J/kg
+    SUP:\tT {self._chart_T_posth:.1f} °C,\tx {self._chart_x_posth:.5f} kg/kg,\th {self.h_sup:.1f} J/kg
+
+    AHU_SENS:\t{self.AHU_demand_sens} W
+    AHU_LAT:\t{self.AHU_demand_lat} W
+    AHU_TOT:\t{self.AHU_demand} W
+            """
+
+        # %%---------------------------------------------------------------------------------------------------
+        # %%
+
+    def _psychro_plot(self):
+        """ Just a function to get a psychrometric chart (internal use only)
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
+        fig, ax = plt.subplots()
+        ax.set_ylabel("Specific Humidity [" + "$g_{v}/kg_{da}$" + "]")
+        ax.set_xlabel("Temperature [" + "$°C$" + "]")
+        ax.set_xlim(-10, 45)
+        ax.set_ylim(0, 30)
+        ax.set_title("Psychrometric chart")
+        t = np.arange(-10, 46, 1)
+        p_sat = 6.1094 * np.exp(17.625 * t / (t + 243.04)) * 100
+        for ur in np.arange(0.1, 1.1, 0.1):
+            p = p_sat * ur
+            sh = 0.622 * (p / (101325 - p)) * 1000
+            ax.plot(t, sh, 'k-', linewidth=0.3)
+            x_text = min([t[-1] - 5, 35])
+            y_text = min([sh[-1] - 2, 28])
+
+        ax.text(27.7, 26.9, f"100%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(30.5, 23.7, f"80%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(32.5, 20., f"60%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(34.5, 14.5, f"40%", backgroundcolor="white", fontsize=6, ma="center")
+        ax.text(35.8, 8, f"20%", backgroundcolor="white", fontsize=6, ma="center")
+
+        x_text, y_text = -9., 3.5
+
+        for h in np.arange(0., 200., 10.):
+            x = (h - 1.006 * t) / (1.86 * t + 2501) * 1000
+            ax.plot(t, x, 'k:', linewidth=0.3)
+            if y_text < 30.:
+                ax.text(x_text, y_text, f"{h:.0f}" + " [" + "$kJ/kg_{da}$" + "]", backgroundcolor="white",
+                        fontsize=6)
+            x_text += 3
+            y_text += 2.7
+
+        self._psychro_chart = (fig, ax)
+
+    def print_psychro_chart(self):
+        """ Just a function to print the psychrometric chart with current transformations
+        """
+        if not hasattr(self, '_psychro_chart'):
+            self._psychro_plot()
+
+        fig, ax = self._psychro_chart
+
+        self.values = np.array([
+            [self._chart_T_ext, self._chart_x_ext * 1000],
+            [self._chart_T_hr, self._chart_x_hr * 1000],
+            [self._chart_T_mix, self._chart_x_mix * 1000],
+            [self._chart_T_preh_deu, self._chart_x_preh_deu * 1000],
+            [self._chart_T_as, self._chart_x_as * 1000],
+            [self._chart_T_posth, self._chart_x_posth * 1000]])
+
+        self.values_tz = np.array([
+            [self._chart_T_zone, self._chart_x_zone * 1000],
+            [self._chart_T_mix, self._chart_x_mix * 1000]
+        ])
+
+        ax.plot(self.values[:, 0], self.values[:, 1], 'r-o', fillstyle="none")
+        ax.plot(self.values_tz[:, 0], self.values_tz[:, 1], 'k--o', linewidth=0.6, fillstyle="none")
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
+        plt.show()
+
+#%%---------------------------------------------------------------------------------------------------
+# AHU class
+class AirHandlingUnit(_BaseAirHandlingUnit):
+    '''This class manages the air handling unit.
+    Some general variables are set as class variables while the __init__ memorizes the inputs
+    '''
     
     def __init__(self,
                  name: str,
@@ -114,6 +283,7 @@ class AirHandlingUnit:
 
 
         self.air_flow_rate_kg_S, self.vapour_flow_rate_kg_S = self.mechanical_ventilation.get_flow_rate(weather, volume = thermal_zone._volume, area = thermal_zone._net_floor_area)
+        self.electric_consumption_W = self.electric_consumption_based_on_mass_flow_rate(self.air_flow_rate_kg_S)
 
         # Association of AHU to thermal zone
         try:
@@ -617,138 +787,201 @@ class AirHandlingUnit:
             else:
                 sys.exit('AHUOnOff value not allowed at time step: '+str(t))
 
-    def properties(self):
-        """ Just a function to print the memorized conditions
-        """
-        return f"""
-HR :\tT {self._chart_T_hr:.1f} °C,\tx {self._chart_x_hr:.5f} kg/kg,\th {self.h_hr:.1f} J/kg
-MIX:\tT {self._chart_T_mix:.1f} °C,\tx {self._chart_x_mix:.5f} kg/kg,\th {self.h_mix:.1f} J/kg
-PRE:\tT {self._chart_T_preh_deu:.1f} °C,\tx {self._chart_x_preh_deu:.5f} kg/kg,\th {self.h_ph:.1f} J/kg
-AS :\tT {self._chart_T_as:.1f} °C,\tx {self._chart_x_as:.5f} kg/kg,\th {self.h_as:.1f} J/kg
-SUP:\tT {self._chart_T_posth:.1f} °C,\tx {self._chart_x_posth:.5f} kg/kg,\th {self.h_sup:.1f} J/kg
+# %%---------------------------------------------------------------------------------------------------
+# AHU class
+class HeatRecoveryUnit(_BaseAirHandlingUnit):
+    '''This class manages a heat recovery unit (only fans and heat recovery, without active heating/cooling of air.
+    '''
 
-AHU_SENS:\t{self.AHU_demand_sens} W
-AHU_LAT:\t{self.AHU_demand_lat} W
-AHU_TOT:\t{self.AHU_demand} W
-        """
-#%%--------------------------------------------------------------------------------------------------- 
-#%%
+    def __init__(self,
+                 name: str,
+                 mechanical_vent: MechanicalVentilation,
+                 sensible_heat_recovery_eff: float,
+                 latent_heat_recovery_eff: float,
+                 weather: WeatherFile,
+                 thermal_zone,
 
-    def checkSatCond(self, temp, x, p):
-        '''
-        Check Saturation Condition
+                 tag: str = None,
+                 ):
+        """Heat recovery unit Constructor: creates the HRU object and memorizes the attributes (using properties set methods tho check types)
 
-        This function takes as inputs temperature [°C] and humidity ratio
-        [kg_vap/kg_as] to check if a point is outside saturation conditions
 
         Parameters
         ----------
-        temp : float
-            Temperature [°C]
-        x : float
-            Specific Humidity [kg_vap/kg_as].
-        p : float
-            Pressure [Pa].
+        name : str
+            name of the Air Handling Unit
+        mechanical_vent : eureca_building.ventilation.MechanicalVentilation
+            ventialation object to define air flow rate
+        sensible_heat_recovery_eff : float
+            sensible heat recovery efficiency, must be between 0 and 1
+        latent_heat_recovery_eff : float
+            sensible heat recovery efficiency, must be between 0 and 1
+        weather : eureca_building.weather.WeatherFile
+            Weather object
+        thermal_zone : eureca_building.thermal_zone.ThermalZone
+            ThermalZone object
+        tag : str
+            possible tags
 
-        Returns
-        -------
-        tuple
-            boolean (wheter saturation is reached), and Saturation Pressure [Pa].
-
-        '''
+        Raises
+        ------
+        TypeError
+            checks the input type
+        ValueError
+            checks the input type
+        """
 
         # Check input data type
 
-        if not isinstance(temp, float):
-            raise TypeError(f'ERROR input T is not an interger: T {temp}')
-        if not isinstance(x, float):
-            raise TypeError(f'ERROR input x is not an interger: x {x}')
+        if not isinstance(name, str):
+            raise TypeError(f'ERROR AHU inizialization, name must be an string: Name {name}')
 
-        # Control input data quality
-        # if temp < -40 or temp > 70:
-        #     logging.warning(
-        #         f"WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {temp}"
-        #     )
-        # if x < 0.0005 or x > 0.040:
-        #     logging.warning(f"WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}")
+        # Inizialization
+        self.ahu_name = name
+        self.mechanical_ventilation = mechanical_vent
+        self.sensible_heat_recovery_eff = sensible_heat_recovery_eff
+        self.latent_heat_recovery_eff = latent_heat_recovery_eff
+        self.tag = tag
 
-        # Is or not outside the saturation condition? True/False
-        pp = p * x / (0.622 + x)
-        if temp < 0:
-            psat = 610.5 * np.exp((21.875 * temp) / (265.5 + temp))
-        else:
-            psat = 610.5 * np.exp((17.269 * temp) / (237.3 + temp))
-        if pp - psat > 0.01:
-            sat_cond = False
-        else:
-            sat_cond = True
-        return sat_cond, psat
+        self.air_flow_rate_kg_S, self.vapour_flow_rate_kg_S = self.mechanical_ventilation.get_flow_rate(weather,
+                                                                                                        volume=thermal_zone._volume,
+                                                                                                        area=thermal_zone._net_floor_area)
+        self.electric_consumption_W = self.electric_consumption_based_on_mass_flow_rate(self.air_flow_rate_kg_S)
 
-    def _psychro_plot(self):
-        """ Just a function to get a psychrometric chart (internal use only)
-        """
+        # Association of AHU to thermal zone
         try:
-            import matplotlib.pyplot as plt
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError("To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
-        fig, ax = plt.subplots()
-        ax.set_ylabel("Specific Humidity [" + "$g_{v}/kg_{da}$" + "]")
-        ax.set_xlabel("Temperature [" + "$°C$" + "]")
-        ax.set_xlim(-10, 45)
-        ax.set_ylim(0, 30)
-        ax.set_title("Psychrometric chart")
-        t = np.arange(-10, 46, 1)
-        p_sat = 6.1094 * np.exp(17.625 * t / (t + 243.04)) * 100
-        for ur in np.arange(0.1, 1.1, 0.1):
-            p = p_sat * ur
-            sh = 0.622 * (p / (101325 - p)) * 1000
-            ax.plot(t, sh, 'k-', linewidth=0.3)
-            x_text = min([t[-1] - 5, 35])
-            y_text = min([sh[-1] - 2, 28])
+            thermal_zone.add_air_handling_unit(self, weather)
+        except AttributeError:
+            raise TypeError(
+                f'ERROR AHU inizialization, thermal zone must be an ThermalZone object: thermal_zone {type(thermal_zone)}')
 
-        ax.text(27.7, 26.9, f"100%", backgroundcolor="white", fontsize=6, ma="center")
-        ax.text(30.5, 23.7, f"80%", backgroundcolor="white", fontsize=6, ma="center")
-        ax.text(32.5, 20., f"60%", backgroundcolor="white", fontsize=6, ma="center")
-        ax.text(34.5, 14.5, f"40%", backgroundcolor="white", fontsize=6, ma="center")
-        ax.text(35.8, 8, f"20%", backgroundcolor="white", fontsize=6, ma="center")
+    @property
+    def sensible_heat_recovery_eff(self):
+        return self._sensible_heat_recovery_eff
 
-        x_text, y_text = -9., 3.5
+    @sensible_heat_recovery_eff.setter
+    def sensible_heat_recovery_eff(self, value):
+        if not isinstance(value, float):
+            raise ValueError(
+                f"Air Handling Unit object {self.ahu_name}, sensible_heat_recovery_eff not float: {type(value)}")
+        if value > 1. or value < 0.:
+            raise PropertyOutsideBoundaries(
+                f"Air Handling Unit object {self.ahu_name}, sensible_heat_recovery_eff in range [0.,1]: {type(value)}")
 
-        for h in np.arange(0., 200., 10.):
-            x = (h - 1.006 * t) / (1.86 * t + 2501) * 1000
-            ax.plot(t, x, 'k:', linewidth=0.3)
-            if y_text < 30.:
-                ax.text(x_text, y_text, f"{h:.0f}" + " [" + "$kJ/kg_{da}$" + "]", backgroundcolor="white", fontsize=6)
-            x_text += 3
-            y_text += 2.7
+        self._sensible_heat_recovery_eff = value
 
-        self._psychro_chart = (fig, ax)
+    @property
+    def latent_heat_recovery_eff(self):
+        return self._latent_heat_recovery_eff
 
-    def print_psychro_chart(self):
-        """ Just a function to print the psychrometric chart with current transformations
+    @latent_heat_recovery_eff.setter
+    def latent_heat_recovery_eff(self, value):
+        if not isinstance(value, float):
+            raise ValueError(
+                f"Air Handling Unit object {self.ahu_name}, latent_heat_recovery_eff not float: {type(value)}")
+        if value > 1. or value < 0.:
+            raise PropertyOutsideBoundaries(
+                f"Air Handling Unit object {self.ahu_name}, latent_heat_recovery_eff in range [0.,1]: {type(value)}")
+
+        self._latent_heat_recovery_eff = value
+
+    def air_handling_unit_calc(self,
+                               t,
+                               weather,
+                               T_int,
+                               x_int,
+                               ):
+        """Solution of the time step calculation. It uses outdoor conditions (from WeatherFile), and zone conditions (from zone)
+
+        Parameters
+        ----------
+        t : int
+            timestep: int [-]
+        weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        T_int : float
+            zone internal temperature: float [°C]
+        x_int : float
+            zone internal specific humidity: float [kg_v/kg_da]
+
+
         """
-        if not hasattr(self, '_psychro_chart'):
-            self._psychro_plot()
 
-        fig, ax = self._psychro_chart
+        # Check input data type
 
-        self.values = np.array([
-        [self._chart_T_ext, self._chart_x_ext*1000],
-        [self._chart_T_hr, self._chart_x_hr*1000],
-        [self._chart_T_mix, self._chart_x_mix*1000],
-        [self._chart_T_preh_deu, self._chart_x_preh_deu*1000],
-        [self._chart_T_as, self._chart_x_as*1000],
-        [self._chart_T_posth, self._chart_x_posth*1000]])
+        if not isinstance(t, int):
+            raise TypeError(f'ERROR AHUCalc, bd {self.ahu_name}, time step {t}, input t is not an interger: t {t}')
 
-        self.values_tz = np.array([
-        [self._chart_T_zone, self._chart_x_zone*1000],
-        [self._chart_T_mix, self._chart_x_mix*1000]
-        ])
+        T_ext = weather.hourly_data['out_air_db_temperature'][t]
+        x_ext = weather.hourly_data['out_air_specific_humidity'][t]
 
-        ax.plot(self.values[:,0], self.values[:,1], 'r-o', fillstyle="none")
-        ax.plot(self.values_tz[:,0], self.values_tz[:,1], 'k--o',linewidth = 0.6,  fillstyle="none")
-        try:
-            import matplotlib.pyplot as plt
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError("To run the AirHandlingUnit._psychro_plot you need to install matplotlib package")
-        plt.show()
+        self._chart_T_ext, self._chart_x_ext = T_ext, x_ext
+        self._chart_T_zone, self._chart_x_zone = T_int, x_int
+
+        m_vent = self.air_flow_rate_kg_S[t]
+
+        # Saturation conditions check
+        sat_cond, psat = self.checkSatCond(T_ext, x_ext, self.p_atm)
+        if sat_cond == False:
+            x_ext = 0.99 * 0.622 * psat / (self.p_atm - 0.99 * psat)
+        sat_cond, psat = self.checkSatCond(T_int, x_int, self.p_atm)
+        if sat_cond == False:
+            logging.warning(
+                f'ERROR  HRUCalc method, bd {self.ahu_name}, time step {t}, Zone conditions outside saturation limit')
+
+        # Pre-processing on Heat Recovery and Mixer
+        # Enthalpy in J/(kg)
+        self.h_ext = self.cp_air * T_ext + (self.r_0 + self.cpv * T_ext) * x_ext
+        self.h_z = self.cp_air * T_int + (self.r_0 + self.cpv * T_int) * x_int
+
+        # Heat Recovery Bypass in condition of free heating or cooling
+        self.T_hr = T_ext + self.sensible_heat_recovery_eff * (T_int - T_ext)
+        self.T_out = T_int - self.sensible_heat_recovery_eff * (T_int - T_ext)
+        self.x_hr = x_ext + self.latent_heat_recovery_eff * (x_int - x_ext)
+        # Enthalpy in J/(kg)
+        self.h_hr = self.cp_air * self.T_hr + (self.r_0 + self.cpv * self.T_hr) * self.x_hr
+
+        # Mixer
+        # Enthalpy in J/(kg)
+        self.h_mix = self.h_hr
+        self.x_mix = self.x_hr
+        self.T_mix = self.T_hr
+
+        self.h_ph = self.h_hr
+        self.x_ph = self.x_hr
+        self.T_ph = self.T_hr
+
+        self.h_as = self.h_hr
+        self.x_as = self.x_hr
+        self.T_as = self.T_hr
+
+        self.h_sup = self.h_hr
+        self.x_sup = self.x_hr
+        self.T_sup = self.T_hr
+
+        # Batteries Demand [W]
+        # Pre-Heater
+        self.preh_deu_Dem = m_vent * (self.h_ph - self.h_mix)
+        self.preh_deu_Dem_sens = m_vent * self.cp_air * (self.T_ph - self.T_mix)
+        self.preh_deu_Dem_lat = m_vent * self.r_0 * (self.x_ph - self.x_mix)
+        # Adiabatic Saturator
+        self.sat_Dem = m_vent * (self.h_as - self.h_ph)
+        self.sat_Dem_lat = m_vent * self.r_0 * (self.x_as - self.x_ph)
+        self.sat_Dem_sens = self.sat_Dem - self.sat_Dem_lat
+        # Post-Heater
+        self.posth_Dem = m_vent * (self.h_sup - self.h_as)
+        self.posth_Dem_sens = m_vent * self.cp_air * (self.T_sup - self.T_as)
+        self.posth_Dem_lat = m_vent * self.r_0 * (self.x_sup - self.x_as)
+        # Total Demand
+        self.AHU_demand = self.preh_deu_Dem + self.sat_Dem + self.posth_Dem
+        self.AHU_demand_sens = self.preh_deu_Dem_sens + self.sat_Dem_sens + self.posth_Dem_sens
+        self.AHU_demand_lat = self.preh_deu_Dem_lat + self.sat_Dem_lat + self.posth_Dem_lat
+
+        # Conditions for chart
+        self._chart_T_hr, self._chart_x_hr = self.T_hr, self.x_hr
+        self._chart_T_mix, self._chart_x_mix = self.T_mix, self.x_mix
+        self._chart_T_preh_deu, self._chart_x_preh_deu = self.T_ph, self.x_ph
+        self._chart_T_as, self._chart_x_as = self.T_as, self.x_as
+        self._chart_T_posth, self._chart_x_posth = self.T_sup, self.x_sup
+
+
