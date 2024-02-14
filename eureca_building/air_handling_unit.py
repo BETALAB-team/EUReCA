@@ -111,7 +111,8 @@ class _BaseAirHandlingUnit:
 
         vol_flow_m3_h = mass_flow / self.rho_air * 3600
         # consumption_W = -3E-05 * vol_flow_m3_h ** 2 + 0.5251 * vol_flow_m3_h + 8.0258
-        consumption_W = 0.4176*vol_flow_m3_h + 54.377
+        # consumption_W = 0.4176*vol_flow_m3_h + 54.377
+        consumption_W = 0.4434 * vol_flow_m3_h
         return consumption_W
 
     def properties(self):

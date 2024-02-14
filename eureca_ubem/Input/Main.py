@@ -30,7 +30,7 @@ city_geojson = City(
     output_folder=os.path.join(".","geojson_corr")
 )
 city_geojson.loads_calculation(region="Veneto")
-city_geojson.simulate(print_single_building_results=True)
+city_geojson.simulate(print_single_building_results=True, output_type="csv")
 
 # #
 # materials_file = os.path.join(".","total envelope types.xlsx")
