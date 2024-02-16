@@ -120,6 +120,8 @@ class IdealLoad(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -182,6 +184,8 @@ class CondensingBoiler(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -341,6 +345,8 @@ class TraditionalBoiler(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -508,6 +514,8 @@ class SplitAirCooler(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -719,6 +727,8 @@ class ChillerAirtoWater(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -918,6 +928,8 @@ class SplitAirConditioner(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1045,6 +1057,8 @@ class Heating_EN15316(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1136,6 +1150,12 @@ class Heating_EN15316(System):
         if "Oil" in self.generation_type:
             self.oil_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Oil"]
             self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
+        elif "Coal" in self.generation_type:
+            self.coal_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Coal"]
+            self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
+        elif "District Heating" in self.generation_type:
+            self.DH_consumption = total_energy / CONFIG.ts_per_hour
+            self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
         elif "Stove" in self.generation_type:
             self.wood_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Wood"]
             self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
@@ -1154,6 +1174,8 @@ class Cooling_EN15316(System):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1251,6 +1273,12 @@ hvac_heating_systems_classes = {
     "Condensing Gas Boiler, Single, Radiant surface":Heating_EN15316,
     "Oil Boiler, Centralized, High Temp Radiator":Heating_EN15316,
     "Oil Boiler, Single, High Temp Radiator":Heating_EN15316,
+    "Coal Heater, Centralized, High Temp Radiator":Heating_EN15316,
+    "Coal Heater, Single, High Temp Radiator":Heating_EN15316,
+    "District Heating, Centralized, High Temp Radiator":Heating_EN15316,
+    "District Heating, Centralized, Low Temp Radiator":Heating_EN15316,
+    "District Heating, Centralized, Fan coil":Heating_EN15316,
+    "District Heating, Centralized, Radiant surface":Heating_EN15316,
     "Stove":Heating_EN15316,
     "A-W Heat Pump, Centralized, Low Temp Radiator":Heating_EN15316,
     "A-W Heat Pump, Single, Low Temp Radiator":Heating_EN15316,
