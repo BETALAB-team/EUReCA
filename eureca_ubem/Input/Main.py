@@ -30,7 +30,22 @@ city_geojson = City(
     output_folder=os.path.join(".","geojson_corr")
 )
 city_geojson.loads_calculation()
-city_geojson.calibrate(print_single_building_results=False)
+city_geojson.simulate(print_single_building_results=True, output_type="csv")
+
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    shading_calculation=True,
+    building_model = "1C",
+    output_folder=os.path.join(".","geojson_corr_cal")
+)
+city_geojson.loads_calculation()
+# city_geojson.simulate(print_single_building_results=True, output_type="csv")
+city_geojson.calibrate(print_single_building_results=False, output_type="csv")
+
+
 
 # #
 # materials_file = os.path.join(".","total envelope types.xlsx")

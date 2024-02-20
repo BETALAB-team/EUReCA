@@ -357,6 +357,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             "2C": self._thermal_zones_list[0]._VDI6007_params,
         }[self._model]()
 
+        {
+            "1C": self._thermal_zones_list[0].calculate_zone_loads_ISO13790,
+            "2C": self._thermal_zones_list[0].calculate_zone_loads_VDI6007,
+        }[self._model](weather)
+
+
+
         delta_T = t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule.max()
         set = copy.deepcopy(self._thermal_zones_list[0].temperature_setpoint)
         self._thermal_zones_list[0].temperature_setpoint = set

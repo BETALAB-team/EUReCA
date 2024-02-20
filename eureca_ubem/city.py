@@ -461,7 +461,7 @@ class City():
                 "2C": thermal_zone._VDI6007_params,
             }[self.building_model]()
 
-    def loads_calculation(self, region = None):
+    def loads_calculation(self, region = None,  ext_wall_coef = None, t_set = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
         
@@ -513,6 +513,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 "2C": tz.calculate_zone_loads_VDI6007
             }[self.building_model](self.weather_file)
 
+            np.replace = use.zone_system['temperature_setpoint'].schedule_lower
+
             tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
             tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
 
@@ -543,6 +545,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
             # print(f"{int(100*iiii/jjjj)} %: load calc")
+
+            if t_set is not None and ext_wall_coef is not None:
+                building_obj.update_wall_factor_and_setpoint(ext_wall_coef[bd_id], t_set[bd_id], self.weather_file)
+
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
@@ -1218,7 +1224,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     #         i = i + 1
     #         x = x + 1
 
-    def calibrate(self, print_single_building_results=False, output_type="parquet"):
+    def calibrate(self, print_single_building_results=False, output_type="parquet",
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]):
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -1268,7 +1276,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"],
-                                                                  self.weather_file)
+                                                                  self.weather_file,
+                                                                  limits_setpoint=limits_setpoint,
+                                                                  limits_fwalls=limits_fwalls
+                                                                  )
                 self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0],cal_res[0][1], self.weather_file)
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder,
                                                                   output_type=output_type)
@@ -1280,7 +1291,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info["Calibration iterations"] = cal_res[3]
                 info["Calibration status"] = cal_res[5]
             else:
-                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"], self.weather_file)
+                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"], self.weather_file,
+                                                                limits_setpoint = limits_setpoint,
+                                                              limits_fwalls = limits_fwalls
+                                                                )
                 self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0], cal_res[0][1],
                                                                               self.weather_file)
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
