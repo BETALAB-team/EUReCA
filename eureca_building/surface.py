@@ -123,7 +123,9 @@ class Surface:
             surface_type=None,
             construction=None,
             window=None,
-            n_window_layers: int = 1
+            n_window_layers: int = 1,
+            h_window: float = 1.5,
+            h_bottom: float = 1.2
     ):
         """Creates the surface object. Checks all the inputs using properties setter methods
 
@@ -198,7 +200,7 @@ class Surface:
             self.window = window
             
         # Window layout for natural ventilation
-        self._define_windows_layout(n_window_layers=n_window_layers)
+        self._define_windows_layout(n_window_layers=n_window_layers, h_window=h_window, h_bottom=h_bottom)
 
     @property
     def _vertices(self) -> tuple:
@@ -434,7 +436,7 @@ class Surface:
         self._opaque_area = (1 - wwr) * self._area
         self._glazed_area = wwr * self._area
         
-    def _define_windows_layout(self, n_window_layers: int = 1):
+    def _define_windows_layout(self, n_window_layers: int = 1, h_window: float = 1.5, h_bottom: float = 1.2):
         """USED FOR NATURAL VENTILATION
         Defines the windows layout (sill height, width, number, ...)
 
@@ -443,13 +445,13 @@ class Surface:
         n_window_layers : int, default 1
             Number of rows to consider
         """
-        _h_window_default = 1.5
+        _h_window_default = h_window
         if not isinstance(n_window_layers, int):
             raise TypeError(f"Surface {self.name}: number of window layers is not an integer: n_window_layers {n_window_layers}")
         area_layer = self._glazed_area/n_window_layers
         self._w_window = area_layer/_h_window_default
         self._h_window = _h_window_default
-        self._h_bottom_windows = np.array([1.2 + n*3.3 for n in range(n_window_layers)])       
+        self._h_bottom_windows = np.array([h_bottom + n*3.3 for n in range(n_window_layers)])       
         self._h_top_windows = self._h_bottom_windows + self._h_window
         self._a_coeff = self._discharge_coefficient_nat_vent*self._w_window   # Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate
 

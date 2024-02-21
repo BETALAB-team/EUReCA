@@ -6,8 +6,8 @@
   "simulation settings": {
     "time steps per hour": "1",
     "simulation reference year" : "2023",
-    "start date": "07-01 00:00",
-    "final date": "07-31 23:00",
+    "start date": "06-01 00:00",
+    "final date": "09-30 23:00",
     "heating season start": "11-15 23:00",
     "heating season end": "04-15 23:00",
     "cooling season start": "06-01 23:00",

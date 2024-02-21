@@ -1311,6 +1311,8 @@ Thermal zone {self.name} 2C params:
         self.Ta0 = T
         self.Tm0 = np.array([T, T])
         self.xm0 = X
+        self.zone_air_temperature = T
+        self.zone_air_spec_humidity = X
 
     def reset_init_values_VDI(self):
         '''This method allows to reset temperatures starting values, according to VDI tests
@@ -1321,6 +1323,8 @@ Thermal zone {self.name} 2C params:
         self.Ta0 = 22
         self.Tm0 = np.array([22, 22])
         self.xm0 = 0.0105
+        self.zone_air_temperature = 22
+        self.zone_air_spec_humidity = 0.0105
 
     def solve_timestep(self, t, weather, model='2C'):
         '''Solves the thermal zone t - time step
