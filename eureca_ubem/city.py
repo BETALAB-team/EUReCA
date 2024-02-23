@@ -588,7 +588,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
             if counter%10 == 0:
-                print(f"{counter} buildings simulated out of {n_buildings}")
+                print(f"{counter}th buildings simulated out of {n_buildings}")
             counter += 1
 
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
@@ -628,11 +628,15 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
                     info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                    info[f"{i} Heating Demand [Wh]"] = heat_demand.loc[i]
+                    info[f"{i} Cooling Demand [Wh]"] = cooling_demand.loc[i]
                 else:
                     info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                     info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
                     info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+                    info[f"{i.month_name()} Heating Demand [Wh]"] = heat_demand.loc[i]
+                    info[f"{i.month_name()} Cooling Demand [Wh]"] = cooling_demand.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
