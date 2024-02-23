@@ -154,6 +154,8 @@ class Surface:
             the construction object with the materials
         window : eureca_building.window.SimpleWindow
             the Window object with the materials
+       
+        TODO: Inserire gli ultimi 3 input
 
         """
 
@@ -444,6 +446,9 @@ class Surface:
         ----------
         n_window_layers : int, default 1
             Number of rows to consider
+            
+        TODO: Inserire i parametri mancanti della function
+            
         """
         _h_window_default = h_window
         if not isinstance(n_window_layers, int):
