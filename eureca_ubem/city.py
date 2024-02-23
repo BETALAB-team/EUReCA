@@ -588,7 +588,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
             if counter%10 == 0:
-                print(f"{counter}th buildings simulated out of {n_buildings}")
+                print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
