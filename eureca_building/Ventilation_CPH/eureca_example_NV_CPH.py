@@ -11,7 +11,7 @@ __maintainer__ = "Enrico Prataviera"
 import os
 import time
 
-import datetime
+import datetime as dt
 import matplotlib
 matplotlib.use('TkAgg')
 matplotlib.interactive(True)
@@ -132,7 +132,7 @@ def simulation(
     
     int_part = SurfaceInternalMass(
         "IntPart",
-        area=40,
+        area=80,     # Area is doubled since partitions inside the occupied zone present two surfaces
         surface_type="IntWall",
         construction=int_partition
     )
@@ -356,7 +356,7 @@ def simulation(
     tz1,
     )
     
-    tz1.add_air_handling_unit(ahu, weather)
+    # tz1.add_air_handling_unit(ahu, weather)
     
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather, model = "1C")
     heating_peak_load = tz1.design_heating_load(-5.)
@@ -372,6 +372,7 @@ def simulation(
     T_model = df_res["TZ Ta [°C]"]["Zone 1"].values[:len(T_meas)]
     RMSE = np.sqrt(np.sum((T_meas-T_model)**2)/len(T_meas))
     RMSE_np = np.sqrt(np.square(np.subtract(T_meas,T_model)).mean())
+    global temp_profiles
     temp_profiles = np.array([T_meas, T_model]).T
     # print(f'RMSE: {RMSE} °C')
     
@@ -398,13 +399,114 @@ def simulation(
     #     }).plot(ax = ax, kind = 'line')
 
 
+# #########################################################
+# #########################################################
+# # Calibration process
+# #########################################################
+# # Input simulation
+# # Simulation day
+# date_to_calibrate = "06/23/2023" #m/d/y American format
+
+# # Initial vector and boundaries
+# C_0 = np.array([1])
+# InternalLoad_0 = np.array([0.3]*24)
+# x0 = np.hstack([C_0, InternalLoad_0])
+
+# C_0_lb = np.array([0.5])  #0.5
+# InternalLoad_0_lb = np.array([0]*24)
+# C_0_ub = np.array([3])  #1.5
+# InternalLoad_0_ub = np.array([1]*24)
+# x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb])
+# x0_ub = np.hstack([C_0_ub, InternalLoad_0_ub])
+
+# #########################################################
+# # Epw loading
+# epw_path = os.path.join('..', 'Ventilation_CPH', 'Weather_CPH_2023.epw')
+# weather_file = WeatherFile(epw_path,
+#                            time_steps=CONFIG.ts_per_hour,
+#                            azimuth_subdivisions=CONFIG.azimuth_subdivisions,
+#                            height_subdivisions=CONFIG.height_subdivisions, )
+
+# #########################################################
+# # Measure loading
+# measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QR20F6237B-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+#                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
+# measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
+# measure_h = measure.resample("1H").mean()
+# day_of_the_year = measure_h.loc[date_to_calibrate].index.dayofyear
+# T_meas = measure_h.loc[date_to_calibrate]["TEMPERATURE (°C)"].values
+
+# #########################################################
+# # Simulation for calibration
+# #day_of_the_year = datetime.datetime.strptime(date_to_calibrate + " 00:00", '%m/%d/%Y %H:%M').dayofyear
+# day_of_the_year = day_of_the_year[0] - 1
+# start_time_step = day_of_the_year*24
+# end_time_step = day_of_the_year*24 + 24
+# RMSE = simulation(x0,
+#                  weather = weather_file,
+#                  T_meas = T_meas, 
+#                  start_time_step = start_time_step, 
+#                  end_time_step = end_time_step)
+# start = time.time()
+# x_opt = scipy.optimize.least_squares(simulation,
+#                                       x0,
+#                                       bounds = (x0_lb, x0_ub),
+#                                       xtol=1e-2,
+#                                       method = 'trf', 
+#                                       kwargs = {"weather": weather_file,
+#                                                 "T_meas": T_meas,
+#                                                 "start_time_step": start_time_step,
+#                                                 "end_time_step": end_time_step}
+#                                       )
+
+# # Running a final simulation to get results
+# x0 = x_opt.x
+# RMSE_fin = simulation(x0,
+#                   weather = weather_file,
+#                   T_meas = T_meas, 
+#                   start_time_step = start_time_step, 
+#                   end_time_step = end_time_step)
+
+
+# # Trying another scipy function for optimization
+# # bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
+# # x_opt = scipy.optimize.minimize(simulation,
+# #                                 x0,
+# #                                 args=(weather_file, T_meas, start_time_step, end_time_step),
+# #                                 bounds = bounds,
+# #                                 tol=1e-5,
+# #                                 )
+
+# # Trying another scipy function for global optimization
+# # args=(weather_file, T_meas, start_time_step, end_time_step)
+# # x_opt = scipy.optimize.basinhopping(simulation,
+# #                                     x0, 
+# #                                     niter=1,
+# #                                     minimizer_kwargs={"args": args},
+# #                                     )
+
+
+# stop = time.time()
+# print(f'Total calibration time for one day: {(stop-start):.1f} s')
+
+# fig, ax = plt.subplots()
+# ax.plot(x_opt.x[1:])
+
+# n_timesteps = end_time_step - start_time_step
+# time_interval = np.array([range(n_timesteps)]).T
+# fig2, ax2 = plt.subplots()
+# ax2.plot(time_interval, T_meas, time_interval, temp_profiles[:,1])
+
+
+
 #########################################################
 #########################################################
 # Calibration process
 #########################################################
 # Input simulation
 # Simulation day
-date_to_calibrate = "06/22/2023" #m/d/y American format
+start_date_to_calibrate = dt.datetime(year=2023, month=6, day=20)
+# start_date_to_calibrate = "06/20/2023" #m/d/y American format
 
 # Initial vector and boundaries
 C_0 = np.array([1])
@@ -413,7 +515,7 @@ x0 = np.hstack([C_0, InternalLoad_0])
 
 C_0_lb = np.array([0.5])  #0.5
 InternalLoad_0_lb = np.array([0]*24)
-C_0_ub = np.array([1.5])  #1.5
+C_0_ub = np.array([3])  #1.5
 InternalLoad_0_ub = np.array([1]*24)
 x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb])
 x0_ub = np.hstack([C_0_ub, InternalLoad_0_ub])
@@ -432,39 +534,88 @@ measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di P
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean()
-day_of_the_year = measure_h.loc[date_to_calibrate].index.dayofyear
-T_meas = measure_h.loc[date_to_calibrate]["TEMPERATURE (°C)"].values
 
 #########################################################
-# Simulation for calibration
-#day_of_the_year = datetime.datetime.strptime(date_to_calibrate + " 00:00", '%m/%d/%Y %H:%M').dayofyear
-day_of_the_year = day_of_the_year[0] - 1
-start_time_step = day_of_the_year*24
-end_time_step = day_of_the_year*24 + 24
-RMSE= simulation(x0,
-                 weather = weather_file,
-                 T_meas = T_meas, 
-                 start_time_step = start_time_step, 
-                 end_time_step = end_time_step)
+# Cycle for the single day optimization over a week
+C_th = pd.DataFrame()
+sched_hg = np.array([])
+global temperatures
+temperatures = np.array([[],[]]).T
 start = time.time()
-x_opt = scipy.optimize.least_squares(simulation,
-                                      x0,
-                                      bounds = (x0_lb, x0_ub),
-                                      xtol=1e-2,
-                                      method = 'trf', 
-                                      kwargs = {"weather": weather_file,
-                                                "T_meas": T_meas,
-                                                "start_time_step": start_time_step,
-                                                "end_time_step": end_time_step})
+for day_step in range(7):
+    time_delta = dt.timedelta(days=day_step)
+    date_to_calibrate = start_date_to_calibrate + time_delta
+    date_to_calibrate = date_to_calibrate.strftime("%m/%d/%Y")
+    
+    day_of_the_year = measure_h.loc[date_to_calibrate].index.dayofyear
+    T_meas = measure_h.loc[date_to_calibrate]["TEMPERATURE (°C)"].values
+    
+    #########################################################
+    # Simulation for calibration
+    #day_of_the_year = datetime.datetime.strptime(date_to_calibrate + " 00:00", '%m/%d/%Y %H:%M').dayofyear
+    day_of_the_year = day_of_the_year[0] - 1
+    start_time_step = day_of_the_year*24
+    end_time_step = day_of_the_year*24 + 24
+    RMSE = simulation(x0,
+                     weather = weather_file,
+                     T_meas = T_meas, 
+                     start_time_step = start_time_step, 
+                     end_time_step = end_time_step)
+    
+    x_opt = scipy.optimize.least_squares(simulation,
+                                          x0,
+                                          bounds = (x0_lb, x0_ub),
+                                          xtol=1e-2,
+                                          method = 'trf', 
+                                          kwargs = {"weather": weather_file,
+                                                    "T_meas": T_meas,
+                                                    "start_time_step": start_time_step,
+                                                    "end_time_step": end_time_step}
+                                          )
+    
+    C_day = pd.DataFrame([x_opt.x[0]], columns=["Thermal capacity"], index=[date_to_calibrate])
+    C_th = pd.concat([C_th, C_day])
+    sched_hg = np.append(sched_hg, x_opt.x[1:])
+    
+    # Running a final simulation to get results
+    x_fin = x_opt.x
+    RMSE_fin = simulation(x_fin,
+                      weather = weather_file,
+                      T_meas = T_meas, 
+                      start_time_step = start_time_step, 
+                      end_time_step = end_time_step)
+    
+    temperatures = np.append(temperatures, temp_profiles, axis=0)
+    # Trying another scipy function for optimization
+    # bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
+    # x_opt = scipy.optimize.minimize(simulation,
+    #                                 x0,
+    #                                 args=(weather_file, T_meas, start_time_step, end_time_step),
+    #                                 bounds = bounds,
+    #                                 tol=1e-5,
+    #                                 )
+    
+    # Trying another scipy function for global optimization
+    # args=(weather_file, T_meas, start_time_step, end_time_step)
+    # x_opt = scipy.optimize.basinhopping(simulation,
+    #                                     x0, 
+    #                                     niter=1,
+    #                                     minimizer_kwargs={"args": args},
+    #                                     )
 
-# Trying another scipy function for optimization
-# x_opt = 
 
 stop = time.time()
 print(f'Total calibration time for one day: {(stop-start):.1f} s')
 
-fig, ax = plt.subplots()
-ax.plot(x_opt.x[1:])
+# Average thermal capacity over the simulated week
+C_th_av = C_th.mean()
 
+fig, ax = plt.subplots()
+# ax.plot(x_opt.x[1:])
+ax.plot(sched_hg)
+
+starting_timestep = (int(start_date_to_calibrate.strftime("%j"))-1)*24
+n_timesteps = end_time_step - starting_timestep
+time_interval = np.array([range(n_timesteps)]).T
 fig2, ax2 = plt.subplots()
-ax2.plot(T_meas)
+ax2.plot(time_interval, temperatures[:,0], time_interval, temperatures[:,1])
