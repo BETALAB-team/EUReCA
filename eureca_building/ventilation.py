@@ -436,6 +436,8 @@ class NaturalVentilation(Ventilation):
         z_n = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
         vol_flow = np.zeros([len(self.surfaces_with_opening[0]._h_bottom_windows), len(self.surfaces_with_opening)])
         vol_flow_sopra = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
+        vol_inflow = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
+        vol_outflow = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
         for floor in range(len(self.surfaces_with_opening[0]._h_bottom_windows)):
             h_top = [s._h_top_windows[floor] for s in self.surfaces_with_opening]
             h_bottom = [s._h_bottom_windows[floor] for s in self.surfaces_with_opening]
@@ -446,14 +448,33 @@ class NaturalVentilation(Ventilation):
             # z_n[floor] = np.nan
             
 
+            # i = 0
+            # for s in self.surfaces_with_opening:
+            #     #if s._h_bottom_windows[floor] < z_n[floor]:
+
+            #     vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+            #     #if s._h_top_windows[floor] < z_n[floor]:
+            #     vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+            #     i+=1
+            
             i = 0
             for s in self.surfaces_with_opening:
-                #if s._h_bottom_windows[floor] < z_n[floor]:
-
                 vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                #if s._h_top_windows[floor] < z_n[floor]:
                 vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                i+=1
+                if s._h_bottom_windows[floor] < z_n[floor] < s._h_top_windows[floor]:
+                    vol_inflow[floor] += np.abs((2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff))
+                    vol_outflow[floor] += np.abs(2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+                elif z_n[floor] < s._h_bottom_windows[floor]:
+                    if vol_flow[floor][i] > 0:
+                        vol_inflow[floor] += vol_flow[floor][i]
+                    else:
+                        vol_outflow[floor] += vol_flow[floor][i]
+                else:
+                    if vol_flow[floor][i] > 0:
+                        vol_inflow[floor] += vol_flow[floor][i]
+                    else:
+                        vol_outflow[floor] += vol_flow[floor][i]
+                i += 1
 
             # vol_flow_sopra[floor] = 0
             # for s in self.surfaces_with_opening:
@@ -462,9 +483,11 @@ class NaturalVentilation(Ventilation):
             #     if s._h_top_windows[floor] > z_n[floor]:
             #         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
         vol_flow_tot = vol_flow.sum()
+        vol_inflow_tot = vol_inflow.sum()
+        vol_outflow_tot = vol_outflow.sum()
         mass_flow_tot = vol_flow_tot * air_properties["density"] # kg/s
         # vapour_flow_tot = mass_flow_tot * weather.hourly_data["out_air_specific_humidity"][ts] # kg_vap/s
-        return mass_flow_tot #, vapour_flow_tot
+        return mass_flow_tot, z_n, vol_inflow_tot, vol_outflow_tot, vol_flow #, vapour_flow_tot
 
 
 

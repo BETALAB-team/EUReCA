@@ -385,6 +385,7 @@ class ThermalZone(object):
             infiltration_vapour_flow_rate += vapour_rate
         self.infiltration_air_flow_rate = infiltration_air_flow_rate
         self.infiltration_vapour_flow_rate = infiltration_vapour_flow_rate
+        self.nat_vent_air_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)
         return {'infiltration_air_flow_rate [kg/s]': infiltration_air_flow_rate,
                 'infiltration_vapour_flow_rate [kg/s]': infiltration_vapour_flow_rate, }
     
@@ -1362,7 +1363,11 @@ Thermal zone {self.name} 2C params:
             phi_load = [self.Q_il_kon_I[t], self.Q_il_str_aw[t], self.Q_il_str_iw[t]]
 
         # Natural Ventilation
-        nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        # nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        nat_vent_vol_flow = nv_outcomes[2]  #m3/s
+        nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  #kg/s
+        self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 
