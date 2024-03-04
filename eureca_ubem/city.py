@@ -602,11 +602,26 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             else:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
+
+            demand = results[["TZ sensible load [W]",
+                              "TZ latent load [W]",
+                              "TZ AHU pre heater load [W]",
+                              "TZ AHU post heater load [W]",
+                              "TZ DHW demand [W]"]]
+
+            results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
+            results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
+
             monthly = results.resample("M").sum()
+
+            heat_demand = monthly["Heating Demand [Wh]"]
+            cooling_demand = monthly["Cooling Demand [Wh]"]       
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            heat_demand["Total"] = heat_demand.sum()
+            cooling_demand["Total"] = cooling_demand.sum()
             gas_consumption["Total"] = gas_consumption.sum()
             el_consumption["Total"] = el_consumption.sum()
             oil_consumption["Total"] = oil_consumption.sum()
@@ -617,11 +632,15 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
                     info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                    info[f"{i} Heating Demand [Wh]"] = heat_demand.loc[i]
+                    info[f"{i} Cooling Demand [Wh]"] = cooling_demand.loc[i]     
                 else:
                     info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                     info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
                     info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+                    info[f"{i.month_name()} Heating Demand [Wh]"] = heat_demand.loc[i]
+                    info[f"{i.month_name()} Cooling Demand [Wh]"] = cooling_demand.loc[i]                          
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
