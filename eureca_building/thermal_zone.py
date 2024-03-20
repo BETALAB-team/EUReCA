@@ -386,6 +386,15 @@ class ThermalZone(object):
         self.infiltration_air_flow_rate = infiltration_air_flow_rate
         self.infiltration_vapour_flow_rate = infiltration_vapour_flow_rate
         self.nat_vent_air_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)
+        self.nat_vent_info = {
+            "airflow_rate" : {'kg/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'm3/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'L/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'vol/h' : np.zeros([CONFIG.number_of_time_steps]),
+                              },
+            "windows_opening" : {'open_fraction' : np.zeros([CONFIG.number_of_time_steps]),
+                                 },
+            }
         return {'infiltration_air_flow_rate [kg/s]': infiltration_air_flow_rate,
                 'infiltration_vapour_flow_rate [kg/s]': infiltration_vapour_flow_rate, }
     
@@ -1368,6 +1377,21 @@ Thermal zone {self.name} 2C params:
         nat_vent_vol_flow = nv_outcomes[2]  #m3/s
         nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  #kg/s
         self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow
+        # self.nat_vent_info = {
+        #     "airflow_rate" : {'kg/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'm3/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'L/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'vol/h' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       },
+        #     "windows_opening" : {'open_fraction' : np.zeros([CONFIG.number_of_time_steps]),
+        #                          'open_area' : np.zeros([CONFIG.number_of_time_steps]),
+        #                          },
+        #     }
+        self.nat_vent_info["airflow_rate"]['kg/s'][t] = nat_vent_mass_flow
+        self.nat_vent_info["airflow_rate"]['m3/s'][t] = nat_vent_vol_flow
+        self.nat_vent_info["airflow_rate"]['L/s'][t] = nat_vent_vol_flow/1000
+        self.nat_vent_info["airflow_rate"]['vol/h'][t] = nat_vent_vol_flow/self._volume*3600
+        self.nat_vent_info["windows_opening"]['open_fraction'][t] = self.natural_ventilation.windows_opening[t]
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 

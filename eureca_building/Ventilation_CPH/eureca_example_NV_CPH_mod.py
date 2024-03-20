@@ -51,15 +51,16 @@ from eureca_building.ventilation import NaturalVentilation
 
 def simulation(
         x0,
-        *args
+        *args,
+        flag: str = "cal"
         ):
        
     weather, T_meas, start_time_step, end_time_step = args
     
-    #C_m = x0[0]
-    Loads_schedule = x0[0:24]
+    C_m = x0[0]
+    Loads_schedule = x0[1]
     # Opening_NV_schedule = np.array([0]*15+[1]*5+[0]*4) #x0[25:]
-    Opening_NV_schedule = x0[24:]
+    Opening_NV_schedule = x0[2:]
     
     #########################################################
     # Definition of opaque constructions and windows
@@ -159,12 +160,17 @@ def simulation(
     #     np.array(([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)[:delay_ts],
     # )
     
-    app_sched = Schedule(          # This schedule actually considers all the sensible loads (including people)
-        "AppliancesSchedule",
-        "dimensionless",
-        np.tile(Loads_schedule, 365)[:delay_ts],
-    )
+    # app_sched = Schedule(          # This schedule actually considers all the sensible loads (including people)
+    #     "AppliancesSchedule",
+    #     "dimensionless",
+    #     np.tile(Loads_schedule, 365)[:delay_ts],
+    # )
     
+    app_sched = Schedule.from_constant_value(
+        name = "app_sched",
+        schedule_type="dimensionless",
+        value = Loads_schedule
+    )
     
     # Loads
     # people = People(
@@ -181,7 +187,7 @@ def simulation(
     electric_devices = ElectricLoad(
         name='ElectricLoads',
         unit='W',
-        nominal_value=500,  # An indicative value of 1 kW could be reasonable
+        nominal_value=1000,  # An indicative value of 1 kW could be reasonable
         schedule=app_sched,
         fraction_radiant=0.3,
         fraction_convective=0.7,
@@ -256,7 +262,7 @@ def simulation(
     nv_obj = NaturalVentilation(
         name='nat_vent',
         unit='%',
-        nominal_value=30, # Windows are considered as closed during the whole period
+        nominal_value=50, # Windows are considered as closed during the whole period
         schedule=natural_vent_sched,
     )
     
@@ -322,8 +328,8 @@ def simulation(
     tz1._ISO13790_params()
     # tz1._VDI6007_params()
 
-    # tz1.Cm = C_m*tz1.Cm
-    tz1.Cm = 0.65*tz1.Cm
+    tz1.Cm = C_m*tz1.Cm
+    # tz1.Cm = 0.65*tz1.Cm
     
     tz1.add_internal_load(electric_devices)
     
@@ -368,19 +374,27 @@ def simulation(
     bd = Building("Bd1", thermal_zones_list=[tz1], model = "1C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather)
-    start = time.time()
+    #start = time.time()
     df_res = bd.simulate(weather, t_start = start_time_step, t_stop = end_time_step, preprocessing_ts=100)
-    nat_vent_mass_flow_rate = tz1.nat_vent_air_flow_rate[start_time_step:end_time_step]
+    #nat_vent_mass_flow_rate = tz1.nat_vent_air_flow_rate[start_time_step:end_time_step]
+    nat_vent_dict = tz1.nat_vent_info
     outdoor_temp_profile = weather.hourly_data["out_air_db_temperature"][start_time_step:end_time_step]
     #print(f"1C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
     T_model = df_res["TZ Ta [°C]"]["Zone 1"].values[:len(T_meas)]
     RMSE = np.sqrt(np.sum((T_meas-T_model)**2)/len(T_meas))
-    RMSE_np = np.sqrt(np.square(np.subtract(T_meas,T_model)).mean())
-    global temp_profiles
+    #RMSE_np = np.sqrt(np.square(np.subtract(T_meas,T_model)).mean())
+    #global temp_profiles
     temp_profiles = np.array([T_meas, T_model, outdoor_temp_profile]).T
-    #print(f'RMSE: {RMSE} °C')
+    print(f'RMSE: {RMSE} °C')
     
-    return RMSE #, RMSE_np, temp_profiles
+    # plt.plot(tz1.phi_ia[start_time_step:end_time_step+100])
+    # plt.plot(tz1.phi_m[start_time_step:end_time_step+100])
+    # plt.plot(tz1.phi_st[start_time_step:end_time_step+100])
+    
+    if flag == "cal":
+        return RMSE #, RMSE_np, temp_profiles
+    else:
+        return RMSE, temp_profiles, nat_vent_dict # nat_vent_mass_flow_rate
 
     
     
@@ -513,22 +527,22 @@ start_date_to_calibrate = dt.datetime(year=2023, month=6, day=20)
 # start_date_to_calibrate = "06/20/2023" #m/d/y American format
 
 # Initial vector and boundaries
-#C_0 = np.array([1])
-InternalLoad_0 = np.array([0.35]*24)
-Opening_NV_0 = np.array([0.2]*24)
-#x0 = np.hstack([C_0, InternalLoad_0, Opening_NV_0])
-x0 = np.hstack([InternalLoad_0, Opening_NV_0])
+C_0 = np.array([1])
+InternalLoad_0 = np.array([0.42])
+Opening_NV_0 = np.array([0]*10 + [0.1]*5 + [0.2]*5 + [0]*4)
+x0 = np.hstack([C_0, InternalLoad_0, Opening_NV_0])
+#x0 = np.hstack([InternalLoad_0, Opening_NV_0])
 
-#C_0_lb = np.array([0.5])  #0.5
-InternalLoad_0_lb = np.array([0]*24)
+C_0_lb = np.array([0.5])  #0.5
+InternalLoad_0_lb = np.array([0])
 Opening_NV_0_lb = np.array([0]*24)
-#C_0_ub = np.array([3])  #1.5
-InternalLoad_0_ub = np.array([1]*24)
+C_0_ub = np.array([3])  #1.5
+InternalLoad_0_ub = np.array([1])
 Opening_NV_0_ub = np.array([1]*24)
-#x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb, Opening_NV_0_lb])
-#x0_ub = np.hstack([C_0_ub, InternalLoad_0_ub, Opening_NV_0_ub])
-x0_lb = np.hstack([InternalLoad_0_lb, Opening_NV_0_lb])
-x0_ub = np.hstack([InternalLoad_0_ub, Opening_NV_0_ub])
+x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb, Opening_NV_0_lb])
+x0_ub = np.hstack([C_0_ub, InternalLoad_0_ub, Opening_NV_0_ub])
+#x0_lb = np.hstack([InternalLoad_0_lb, Opening_NV_0_lb])
+#x0_ub = np.hstack([InternalLoad_0_ub, Opening_NV_0_ub])
 
 #########################################################
 # Epw loading
@@ -547,12 +561,13 @@ measure_h = measure.resample("1H").mean()
 
 #########################################################
 # Cycle for the single day optimization over a week
-#C_th = pd.DataFrame()
+C_th = pd.DataFrame()
 sched_hg = np.array([])
 sched_op = np.array([])
 temperatures = np.array([[],[],[]]).T
+NV_fr = np.array([])
 start = time.time()
-for day_step in range(1):
+for day_step in range(3):
     time_delta = dt.timedelta(days=day_step)
     date_to_calibrate = start_date_to_calibrate + time_delta
     date_to_calibrate = date_to_calibrate.strftime("%m/%d/%Y")
@@ -573,15 +588,26 @@ for day_step in range(1):
                       end_time_step)
     
     # x_opt = scipy.optimize.least_squares(simulation,
-    #                                      x0,
-    #                                      bounds = (x0_lb, x0_ub),
-    #                                      ftol=1e-2,
-    #                                      method = 'trf', 
-    #                                      kwargs = {"weather": weather_file,
+    #                                       x0,
+    #                                       bounds = (x0_lb, x0_ub),
+    #                                       ftol=1e-2,
+    #                                       method = 'trf', 
+    #                                       kwargs = {"weather": weather_file,
     #                                                 "T_meas": T_meas,
     #                                                 "start_time_step": start_time_step,
     #                                                 "end_time_step": end_time_step}
-    #                                      )
+    #                                       )
+    
+    # x_opt = scipy.optimize.least_squares(simulation,
+    #                                       x0,
+    #                                       bounds = (x0_lb, x0_ub),
+    #                                       ftol=1e-2,
+    #                                       method = 'trf', 
+    #                                       args = (weather_file,
+    #                                               T_meas,
+    #                                               start_time_step,
+    #                                               end_time_step)
+    #                                       )
     
     # # Trying another scipy function for optimization
     bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
@@ -601,36 +627,39 @@ for day_step in range(1):
     # #                                     )
     
     # # Trying another scipy function for global optimization
-    # x_opt = scipy.optimize.differential_evolution(simulation,
-    #                                       bounds = bounds,
-    #                                       args=(weather_file, T_meas, start_time_step, end_time_step),
-    #                                       tol = 0.1,
-    #                                       disp = True
-    #                                       )
+    x_opt = scipy.optimize.differential_evolution(simulation,
+                                                  x0 = x0,
+                                                  bounds = bounds,
+                                                  args=(weather_file, T_meas, start_time_step, end_time_step),
+                                                  tol = 0.1,
+                                                  disp = True
+                                                  )
     
     # Trying another scipy function for global optimization
-    x_opt = scipy.optimize.direct(simulation,
-                                  bounds = bounds,
-                                  args=(weather_file, T_meas, start_time_step, end_time_step),
-                                  )
+    # x_opt = scipy.optimize.direct(simulation,
+    #                               bounds = bounds,
+    #                               args=(weather_file, T_meas, start_time_step, end_time_step),
+    #                               )
     
     
-    #C_day = pd.DataFrame([x_opt.x[0]], columns=["Thermal capacity"], index=[date_to_calibrate])
-    #C_th = pd.concat([C_th, C_day])
+    C_day = pd.DataFrame([x_opt.x[0]], columns=["Thermal capacity"], index=[date_to_calibrate])
+    C_th = pd.concat([C_th, C_day])
     #sched_hg = np.append(sched_hg, x_opt.x[1:25])
-    #sched_op = np.append(sched_op, x_opt.x[25:])
-    sched_hg = np.append(sched_hg, x_opt.x[0:24])
-    sched_op = np.append(sched_op, x_opt.x[24:])
+    sched_op = np.append(sched_op, x_opt.x[2:])
+    # sched_hg = np.append(sched_hg, x_opt.x[0:24])
+    # sched_op = np.append(sched_op, x_opt.x[24:])
     
     # Running a final simulation to get results
     x_fin = x_opt.x
-    RMSE_fin = simulation(x_fin,
-                      weather_file,
-                      T_meas, 
-                      start_time_step, 
-                      end_time_step)
+    RMSE_fin, temp_profiles, NV_dict = simulation(x_fin,
+                                            weather_file,
+                                            T_meas, 
+                                            start_time_step, 
+                                            end_time_step,
+                                            flag = "sim")
     
     temperatures = np.append(temperatures, temp_profiles, axis=0)
+    NV_fr = np.append(NV_fr, NV_dict['airflow_rate']['vol/h'][start_time_step:end_time_step], axis=0)
     print(RMSE_fin)
     
     
@@ -638,22 +667,28 @@ stop = time.time()
 print(f'Total calibration time for seven days: {(stop-start):.1f} s')
 
 # Average thermal capacity over the simulated week
-#C_th_av = C_th.mean()
+C_th_av = C_th.mean()
 
 
 fig, [ax1, ax2] = plt.subplots(nrows=2)
 # ax.plot(x_opt.x[1:])
-ax1.plot(sched_hg)
+#ax1.plot(sched_hg)
 ax2.plot(sched_op)
 
 starting_timestep = (int(start_date_to_calibrate.strftime("%j"))-1)*24
 n_timesteps = end_time_step - starting_timestep
+#n_timesteps = 24
 time_interval = np.array([range(n_timesteps)]).T
 fig2, ax2 = plt.subplots()
 ax2.plot(time_interval, temperatures[:,0], time_interval, temperatures[:,1], time_interval, temperatures[:,2])
 
-HG = sched_hg * 500
+#HG = sched_hg * 500
+#fig, [ax1, ax2] = plt.subplots(nrows=2)
+# ax.plot(x_opt.x[1:])
+#ax1.plot(HG)
+#ax2.plot(sched_op, 'r')
+
 fig, [ax1, ax2] = plt.subplots(nrows=2)
 # ax.plot(x_opt.x[1:])
-ax1.plot(HG)
-ax2.plot(sched_op, 'r')
+ax1.plot(sched_op, 'r')
+ax2.plot(NV_fr, 'b')

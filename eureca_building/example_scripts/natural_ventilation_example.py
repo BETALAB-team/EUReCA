@@ -131,7 +131,7 @@ intceiling = SurfaceInternalMass(
 #weather_file.hourly_data["wind_speed"] = weather_file.hourly_data["wind_speed"]*0
 
 natural_vent_sched = Schedule(
-    "nat_vent_sche",
+    "nat_vent_sched",
     "dimensionless",
     np.array(([.3] * 8 * 2 + [.5] * 2 * 2 + [.3] * 4 * 2 + [.5] * 10 * 2) * 365)[:-1],
 )
@@ -140,7 +140,7 @@ natural_vent_sched = Schedule(
 inf_obj = NaturalVentilation(
     name='nat_vent',
     unit='%',
-    nominal_value=50., # 90% moltiplicato per il vettore della schedule
+    nominal_value=20., # 90% moltiplicato per il vettore della schedule
     schedule=natural_vent_sched,
     weather = weather_file,
     # surfaces_with_opening = [wall_west, wall_east],
@@ -203,7 +203,7 @@ z_n_tot = np.array(z_n_tot)
 mass_flow_rate_tot = np.array(mass_flow_rate_tot)
 
 x_lim = [0,24]
-x_lim_flow = [1,24]
+x_lim_flow = [0,24]
 
 fig, [ax11, ax12, ax13, ax14] = plt.subplots(ncols=1, nrows=4)
 ax11_ = ax11.twinx()
