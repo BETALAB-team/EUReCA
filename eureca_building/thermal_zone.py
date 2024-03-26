@@ -86,6 +86,7 @@ class ThermalZone(object):
         self.domestic_hot_water_list = []
         self.design_heating_system_power = 1e20  # W
         self.design_cooling_system_power = -1e20  # W
+        self.design_sensible_cooling_system_power = -1e20
         self.heating_sigma = {
             '1C': [0., 1.],
             '2C': [0., 0., 1.],
@@ -1297,10 +1298,10 @@ Thermal zone {self.name} 2C params:
         Starting x 0.0105 kg_v/kg_as
         '''
 
-        self.Ta0 = 22
-        self.Tm0 = np.array([22, 22])
+        self.Ta0 = 22.
+        self.Tm0 = np.array([22., 22.])
         self.xm0 = 0.0105
-        self.zone_air_temperature = 22
+        self.zone_air_temperature = 22.
         self.zone_air_spec_humidity = 0.0105
 
     def solve_timestep(self, t, weather, model='2C'):
