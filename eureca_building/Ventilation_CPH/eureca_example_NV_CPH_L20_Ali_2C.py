@@ -57,10 +57,11 @@ def simulation(
        
     weather, T_meas, start_time_step, end_time_step = args
     
-    C_m = x0[0]
-    Loads_schedule = x0[1]
+    C_Am = x0[0]
+    C_Im = x0[1]
+    Loads_schedule = x0[2]
     # Opening_NV_schedule = np.array([0]*15+[1]*5+[0]*4) #x0[25:]
-    Opening_NV_schedule = x0[2:]
+    Opening_NV_schedule = x0[3:]
     
     #########################################################
     # Definition of opaque constructions and windows
@@ -332,21 +333,21 @@ def simulation(
         net_floor_area=56, # Net floor area based on internal dimensions
         volume=56*2.7)
     
-    tz1._ISO13790_params()
-    # tz1._VDI6007_params()
+    # tz1._ISO13790_params()
+    tz1._VDI6007_params()
 
-    tz1.Cm = C_m*tz1.Cm
+    tz1.C1AW = C_Am*tz1.C1AW
+    tz1.C1IW = C_Im*tz1.C1IW
     # tz1.Cm = 2*tz1.Cm
     
     tz1.add_internal_load(electric_devices)
     
     # IHG preprocessing
     tz_loads = tz1.extract_convective_radiative_latent_electric_load()
-    tz1.calculate_zone_loads_ISO13790(weather)
-    
+    # tz1.calculate_zone_loads_ISO13790(weather)
     
     # 2C model
-    # tz1.calculate_zone_loads_VDI6007(weather_file)
+    tz1.calculate_zone_loads_VDI6007(weather)
     
     
     tz1.add_temperature_setpoint(t_sp)
@@ -373,12 +374,12 @@ def simulation(
     
     # tz1.add_air_handling_unit(ahu, weather)
     
-    cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather, model = "1C")
+    cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather, model = "2C")
     heating_peak_load = tz1.design_heating_load(-5.)
     
     tz1.add_domestic_hot_water(weather, dhw_1)
     
-    bd = Building("BdL20", thermal_zones_list=[tz1], model = "1C")
+    bd = Building("BdL20", thermal_zones_list=[tz1], model = "2C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather)
     #start = time.time()
@@ -535,16 +536,16 @@ start_date_to_calibrate = dt.datetime(year=2023, month=6, day=20)
 # start_date_to_calibrate = "06/20/2023" #m/d/y American format
 
 # Initial vector and boundaries
-C_0 = np.array([2.05])
+C_0 = np.array([1, 1])
 InternalLoad_0 = np.array([0.42])
 Opening_NV_0 = np.array([0]*10 + [0.1]*5 + [0.2]*5 + [0]*4)
 x0 = np.hstack([C_0, InternalLoad_0, Opening_NV_0])
 #x0 = np.hstack([InternalLoad_0, Opening_NV_0])
 
-C_0_lb = np.array([2])  #0.5
+C_0_lb = np.array([0.5, 0.5])  #0.5
 InternalLoad_0_lb = np.array([0])
 Opening_NV_0_lb = np.array([0]*24)
-C_0_ub = np.array([2.1])  #1.5
+C_0_ub = np.array([3, 3])  #1.5
 InternalLoad_0_ub = np.array([1])
 Opening_NV_0_ub = np.array([1]*24)
 x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb, Opening_NV_0_lb])
@@ -575,12 +576,13 @@ sched_hg = np.array([])
 sched_op = np.array([])
 temperatures = np.array([[],[],[]]).T
 NV_fr = np.array([])
-sim_days = 8 #number of simulated days
+sim_days = 2 #number of simulated days
 # Initializing table of results as dictionary to be saved on csv file
 results_cal = {"T_meas [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
                "T_sim [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
                "T_out [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
-               "C_th_rel [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "C_Am_rel [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "C_Im_rel [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
                "Sched_HG [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
                "Q_hg [W]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
                "Sched_op_w [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
@@ -622,7 +624,7 @@ for day_step in range(sim_days):
     x_opt = scipy.optimize.least_squares(simulation,
                                           x0,
                                           bounds = (x0_lb, x0_ub),
-                                          ftol=1e-2,
+                                          ftol=1e-3,
                                           method = 'trf',
                                           args = (weather_file,
                                                   T_meas,
@@ -663,10 +665,10 @@ for day_step in range(sim_days):
     #                               )
     
     
-    C_day = pd.DataFrame([x_opt.x[0]], columns=["Thermal capacity"], index=[date_to_calibrate])
+    C_day = pd.DataFrame([[x_opt.x[0], x_opt.x[1]]], columns=["Thermal capacity external", "Thermal capacity internal"], index=[date_to_calibrate])
     C_th = pd.concat([C_th, C_day])
-    sched_hg = np.append(sched_hg, x_opt.x[1])
-    sched_op = np.append(sched_op, x_opt.x[2:])
+    sched_hg = np.append(sched_hg, x_opt.x[2])
+    sched_op = np.append(sched_op, x_opt.x[3:])
     # sched_hg = np.append(sched_hg, x_opt.x[0:24])
     # sched_op = np.append(sched_op, x_opt.x[24:])
     
@@ -686,10 +688,11 @@ for day_step in range(sim_days):
     results_cal['T_meas [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,0]]).T
     results_cal['T_sim [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,1]]).T
     results_cal['T_out [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,2]]).T
-    results_cal['C_th_rel [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[0]]*24*CONFIG.ts_per_hour]).T
-    results_cal['Sched_HG [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[1]]*24*CONFIG.ts_per_hour]).T
+    results_cal['C_Am_rel [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[0]]*24*CONFIG.ts_per_hour]).T
+    results_cal['C_Im_rel [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[1]]*24*CONFIG.ts_per_hour]).T
+    results_cal['Sched_HG [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[2]]*24*CONFIG.ts_per_hour]).T
     results_cal['Q_hg [W]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([IHG[start_time_step:end_time_step]]).T
-    results_cal['Sched_op_w [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([x_fin[2:]]).T
+    results_cal['Sched_op_w [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([x_fin[3:]]).T
     results_cal['NV_ACH [vol/h]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([NV_dict['airflow_rate']['vol/h'][start_time_step:end_time_step]]).T
     results_cal['NV_vfr [m3/h]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([NV_dict['airflow_rate']['m3/h'][start_time_step:end_time_step]]).T
 
@@ -733,7 +736,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results"
+output_file_name = "Calibration_results_2C"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]
