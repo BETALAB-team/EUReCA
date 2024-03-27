@@ -72,12 +72,12 @@ def simulation(
     # )
     
     ext_wall_North = Construction.from_U_value("NorthExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")  # At the moment, I left "medium" weight class
-    ext_wall_East = Construction.from_U_value("EastExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")
+    ext_wall_South = Construction.from_U_value("SouthExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")
     roof_constr = Construction.from_U_value("RoofConstr", 0.09, weight_class = "Medium", construction_type = "Roof")
     internal_wall = Construction.from_U_value("InternalWall", 0.3, weight_class = "Medium", construction_type = "IntWall")  # I took a reasonable U-value for the internal walls between the unit and the other flats or common areas
     internal_partition = Construction.from_U_value("InternalPartition", 1.8, weight_class = "Medium", construction_type = "IntWall")  # I took a reasonable U-value for the internal partitions
     internal_floor = Construction.from_U_value("InternalFloor", 0.4, weight_class = "Medium", construction_type = "IntFloor")  # I took a reasonbale U-value for the internal slab
-    
+
     
     window = SimpleWindow(
                     name="Window",
@@ -93,8 +93,8 @@ def simulation(
     # Definition of surfaces
     wall_North = Surface(
         "Wall North",
-        vertices=((0, 12.5, 13.2), (0, 12.5, 15.9), (4.2, 12.5, 15.9), (4.2, 12.5, 13.2)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
-        wwr=0.48,
+        vertices=((0., 12.3, 13.2), (0., 12.3, 15.9), (8.7, 12.3, 15.9), (8.7, 12.3, 13.2)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        wwr=0.35,
         surface_type="ExtWall",
         construction=ext_wall_North,
         window=window,
@@ -103,12 +103,12 @@ def simulation(
         h_bottom=0
     )
     
-    wall_East = Surface(
-        "Wall East",
-        vertices=((4.2, 0, 13.2), (4.2, 12.5, 13.2), (4.2, 12.5, 15.9), (4.2, 0, 15.9)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
-        wwr=0.32,
+    wall_South = Surface(
+        "Wall South",
+        vertices=((0., 0., 13.2), (8.7, 0., 13.2), (8.7, 0., 15.9), (0., 0., 15.9)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        wwr=0.47,
         surface_type="ExtWall",
-        construction=ext_wall_East,
+        construction=ext_wall_South,
         window=window,
         n_window_layers=1,
         h_window=2.1,
@@ -117,36 +117,36 @@ def simulation(
     
     roof = Surface(
         "Roof",
-        vertices=((4.2, 0, 15.9), (4.2, 12.5, 15.9), (0, 12.5, 15.9), (0, 6.5, 15.9), (-2.9, 6.5, 15.9), (-2.9, 2.7, 15.9), (0.9, 2.7, 15.9), (0.9, 0, 15.9)),
+        vertices=((0., 0., 15.9), (8.7, 0., 15.9), (8.7, 4.2, 15.9), (7.2, 4.2, 15.9), (7.2, 8.5, 15.9), (7.8, 8.5, 15.9), (7.8, 10.5, 15.9), (8.7, 10.5, 15.9), (8.7, 12.3, 15.9), (0., 12.3, 15.9)),
         wwr=0,
         surface_type="Roof",
         construction=roof_constr,
         window=window,
         n_window_layers=1
     )
-    
+        
     int_wall = SurfaceInternalMass(
         "IntWall",
-        area=60,
+        area=74,
         surface_type="IntWall",
         construction=internal_wall
     )
     
     int_part = SurfaceInternalMass(
         "IntPart",
-        area=80,     # Area is doubled since partitions inside the occupied zone present two surfaces
+        area=194,     # Area is doubled since partitions inside the occupied zone present two surfaces
         surface_type="IntWall",
         construction=internal_partition
     )
     
     int_floor = SurfaceInternalMass(
         "IntFloor",
-        area=61,  # Floor area based the average value between internal and external dimensions
+        area=94,  # Floor area based the average value between internal and external dimensions
         surface_type="IntFloor",
         construction=internal_floor
     )
     
-    
+        
     #########################################################
     # Loads
     
@@ -277,7 +277,7 @@ def simulation(
     mech_vent_obj = MechanicalVentilation(
         name='vent_obj',
         unit='m3/s',
-        nominal_value=0.0365,   # Ventilation flow rate in m3/s
+        nominal_value=0.0365,   # Ventilation flow rate in m3/s (volumetric flow rate assumed equal to Ali's apartment at the moment)
         schedule=vent_sched,
     )
     
@@ -321,9 +321,9 @@ def simulation(
     # Create thermal zone
     tz1 = ThermalZone(
         name="Zone 1",
-        surface_list=[wall_North, wall_East, roof, int_wall, int_part, int_floor],
-        net_floor_area=56, # Net floor area based on internal dimensions
-        volume=56*2.7)
+        surface_list=[wall_North, wall_South, roof, int_wall, int_part, int_floor],
+        net_floor_area=87, # Net floor area based on internal dimensions
+        volume=87*2.7)
     
     tz1._ISO13790_params()
     # tz1._VDI6007_params()
@@ -371,13 +371,14 @@ def simulation(
     
     tz1.add_domestic_hot_water(weather, dhw_1)
     
-    bd = Building("Bd1", thermal_zones_list=[tz1], model = "1C")
+    bd = Building("BdL12", thermal_zones_list=[tz1], model = "1C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather)
     #start = time.time()
     df_res = bd.simulate(weather, t_start = start_time_step, t_stop = end_time_step, preprocessing_ts=100)
     #nat_vent_mass_flow_rate = tz1.nat_vent_air_flow_rate[start_time_step:end_time_step]
     nat_vent_dict = tz1.nat_vent_info
+    phi_int_tot = tz_loads["convective [W]"] + tz_loads["radiative [W]"]
     outdoor_temp_profile = weather.hourly_data["out_air_db_temperature"][start_time_step:end_time_step]
     #print(f"1C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
     T_model = df_res["TZ Ta [°C]"]["Zone 1"].values[:len(T_meas)]
@@ -385,7 +386,7 @@ def simulation(
     #RMSE_np = np.sqrt(np.square(np.subtract(T_meas,T_model)).mean())
     #global temp_profiles
     temp_profiles = np.array([T_meas, T_model, outdoor_temp_profile]).T
-    print(f'RMSE: {RMSE} °C')
+    # print(f'RMSE: {RMSE} °C')
     
     # plt.plot(tz1.phi_ia[start_time_step:end_time_step+100])
     # plt.plot(tz1.phi_m[start_time_step:end_time_step+100])
@@ -394,7 +395,7 @@ def simulation(
     if flag == "cal":
         return RMSE #, RMSE_np, temp_profiles
     else:
-        return RMSE, temp_profiles, nat_vent_dict # nat_vent_mass_flow_rate
+        return RMSE, temp_profiles, nat_vent_dict, phi_int_tot # nat_vent_mass_flow_rate
 
     
     
@@ -554,20 +555,33 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QR20F6237B-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QRFB36035F-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
-measure_h = measure.resample("1H").mean()
+measure_h = measure.resample("1H").mean().ffill()
 
 #########################################################
 # Cycle for the single day optimization over a week
+# Initializing vectors of results
 C_th = pd.DataFrame()
 sched_hg = np.array([])
 sched_op = np.array([])
 temperatures = np.array([[],[],[]]).T
 NV_fr = np.array([])
+sim_days = 8 #number of simulated days
+# Initializing table of results as dictionary to be saved on csv file
+results_cal = {"T_meas [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "T_sim [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "T_out [°C]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "C_th_rel [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "Sched_HG [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "Q_hg [W]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "Sched_op_w [-]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "NV_ACH [vol/h]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1]),
+               "NV_vfr [m3/h]" : np.zeros([sim_days*24*CONFIG.ts_per_hour, 1])
+               }
 start = time.time()
-for day_step in range(3):
+for day_step in range(sim_days):
     time_delta = dt.timedelta(days=day_step)
     date_to_calibrate = start_date_to_calibrate + time_delta
     date_to_calibrate = date_to_calibrate.strftime("%m/%d/%Y")
@@ -583,8 +597,8 @@ for day_step in range(3):
     end_time_step = day_of_the_year*24 + 24
     RMSE = simulation(x0,
                       weather_file,
-                      T_meas, 
-                      start_time_step, 
+                      T_meas,
+                      start_time_step,
                       end_time_step)
     
     # x_opt = scipy.optimize.least_squares(simulation,
@@ -598,16 +612,16 @@ for day_step in range(3):
     #                                                 "end_time_step": end_time_step}
     #                                       )
     
-    # x_opt = scipy.optimize.least_squares(simulation,
-    #                                       x0,
-    #                                       bounds = (x0_lb, x0_ub),
-    #                                       ftol=1e-2,
-    #                                       method = 'trf', 
-    #                                       args = (weather_file,
-    #                                               T_meas,
-    #                                               start_time_step,
-    #                                               end_time_step)
-    #                                       )
+    x_opt = scipy.optimize.least_squares(simulation,
+                                          x0,
+                                          bounds = (x0_lb, x0_ub),
+                                          ftol=1e-3,
+                                          method = 'trf',
+                                          args = (weather_file,
+                                                  T_meas,
+                                                  start_time_step,
+                                                  end_time_step)
+                                          )
     
     # # Trying another scipy function for optimization
     bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
@@ -626,14 +640,14 @@ for day_step in range(3):
     # #                                     minimizer_kwargs={"args": args},
     # #                                     )
     
-    # # Trying another scipy function for global optimization
-    x_opt = scipy.optimize.differential_evolution(simulation,
-                                                  x0 = x0,
-                                                  bounds = bounds,
-                                                  args=(weather_file, T_meas, start_time_step, end_time_step),
-                                                  tol = 0.1,
-                                                  disp = True
-                                                  )
+    # Trying another scipy function for global optimization
+    # x_opt = scipy.optimize.differential_evolution(simulation,
+    #                                               x0 = x0,
+    #                                               bounds = bounds,
+    #                                               args=(weather_file, T_meas, start_time_step, end_time_step),
+    #                                               tol = 0.1,
+    #                                               disp = True
+    #                                               )
     
     # Trying another scipy function for global optimization
     # x_opt = scipy.optimize.direct(simulation,
@@ -644,37 +658,52 @@ for day_step in range(3):
     
     C_day = pd.DataFrame([x_opt.x[0]], columns=["Thermal capacity"], index=[date_to_calibrate])
     C_th = pd.concat([C_th, C_day])
-    #sched_hg = np.append(sched_hg, x_opt.x[1:25])
+    sched_hg = np.append(sched_hg, x_opt.x[1])
     sched_op = np.append(sched_op, x_opt.x[2:])
     # sched_hg = np.append(sched_hg, x_opt.x[0:24])
     # sched_op = np.append(sched_op, x_opt.x[24:])
     
     # Running a final simulation to get results
     x_fin = x_opt.x
-    RMSE_fin, temp_profiles, NV_dict = simulation(x_fin,
-                                            weather_file,
-                                            T_meas, 
-                                            start_time_step, 
-                                            end_time_step,
-                                            flag = "sim")
+    RMSE_fin, temp_profiles, NV_dict, IHG = simulation(x_fin,
+                                                       weather_file,
+                                                       T_meas,
+                                                       start_time_step,
+                                                       end_time_step,
+                                                       flag = "sim")
     
     temperatures = np.append(temperatures, temp_profiles, axis=0)
     NV_fr = np.append(NV_fr, NV_dict['airflow_rate']['vol/h'][start_time_step:end_time_step], axis=0)
+    
+    # Updating table of results
+    results_cal['T_meas [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,0]]).T
+    results_cal['T_sim [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,1]]).T
+    results_cal['T_out [°C]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([temp_profiles[:,2]]).T
+    results_cal['C_th_rel [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[0]]*24*CONFIG.ts_per_hour]).T
+    results_cal['Sched_HG [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([[x_fin[1]]*24*CONFIG.ts_per_hour]).T
+    results_cal['Q_hg [W]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([IHG[start_time_step:end_time_step]]).T
+    results_cal['Sched_op_w [-]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([x_fin[2:]]).T
+    results_cal['NV_ACH [vol/h]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([NV_dict['airflow_rate']['vol/h'][start_time_step:end_time_step]]).T
+    results_cal['NV_vfr [m3/h]'][0+day_step*24*CONFIG.ts_per_hour:24+day_step*24*CONFIG.ts_per_hour] = np.array([NV_dict['airflow_rate']['m3/h'][start_time_step:end_time_step]]).T
+
     print(RMSE_fin)
     
     
 stop = time.time()
-print(f'Total calibration time for seven days: {(stop-start):.1f} s')
+print(f'Total calibration time for {sim_days} days: {(stop-start):.1f} s')
 
+#########################################################
+# Final results and graph printing
 # Average thermal capacity over the simulated week
 C_th_av = C_th.mean()
 
-
+# Window opening and heat gain schedules
 fig, [ax1, ax2] = plt.subplots(nrows=2)
 # ax.plot(x_opt.x[1:])
 #ax1.plot(sched_hg)
 ax2.plot(sched_op)
 
+# Temperature profiles (outdoor, measured and simulated)
 starting_timestep = (int(start_date_to_calibrate.strftime("%j"))-1)*24
 n_timesteps = end_time_step - starting_timestep
 #n_timesteps = 24
@@ -682,13 +711,23 @@ time_interval = np.array([range(n_timesteps)]).T
 fig2, ax2 = plt.subplots()
 ax2.plot(time_interval, temperatures[:,0], time_interval, temperatures[:,1], time_interval, temperatures[:,2])
 
+# Heat gains schedule and value
 #HG = sched_hg * 500
 #fig, [ax1, ax2] = plt.subplots(nrows=2)
 # ax.plot(x_opt.x[1:])
 #ax1.plot(HG)
 #ax2.plot(sched_op, 'r')
 
+# Window opening schedule and NV air change rates
 fig, [ax1, ax2] = plt.subplots(nrows=2)
 # ax.plot(x_opt.x[1:])
 ax1.plot(sched_op, 'r')
 ax2.plot(NV_fr, 'b')
+
+#########################################################
+# Saving table of results on a csv file
+output_file_name = "Calibration_results"
+result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
+for label in results_cal.keys():
+    result_table[label] = results_cal[label]
+result_table.to_csv(os.path.join('.', 'Results', f"{output_file_name}.csv"), float_format='%.4f', index = True, sep =";")
