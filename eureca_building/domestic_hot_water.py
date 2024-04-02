@@ -240,7 +240,12 @@ class DomesticHotWater:
                 Vw_single = self.n_of_people * 0.04 / number_of_units #  Water Need [m3/day] considering 40 L/px
 
             if self.calculation_method in ["UNI-TS 11300-2","Number of occupants"]:
-                volume = np.ones(CONFIG.number_of_time_steps_year) * Vw_single * number_of_units * 365 / CONFIG.number_of_time_steps_year / CONFIG.time_step # To convert from m3/ts to m3/s
+                sched = pd.Series([0.500, 0.502, 0.504, 0.957, 0.984, 1.042, 1.102, 1.120, 1.126, 1.131, 1.133, 1.132,
+                         1.133, 1.136, 1.133, 1.135, 1.134, 1.134, 1.135, 1.133, 1.122, 1.102, 0.972, 0.498]*365,
+                                  index = pd.date_range(start="00:00 01/01/2023", freq='1H', periods = 365*24)).resample(f"{int(CONFIG.time_step/60)}min").ffill().values
+                # sched = np.ones(CONFIG.number_of_time_steps_year)
+
+                volume = sched * Vw_single * number_of_units * 365 / CONFIG.number_of_time_steps_year / CONFIG.time_step # To convert from m3/ts to m3/s
 
             elif self.calculation_method == "DHW calc":
                 # TODO: fix stochastic calculation
