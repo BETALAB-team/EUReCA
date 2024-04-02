@@ -83,7 +83,7 @@ ventilation_prop = {
 }
 
 domestic_hot_water_prop = {
-    "calculation_method": ["Schedule", "UNI-TS 11300-2", "DHW calc"],
+    "calculation_method": ["Schedule", "UNI-TS 11300-2", "Number of occupants", "DHW calc"],
     "unit": ["L/s", "m3/s", "L/(m2 h)"],
     "tags": [],
     "total_days": 365,  # number of days for the simulation

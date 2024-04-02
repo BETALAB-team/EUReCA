@@ -123,6 +123,7 @@ class DomesticHotWater:
             calculation_method: str,
             unit = None,
             schedule = None,
+            n_of_occupants = None,
     ):
         f"""Constructor for DomesticHotWater. Memorizes the attributes anc checks them through properties setter
 
@@ -143,6 +144,9 @@ class DomesticHotWater:
         self.calculation_method = calculation_method
         self.unit = unit
         self.schedule = schedule
+        self.n_of_people = n_of_occupants
+        if self.calculation_method == "Number of occupants" and self.n_of_people == None:
+            raise TypeError("DHW object: If 'Number of occupants' is selected as calculation method, a numeric n_of_occupants arg must be introduced")
 
     @property
     def calculation_method(self):
@@ -186,7 +190,7 @@ class DomesticHotWater:
                 )
         self._schedule = value
 
-    def get_dhw_yearly_mass_flow_rate(self, area, number_of_units, weather):
+    def get_dhw_yearly_mass_flow_rate(self, area, number_of_units, weather, n_of_people = None):
         """This function calculates the water and mass flow rate consumption, given the area of the building and the number of units (to be used when unit and/or method need them)
 
         Parameters
@@ -228,7 +232,14 @@ class DomesticHotWater:
             # Water Need [m3/day]
             Vw_single = (a * Af + b) / 1000
 
-            if self.calculation_method == "UNI-TS 11300-2":
+            if self.calculation_method == "Number of occupants":
+                try:
+                    self.n_of_people = float(self.n_of_people)
+                except ValueError:
+                    raise TypeError(f"DHW object: number of people is not numeric : {self.n_of_people}")
+                Vw_single = self.n_of_people * 0.04 / number_of_units #  Water Need [m3/day] considering 40 L/px
+
+            if self.calculation_method in ["UNI-TS 11300-2","Number of occupants"]:
                 volume = np.ones(CONFIG.number_of_time_steps_year) * Vw_single * number_of_units * 365 / CONFIG.number_of_time_steps_year / CONFIG.time_step # To convert from m3/ts to m3/s
 
             elif self.calculation_method == "DHW calc":
