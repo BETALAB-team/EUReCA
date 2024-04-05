@@ -1164,6 +1164,8 @@ class Heating_EN15316(System):
         elif "Gas" in self.generation_type:
             self.gas_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Natural Gas"]
             self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
+        elif "Electric Heater" in self.generation_type:
+            self.electric_consumption = total_energy / CONFIG.ts_per_hour + self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
 
 class Cooling_EN15316(System):
     '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
@@ -1286,6 +1288,7 @@ hvac_heating_systems_classes = {
     "A-W Heat Pump, Single, Fan coil":Heating_EN15316,
     "A-W Heat Pump, Centralized, Radiant surface":Heating_EN15316,
     "A-W Heat Pump, Single, Radiant surface":Heating_EN15316,
+    "Electric Heater":Heating_EN15316,
 }
 hvac_cooling_systems_classes = {
     "IdealLoad":IdealLoad,
