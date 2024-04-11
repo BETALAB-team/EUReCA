@@ -178,7 +178,7 @@ ts_to_sim = 25
 for t in range(5000 * 2, 5000 * 2 + ts_to_sim):
     t_zona += 1.*random.randint(-100,100)/100
     # t_zona = weather_file.hourly_data["out_air_db_temperature"][t]
-    x = inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file)
+    x = inf_obj.get_timestep_ventilation_mass_flow(t, t_zona, weather_file, 5)
     mass_flow_rate = x[0]
     z_n = x[1]
     vol_inflow = x[2]

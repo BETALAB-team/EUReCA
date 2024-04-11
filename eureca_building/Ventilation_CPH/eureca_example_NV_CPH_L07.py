@@ -92,7 +92,7 @@ def simulation(
     # Definition of surfaces
     wall_East = Surface(
         "Wall East",
-        vertices=((12.3, 2.7, 6.6), (12.3, 6., 6.6), (12.3, 6., 9.3), (12.3, 2.7, 9.3)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((12.3, 2.7, 6.), (12.3, 6., 6.), (12.3, 6., 8.7), (12.3, 2.7, 8.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.45,
         surface_type="ExtWall",
         construction=ext_wall_East,
@@ -104,7 +104,7 @@ def simulation(
     
     wall_West = Surface(
         "Wall West",
-        vertices=((0., 2.3, 6.6), (0., 2.3, 9.3), (0., 6., 9.3), (0., 6., 6.6)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 2.3, 6.), (0., 2.3, 8.7), (0., 6., 8.7), (0., 6., 6.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.27,
         surface_type="ExtWall",
         construction=ext_wall_West,
@@ -550,7 +550,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QR728C79F8-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QR728C79F8-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean().ffill()
@@ -721,7 +721,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results"
+output_file_name = "Calibration_results_L07"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]

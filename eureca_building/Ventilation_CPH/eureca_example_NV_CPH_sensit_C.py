@@ -92,7 +92,7 @@ def simulation(
     # Definition of surfaces
     wall_North = Surface(
         "Wall North",
-        vertices=((0, 12.5, 13.2), (0, 12.5, 15.9), (4.2, 12.5, 15.9), (4.2, 12.5, 13.2)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0, 12.5, 12.), (0, 12.5, 14.7), (4.2, 12.5, 14.7), (4.2, 12.5, 12.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.48,
         surface_type="ExtWall",
         construction=ext_wall_North,
@@ -104,7 +104,7 @@ def simulation(
     
     wall_East = Surface(
         "Wall East",
-        vertices=((4.2, 0, 13.2), (4.2, 12.5, 13.2), (4.2, 12.5, 15.9), (4.2, 0, 15.9)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((4.2, 0, 12.), (4.2, 12.5, 12.), (4.2, 12.5, 14.7), (4.2, 0, 14.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.32,
         surface_type="ExtWall",
         construction=ext_wall_East,
@@ -116,7 +116,7 @@ def simulation(
     
     roof = Surface(
         "Roof",
-        vertices=((4.2, 0, 15.9), (4.2, 12.5, 15.9), (0, 12.5, 15.9), (0, 6.5, 15.9), (-2.9, 6.5, 15.9), (-2.9, 2.7, 15.9), (0.9, 2.7, 15.9), (0.9, 0, 15.9)),
+        vertices=((4.2, 0, 14.7), (4.2, 12.5, 14.7), (0, 12.5, 14.7), (0, 6.5, 14.7), (-2.9, 6.5, 14.7), (-2.9, 2.7, 14.7), (0.9, 2.7, 14.7), (0.9, 0, 14.7)),
         wwr=0,
         surface_type="Roof",
         construction=roof_constr,
@@ -540,7 +540,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QR20F6237B-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QR20F6237B-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean()

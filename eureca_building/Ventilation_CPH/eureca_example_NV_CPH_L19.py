@@ -93,7 +93,7 @@ def simulation(
     # Definition of surfaces
     wall_East = Surface(
         "Wall East",
-        vertices=((12.3, 0., 13.2), (12.3, 3.3, 13.2), (12.3, 3.3, 15.9), (12.3, 0., 15.9)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((12.3, 0., 12.), (12.3, 3.3, 12.), (12.3, 3.3, 14.7), (12.3, 0., 14.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.45,
         surface_type="ExtWall",
         construction=ext_wall_East,
@@ -105,7 +105,7 @@ def simulation(
     
     wall_West = Surface(
         "Wall West",
-        vertices=((0., 0., 13.2), (0., 0., 15.9), (0., 3.7, 15.9), (0., 3.7, 13.2)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 0., 12.), (0., 0., 14.7), (0., 3.7, 14.7), (0., 3.7, 12.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.27,
         surface_type="ExtWall",
         construction=ext_wall_West,
@@ -117,7 +117,7 @@ def simulation(
     
     roof = Surface(
         "Roof",
-        vertices=((0., 0., 15.9), (12.3, 0., 15.9), (12.3, 3.3, 15.9), (8.8, 3.3, 15.9), (8.8, 6., 15.9), (5.1, 6., 15.9), (5.1, 5.4, 15.9), (4.5, 5.4, 15.9), (4.5, 3.7, 15.9), (0., 3.7, 15.9)),
+        vertices=((0., 0., 14.7), (12.3, 0., 14.7), (12.3, 3.3, 14.7), (8.8, 3.3, 14.7), (8.8, 6., 14.7), (5.1, 6., 14.7), (5.1, 5.4, 14.7), (4.5, 5.4, 14.7), (4.5, 3.7, 14.7), (0., 3.7, 14.7)),
         wwr=0,
         surface_type="Roof",
         construction=roof_constr,
@@ -555,7 +555,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QR6BB681FD-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QR6BB681FD-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean().ffill()
@@ -726,7 +726,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results"
+output_file_name = "Calibration_results_L19"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]

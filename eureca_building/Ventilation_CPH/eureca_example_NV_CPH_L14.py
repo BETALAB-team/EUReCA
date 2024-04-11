@@ -93,7 +93,7 @@ def simulation(
     # Definition of surfaces
     wall_North = Surface(
         "Wall North",
-        vertices=((0., 8.5, 19.8), (0., 8.5, 22.5), (12.3, 8.5, 22.5), (12.3, 8.5, 19.8)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 8.5, 18.), (0., 8.5, 20.7), (12.3, 8.5, 20.7), (12.3, 8.5, 18.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.38,
         surface_type="ExtWall",
         construction=ext_wall_North,
@@ -105,7 +105,7 @@ def simulation(
     
     wall_East = Surface(
         "Wall East",
-        vertices=((12.3, 8.5, 19.8), (12.3, 8.5, 22.5), (12.3, 1.1, 22.5), (12.3, 1.1, 19.8)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((12.3, 8.5, 18.), (12.3, 8.5, 20.7), (12.3, 1.1, 20.7), (12.3, 1.1, 18.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0,
         surface_type="ExtWall",
         construction=ext_wall_East,
@@ -117,9 +117,9 @@ def simulation(
     
     wall_West = Surface(
         "Wall West",
-        vertices=((0., 0., 19.8), (0., 0., 22.5), (0., 8.5, 22.5), (0., 8.5, 19.8)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 0., 18.), (0., 0., 20.7), (0., 8.5, 20.7), (0., 8.5, 18.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.40,
-        surface_type="Roof",
+        surface_type="ExtWall",
         construction=ext_wall_West,
         window=window,
         n_window_layers=1
@@ -127,7 +127,7 @@ def simulation(
     
     roof = Surface(
         "Roof",
-        vertices=((0., 0., 22.5), (7.8, 0., 22.5), (7.8, 1.1, 22.5), (12.3, 1.1, 22.5), (12.3, 8.5, 22.5), (0., 8.5, 22.5)),
+        vertices=((0., 0., 20.7), (7.8, 0., 20.7), (7.8, 1.1, 20.7), (12.3, 1.1, 20.7), (12.3, 8.5, 20.7), (0., 8.5, 20.7)),
         wwr=0,
         surface_type="Roof",
         construction=roof_constr,
@@ -565,7 +565,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QRC191651D-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QRC191651D-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean().ffill()
@@ -625,7 +625,7 @@ for day_step in range(sim_days):
     x_opt = scipy.optimize.least_squares(simulation,
                                           x0,
                                           bounds = (x0_lb, x0_ub),
-                                          ftol=1e-3,
+                                          ftol=1e-4,
                                           method = 'trf',
                                           args = (weather_file,
                                                   T_meas,
@@ -655,7 +655,7 @@ for day_step in range(sim_days):
     #                                               x0 = x0,
     #                                               bounds = bounds,
     #                                               args=(weather_file, T_meas, start_time_step, end_time_step),
-    #                                               tol = 0.1,
+    #                                               tol = 1e-3,
     #                                               disp = True
     #                                               )
     
@@ -736,7 +736,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results"
+output_file_name = "Calibration_results_L14"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]

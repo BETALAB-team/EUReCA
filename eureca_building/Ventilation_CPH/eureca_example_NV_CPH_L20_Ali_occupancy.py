@@ -55,7 +55,7 @@ def simulation(
         flag: str = "cal"
         ):
        
-    weather, T_meas, start_time_step, end_time_step = args
+    weather, sched_occ, T_meas, start_time_step, end_time_step = args
     
     C_m = x0[0]
     Loads_schedule = x0[1]
@@ -71,12 +71,13 @@ def simulation(
     #     "materials_and_construction_test.xlsx",
     # )
     
-    ext_wall_West = Construction.from_U_value("WestExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")  # At the moment, I left "medium" weight class
-    ext_wall_South = Construction.from_U_value("SouthExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")
+    ext_wall_North = Construction.from_U_value("NorthExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")  # At the moment, I left "medium" weight class
+    ext_wall_East = Construction.from_U_value("EastExtWall", 0.19, weight_class = "Medium", construction_type = "ExtWall")
+    roof_constr = Construction.from_U_value("RoofConstr", 0.09, weight_class = "Medium", construction_type = "Roof")
     internal_wall = Construction.from_U_value("InternalWall", 0.3, weight_class = "Medium", construction_type = "IntWall")  # I took a reasonable U-value for the internal walls between the unit and the other flats or common areas
     internal_partition = Construction.from_U_value("InternalPartition", 1.8, weight_class = "Medium", construction_type = "IntWall")  # I took a reasonable U-value for the internal partitions
     internal_floor = Construction.from_U_value("InternalFloor", 0.4, weight_class = "Medium", construction_type = "IntFloor")  # I took a reasonbale U-value for the internal slab
-    internal_ceiling = Construction.from_U_value("InternalCeiling", 0.4, weight_class = "Medium", construction_type = "IntCeiling")  # I took a reasonbale U-value for the internal slab
+    
     
     window = SimpleWindow(
                     name="Window",
@@ -90,59 +91,62 @@ def simulation(
     
     #########################################################
     # Definition of surfaces
-    wall_West = Surface(
-        "Wall West",
-        vertices=((0., 0., 6.), (0., 0., 8.7), (0., 8.6, 8.7), (0., 8.6, 6.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
-        wwr=0.40,
+    wall_North = Surface(
+        "Wall North",
+        vertices=((0, 12.5, 12.), (0, 12.5, 14.7), (4.2, 12.5, 14.7), (4.2, 12.5, 12.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
+        wwr=0.48,
         surface_type="ExtWall",
-        construction=ext_wall_West,
+        construction=ext_wall_North,
         window=window,
         n_window_layers=1,
         h_window=2.1,
         h_bottom=0
     )
     
-    wall_South = Surface(
-        "Wall South",
-        vertices=((0., 0., 6.), (12.3, 0., 6.), (12.3, 0., 8.7), (0., 0., 8.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
-        wwr=0.33,
+    wall_East = Surface(
+        "Wall East",
+        vertices=((4.2, 0, 12.), (4.2, 12.5, 12.), (4.2, 12.5, 14.7), (4.2, 0, 14.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
+        wwr=0.32,
         surface_type="ExtWall",
-        construction=ext_wall_South,
+        construction=ext_wall_East,
         window=window,
         n_window_layers=1,
         h_window=2.1,
         h_bottom=0
     )
-            
+    
+    roof = Surface(
+        "Roof",
+        vertices=((4.2, 0, 14.7), (4.2, 12.5, 14.7), (0, 12.5, 14.7), (0, 6.5, 14.7), (-2.9, 6.5, 14.7), (-2.9, 2.7, 14.7), (0.9, 2.7, 14.7), (0.9, 0, 14.7)),
+        wwr=0,
+        surface_type="Roof",
+        construction=roof_constr,
+        window=window,
+        n_window_layers=1
+    )
+    
     int_wall = SurfaceInternalMass(
         "IntWall",
-        area=56,
+        area=60,
         surface_type="IntWall",
         construction=internal_wall
     )
     
     int_part = SurfaceInternalMass(
         "IntPart",
-        area=192,     # Area is doubled since partitions inside the occupied zone present two surfaces
+        area=80,     # Area is doubled since partitions inside the occupied zone present two surfaces
         surface_type="IntWall",
         construction=internal_partition
     )
     
     int_floor = SurfaceInternalMass(
         "IntFloor",
-        area=100,  # Floor area based the average value between internal and external dimensions
+        area=61,  # Floor area based the average value between internal and external dimensions
         surface_type="IntFloor",
         construction=internal_floor
     )
     
-    int_ceil = SurfaceInternalMass(
-        "IntCeil",
-        area=100,  # Ceiling area based the average value between internal and external dimensions
-        surface_type="IntCeiling",
-        construction=internal_ceiling
-    )
     
-        
     #########################################################
     # Loads
     
@@ -168,6 +172,13 @@ def simulation(
         value = Loads_schedule
     )
     
+    # A schedule
+    # app_sched = Schedule(
+    #     "AppSched",
+    #     "dimensionless",
+    #     np.array(([0.5] * 17 * ts_h + [0.9] * 5 * ts_h + [0.5] * 2 * ts_h) * 365)[:delay_ts],
+    # )
+    
     # Loads
     # people = People(
     #     name='occupancy_tz',
@@ -183,7 +194,7 @@ def simulation(
     electric_devices = ElectricLoad(
         name='ElectricLoads',
         unit='W',
-        nominal_value=1000,  # An indicative value of 1 kW could be reasonable
+        nominal_value=1000, #*Loads_schedule,  # An indicative value of 1 kW could be reasonable
         schedule=app_sched,
         fraction_radiant=0.3,
         fraction_convective=0.7,
@@ -273,7 +284,7 @@ def simulation(
     mech_vent_obj = MechanicalVentilation(
         name='vent_obj',
         unit='m3/s',
-        nominal_value=0.0365,   # Ventilation flow rate in m3/s (volumetric flow rate assumed equal to Ali's apartment at the moment)
+        nominal_value=0.0365,   # Ventilation flow rate in m3/s
         schedule=vent_sched,
     )
     
@@ -317,15 +328,15 @@ def simulation(
     # Create thermal zone
     tz1 = ThermalZone(
         name="Zone 1",
-        surface_list=[wall_West, wall_South, int_wall, int_part, int_floor, int_ceil],
-        net_floor_area=89, # Net floor area based on internal dimensions
-        volume=89*2.7)
+        surface_list=[wall_North, wall_East, roof, int_wall, int_part, int_floor],
+        net_floor_area=56, # Net floor area based on internal dimensions
+        volume=56*2.7)
     
     tz1._ISO13790_params()
     # tz1._VDI6007_params()
 
     tz1.Cm = C_m*tz1.Cm
-    # tz1.Cm = 0.65*tz1.Cm
+    # tz1.Cm = 2*tz1.Cm
     
     tz1.add_internal_load(electric_devices)
     
@@ -367,7 +378,7 @@ def simulation(
     
     tz1.add_domestic_hot_water(weather, dhw_1)
     
-    bd = Building("BdL18", thermal_zones_list=[tz1], model = "1C")
+    bd = Building("BdL20", thermal_zones_list=[tz1], model = "1C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather)
     #start = time.time()
@@ -524,16 +535,16 @@ start_date_to_calibrate = dt.datetime(year=2023, month=6, day=20)
 # start_date_to_calibrate = "06/20/2023" #m/d/y American format
 
 # Initial vector and boundaries
-C_0 = np.array([1])
+C_0 = np.array([2.05])
 InternalLoad_0 = np.array([0.42])
 Opening_NV_0 = np.array([0]*10 + [0.1]*5 + [0.2]*5 + [0]*4)
 x0 = np.hstack([C_0, InternalLoad_0, Opening_NV_0])
 #x0 = np.hstack([InternalLoad_0, Opening_NV_0])
 
-C_0_lb = np.array([0.5])  #0.5
+C_0_lb = np.array([2])  #0.5
 InternalLoad_0_lb = np.array([0])
 Opening_NV_0_lb = np.array([0]*24)
-C_0_ub = np.array([3])  #1.5
+C_0_ub = np.array([2.1])  #1.5
 InternalLoad_0_ub = np.array([1])
 Opening_NV_0_ub = np.array([1]*24)
 x0_lb = np.hstack([C_0_lb, InternalLoad_0_lb, Opening_NV_0_lb])
@@ -551,7 +562,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QRA6474C62-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QR20F6237B-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean().ffill()
@@ -593,8 +604,8 @@ for day_step in range(sim_days):
     end_time_step = day_of_the_year*24 + 24
     RMSE = simulation(x0,
                       weather_file,
-                      T_meas,
-                      start_time_step,
+                      T_meas, 
+                      start_time_step, 
                       end_time_step)
     
     # x_opt = scipy.optimize.least_squares(simulation,
@@ -608,16 +619,16 @@ for day_step in range(sim_days):
     #                                                 "end_time_step": end_time_step}
     #                                       )
     
-    x_opt = scipy.optimize.least_squares(simulation,
-                                          x0,
-                                          bounds = (x0_lb, x0_ub),
-                                          ftol=1e-3,
-                                          method = 'trf',
-                                          args = (weather_file,
-                                                  T_meas,
-                                                  start_time_step,
-                                                  end_time_step)
-                                          )
+    # x_opt = scipy.optimize.least_squares(simulation,
+    #                                       x0,
+    #                                       bounds = (x0_lb, x0_ub),
+    #                                       ftol=1e-4,
+    #                                       method = 'trf',
+    #                                       args = (weather_file,
+    #                                               T_meas,
+    #                                               start_time_step,
+    #                                               end_time_step)
+    #                                       )
     
     # # Trying another scipy function for optimization
     bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
@@ -637,13 +648,13 @@ for day_step in range(sim_days):
     # #                                     )
     
     # Trying another scipy function for global optimization
-    # x_opt = scipy.optimize.differential_evolution(simulation,
-    #                                               x0 = x0,
-    #                                               bounds = bounds,
-    #                                               args=(weather_file, T_meas, start_time_step, end_time_step),
-    #                                               tol = 0.1,
-    #                                               disp = True
-    #                                               )
+    x_opt = scipy.optimize.differential_evolution(simulation,
+                                                  x0 = x0,
+                                                  bounds = bounds,
+                                                  args=(weather_file, T_meas, start_time_step, end_time_step),
+                                                  tol = 1e-3,
+                                                  disp = True
+                                                  )
     
     # Trying another scipy function for global optimization
     # x_opt = scipy.optimize.direct(simulation,
@@ -722,7 +733,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results_L18"
+output_file_name = "Calibration_results_L20"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]

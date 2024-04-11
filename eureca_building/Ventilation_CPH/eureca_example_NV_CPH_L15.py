@@ -93,7 +93,7 @@ def simulation(
     # Definition of surfaces
     wall_North = Surface(
         "Wall North",
-        vertices=((0., 12.3, 13.2), (0., 12.3, 15.9), (5.6, 12.3, 15.9), (5.6, 12.3, 13.2)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 12.3, 12.), (0., 12.3, 14.7), (5.6, 12.3, 14.7), (5.6, 12.3, 12.)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.36,
         surface_type="ExtWall",
         construction=ext_wall_North,
@@ -105,7 +105,7 @@ def simulation(
     
     wall_South = Surface(
         "Wall South",
-        vertices=((0., 0., 13.2), (5.6, 0., 13.2), (5.6, 0., 15.9), (0., 0., 15.9)),  # The third coordinate takes into account the flat floor number (each floor of 3.3 m - external dimensions)
+        vertices=((0., 0., 12.), (5.6, 0., 12.), (5.6, 0., 14.7), (0., 0., 14.7)),  # The third coordinate takes into account the flat floor number (each floor of 3.0 m - external dimensions)
         wwr=0.33,
         surface_type="ExtWall",
         construction=ext_wall_South,
@@ -117,7 +117,7 @@ def simulation(
     
     roof_N = Surface(
         "Roof",
-        vertices=((0., 12.3, 15.9), (0., 6.2, 15.9), (5.6, 6.2, 15.9), (5.6, 12.3, 15.9)),
+        vertices=((0., 12.3, 14.7), (0., 6.2, 14.7), (5.6, 6.2, 14.7), (5.6, 12.3, 14.7)),
         wwr=0,
         surface_type="Roof",
         construction=roof_constr,
@@ -562,7 +562,7 @@ weather_file = WeatherFile(epw_path,
 
 #########################################################
 # Measure loading
-measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\Collected_data\\IC-Meter-QRB8035062-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
+measure = pd.read_csv("C:\\Users\\gecky\\OneDrive - Università degli Studi di Padova\\PhD_directory\\AAU material\\DataComfortCooling\\1_Collected_data\\IC-Meter-QRB8035062-Indoor-Minutes-01-Jun-2023-29-Oct-2023.csv",
                       skiprows = 0, header = 1, delimiter = ';', decimal = ',', index_col = 0, parse_dates = True)
 measure.drop(["DATE (EUROPE/COPENHAGEN)", "TIME (EUROPE/COPENHAGEN)"], axis = 1, inplace = True)
 measure_h = measure.resample("1H").mean().ffill()
@@ -619,16 +619,16 @@ for day_step in range(sim_days):
     #                                                 "end_time_step": end_time_step}
     #                                       )
     
-    x_opt = scipy.optimize.least_squares(simulation,
-                                          x0,
-                                          bounds = (x0_lb, x0_ub),
-                                          ftol=1e-3,
-                                          method = 'trf',
-                                          args = (weather_file,
-                                                  T_meas,
-                                                  start_time_step,
-                                                  end_time_step)
-                                          )
+    # x_opt = scipy.optimize.least_squares(simulation,
+    #                                       x0,
+    #                                       bounds = (x0_lb, x0_ub),
+    #                                       ftol=1e-4,
+    #                                       method = 'trf',
+    #                                       args = (weather_file,
+    #                                               T_meas,
+    #                                               start_time_step,
+    #                                               end_time_step)
+    #                                       )
     
     # # Trying another scipy function for optimization
     bounds = scipy.optimize.Bounds(x0_lb, x0_ub)
@@ -648,13 +648,13 @@ for day_step in range(sim_days):
     # #                                     )
     
     # Trying another scipy function for global optimization
-    # x_opt = scipy.optimize.differential_evolution(simulation,
-    #                                               x0 = x0,
-    #                                               bounds = bounds,
-    #                                               args=(weather_file, T_meas, start_time_step, end_time_step),
-    #                                               tol = 0.1,
-    #                                               disp = True
-    #                                               )
+    x_opt = scipy.optimize.differential_evolution(simulation,
+                                                  x0 = x0,
+                                                  bounds = bounds,
+                                                  args=(weather_file, T_meas, start_time_step, end_time_step),
+                                                  tol = 1e-3,
+                                                  disp = True
+                                                  )
     
     # Trying another scipy function for global optimization
     # x_opt = scipy.optimize.direct(simulation,
@@ -733,7 +733,7 @@ ax2.plot(NV_fr, 'b')
 
 #########################################################
 # Saving table of results on a csv file
-output_file_name = "Calibration_results"
+output_file_name = "Calibration_results_L15"
 result_table = pd.DataFrame(0., index = list(range(24*CONFIG.ts_per_hour))*sim_days, columns = results_cal.keys())
 for label in results_cal.keys():
     result_table[label] = results_cal[label]
