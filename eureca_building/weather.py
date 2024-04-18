@@ -53,7 +53,7 @@ class WeatherFile():
         urban_shading_tol: list, default [80.,100.,80.]
             list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)
         '''
-
+        self.weatherepw=epw
         # Importing and processing weather data from .epw
         try:
             epw = pvlib.iotools.read_epw(epw, coerce_year=year)  # Reading the epw via pvlib

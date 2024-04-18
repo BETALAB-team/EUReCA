@@ -13,6 +13,7 @@ from cjio import cityjson
 from scipy.spatial import cKDTree
 
 from eureca_building.config import CONFIG
+from eureca_building.PV_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.building import Building
@@ -68,6 +69,8 @@ class City():
         """
 
         self.__city_surfaces = []  # List of all the external surfaces of a city
+        
+        self.weather_file_path=epw_weather_file
 
         # Loading weather file
         self.weather_file = WeatherFile(
@@ -156,7 +159,6 @@ class City():
         self.buildings_info = {}
 
         for bd_key, bd_data in self.json_buildings.items():
-
             # Setting the attributes of the building
             vertices_list = self.cityjson.j['vertices']
 
@@ -248,6 +250,9 @@ class City():
                 volume=footprint_area * n_floors * floor_height,
                 number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
             )
+
+
+
 
             self.buildings_info[bd_key] = bd_data['attributes']
             self.buildings_info[bd_key]['Name'] = bd_key
@@ -449,6 +454,13 @@ class City():
                     number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                 )
 
+                pv=PV_system(name=f"Bd {name} PV system",
+                         surface_list=surfaces_list,
+                         epw_path=self.weather_file_path)
+                self.pvprod=pv.pv_production()
+                
+                
+                
                 self.buildings_info[id] = bd_data
                 self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
                                                               model=self.building_model)
@@ -583,6 +595,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             "TZ AHU pre heater load [W]",
             "TZ AHU post heater load [W]",
             "TZ DHW demand [W]",
+            "PVprod [Wh]"
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -607,7 +620,6 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
-
             monthly = results.resample("M").sum()
 
             heat_demand = monthly["Heating Demand [Wh]"]
@@ -643,12 +655,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
             district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
-                                                                    + results["Appliances electric consumption [Wh]"].iloc[:,0]
+                                                                    + results["Appliances electric consumption [Wh]"].iloc[:,0] \
+                                                                    + results['AHU electric consumption [Wh]'].iloc[:,0]
             district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0]
             district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0]
             district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0]
             district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0]
             district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0]
+            district_hourly_results["PVprod [Wh]"] += results["PVprod [Wh]"]
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
