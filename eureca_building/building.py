@@ -326,8 +326,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
                 building_surface_list.append(s)
-            
+
         name=tz.name
+        
         weatherpath=weather_object.weatherepw
         Photovoltaic=PV_system(name=f"TZ {name} PV system",
                     surface_list=building_surface_list,

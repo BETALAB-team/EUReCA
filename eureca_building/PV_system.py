@@ -56,7 +56,7 @@ from pvlib import pvsystem as pvs
 
 from eureca_building.weather import WeatherFile
 from eureca_building.config import CONFIG
-
+#class
         
 class PV_system():
     '''

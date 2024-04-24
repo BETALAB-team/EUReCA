@@ -4,7 +4,9 @@ import math
 import os
 import json
 import concurrent.futures
+import psutil
 
+import pickle as pickle
 import pandas as pd
 import shapely
 import geopandas as gpd
@@ -604,6 +606,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
+
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
@@ -689,7 +692,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
         Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
         '''
-
+        
         toll_az = CONFIG.urban_shading_tolerances[0]
         toll_dist = CONFIG.urban_shading_tolerances[1]
         toll_theta = CONFIG.urban_shading_tolerances[2]
