@@ -12,22 +12,12 @@ Input variables from the system:
         
     
 PV parameters:
-    /
-    /
-    /
-    /
-    /
-    /
+    A simplified method developed by A. Driesse ^1 ^2 is used which needs 5 
+    parameters describing the efficiency of the PV unit
     
 Battery parameters:
-    /
-    /
-    /
-    /
-    /
-    /
-    /
-    /
+    The battery has its capacity, voltage, charge and discharge efficiency
+    and maximum and minimum charge as input parameters.
     
 Weatherfile:
     outdoor air temperature
@@ -43,13 +33,19 @@ A. Driesse and J. S. Stein, “From IEC 61853 power measurements to PV system si
 2
 A. Driesse, M. Theristis and J. S. Stein, “A New Photovoltaic Module Efficiency Model for Energy Prediction and Rating,” in IEEE Journal of Photovoltaics, vol. 11, no. 2, pp. 527-534, March 2021. DOI: 10.1109/JPHOTOV.2020.3045677
 
+
+---
+Created by: Mohamad
+Betalab - DII, University of Padua
+---
+
 """
 
 
-import abc
+
 import os
-import io
-import logging
+
+
 
 import pandas as pd
 import numpy as np
@@ -61,8 +57,12 @@ from pvlib import pvsystem as pvs
 from eureca_building.weather import WeatherFile
 from eureca_building.config import CONFIG
 
-#Calculate the PV_system functionality using the battery, inverter and load data        
+        
 class PV_system():
+    '''
+    initializing the PV system for each thermal zone. 
+    '''
+    
     def __init__(self,
                  name: str,
                  epw_path: str,
@@ -82,6 +82,11 @@ class PV_system():
 
     
     def pv_efficiencies(self):
+        '''
+        calculates the efficiency of the photovoltaic cells at each timestep
+        currently it uses ADR method
+
+        '''
         Weather=self.weather
         Wdf = pd.DataFrame({'ghi': Weather['ghi'], 'dhi': Weather['dhi'], 'dni': Weather['dni'],
                            'temp_air': Weather['temp_air'],
@@ -89,6 +94,7 @@ class PV_system():
                            })
         Wdf.index=Wdf.index-pd.Timedelta(minutes=30)
         loc=pvlib.location.Location.from_epw(self.weather_md)
+        # loc = Weather._site
         solpos=loc.get_solarposition(Wdf.index)
         efficiencies={}
         for s in self._surfaces:
@@ -106,21 +112,37 @@ class PV_system():
         
     
     def pv_data_adr(self):
-       self.adr_parameters={'k_a':0.99924,
+        '''
+        setting the parameters needed for the adr model
+
+        '''
+        self.adr_parameters={'k_a':0.99924,
                         'k_d':-5.49097,
                         'tc_d':0.01918,
                         'k_rs':0.06999,
                         'k_rsh':0.26144}
     def pv_data_install(self):
-       pv_p_mod_stc=100
-       pv_A_mod=1.7
-       for k,v in self._pv_efficiencies.items():
-           A=k._area*self.coverage_factor
-           self._pv_efficiencies[k]['power_stc']=A/pv_A_mod*pv_p_mod_stc
-       self.pv_g_stc=1000 #W/m2
+        '''
+        setting the PV capacity modeling data:
+            model power and coverage factor
+        
+
+        '''
+        pv_p_mod_stc=100
+        pv_A_mod=1.7
+        for k,v in self._pv_efficiencies.items():
+            A=k._area*self.coverage_factor
+            self._pv_efficiencies[k]['power_stc']=A/pv_A_mod*pv_p_mod_stc
+        self.pv_g_stc=1000 #W/m2
            
        
     def pv_production(self):
+        '''
+        Based on the efficiencies calculated in pv_efficiencies
+        and the nominal and install parameters given in pv_data_install,
+        the production is calculated for each timestep
+
+        '''
         # ProductionWh=self.weather['ghi']
         for k,v in self._pv_efficiencies.items():
             PVDF=v
@@ -132,6 +154,10 @@ class PV_system():
         return ProductionWh
     
     def Battery(self):
+        '''
+        sets the battery performance parameters. 
+
+        '''
         self.battery_parameters={'charge_efficiency':0.98,
                                  'discharge_efficiency':0.98,
                                  'max_charge':0.95,
@@ -140,8 +166,19 @@ class PV_system():
                                  'capacity':1500}
         
     def Battery_charge(self,electricity,pv_prod):
-        indice=electricity.index
+        '''
+        calculates the battery charge at each timestep. using it to calculate the energy going into the battery,
+        and taken from battery. therefore it is also capable of calculating the grid 
+        electricity.
+        returns:
+            state: battery charge level in [Ah]
+            tobattery: energy stored in batteries at each timestep [Wh]
+            frombattery: energy taken from the batteries at each timestep [Wh]
+            togrid: energy giveb to grid at each timestep [Wh]
+            fromgrid: energy taken from grid at each timestep [Wh]
+            directsolar: energy consumed directly from solar production at each timestep [Wh]
 
+        '''
 
         pv_prod=pv_prod.to_numpy()
 
