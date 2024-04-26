@@ -1394,8 +1394,8 @@ Thermal zone {self.name} 2C params:
         # nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         # nat_vent_vol_flow = nv_outcomes[2]  #m3/s
         nat_vent_vol_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather, self.vol_airflow_limit)
-        nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  #kg/s
-        self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow
+        nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  # [kg/s]
+        self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow  # [kg/s]
         # self.nat_vent_info = {
         #     "airflow_rate" : {'kg/s' : np.zeros([CONFIG.number_of_time_steps]),
         #                       'm3/s' : np.zeros([CONFIG.number_of_time_steps]),
