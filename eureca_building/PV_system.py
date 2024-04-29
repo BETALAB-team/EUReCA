@@ -60,7 +60,7 @@ class PV_system():
                  weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
-                 coverage_factor=0.8):
+                 coverage_factor=0.8): #Coverage factor for the area that is covered by the PV
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
@@ -80,25 +80,25 @@ class PV_system():
 
         '''
         Weather=self.weather
-        Wdf = pd.DataFrame({'ghi': Weather['ghi'], 'dhi': Weather['dhi'], 'dni': Weather['dni'],
+        Weather_dataframe = pd.DataFrame({'ghi': Weather['ghi'], 'dhi': Weather['dhi'], 'dni': Weather['dni'],
                            'temp_air': Weather['temp_air'],
                            'wind_speed': Weather['wind_speed']
                            })
-        Wdf.index=Wdf.index-pd.Timedelta(minutes=30)
-        loc=pvlib.location.Location.from_epw(self.weather_md)
-        # loc = Weather._site
-        solpos=loc.get_solarposition(Wdf.index)
+        Weather_dataframe.index=Weather_dataframe.index-pd.Timedelta(minutes=30)
+        LocationAttributes=pvlib.location.Location.from_epw(self.weather_md)
+        # LocationAttributes = Weather._site
+        Solar_position=LocationAttributes.get_solarposition(Weather_dataframe.index)
         efficiencies={}
         for s in self._surfaces:
             tilt=s._height_round
             orient=s._azimuth_round
             
-            total_irrad=pvlib.irradiance.get_total_irradiance(tilt,orient,solpos.apparent_zenith,
-                                                              solpos.azimuth,Wdf.dni,Wdf.ghi,Wdf.dhi)
-            Wdf['poa_global']=total_irrad.poa_global
-            Wdf['temp_pv']=pvlib.temperature.faiman(Wdf.poa_global,Wdf.temp_air,Wdf.wind_speed)
-            Wdf['rel_eta']=pvlib.pvarray.pvefficiency_adr(Wdf['poa_global'],Wdf['temp_pv'],**self.adr_parameters)
-            efficiencies[s]=Wdf
+            total_irrad=pvlib.irradiance.get_total_irradiance(tilt,orient,Solar_position.apparent_zenith,
+                                                              Solar_position.azimuth,Weather_dataframe.dni,Weather_dataframe.ghi,Weather_dataframe.dhi)
+            Weather_dataframe['poa_global']=total_irrad.poa_global
+            Weather_dataframe['temp_pv']=pvlib.temperature.faiman(Weather_dataframe.poa_global,Weather_dataframe.temp_air,Weather_dataframe.wind_speed)
+            Weather_dataframe['rel_eta']=pvlib.pvarray.pvefficiency_adr(Weather_dataframe['poa_global'],Weather_dataframe['temp_pv'],**self.adr_parameters)
+            efficiencies[s]=Weather_dataframe
         self._pv_efficiencies=efficiencies
         
         
@@ -120,11 +120,11 @@ class PV_system():
         
 
         '''
-        pv_p_mod_stc=100
-        pv_A_mod=1.7
-        for k,v in self._pv_efficiencies.items():
-            A=k._area*self.coverage_factor
-            self._pv_efficiencies[k]['power_stc']=A/pv_A_mod*pv_p_mod_stc
+        Module_Power_STC_condition=100 #Module Power at STC
+        Single_Module_Surface_Area=1.7 #Module Area
+        for Surface,v in self._pv_efficiencies.items():
+            Installed_PV_area=Surface._area*self.coverage_factor
+            self._pv_efficiencies[Surface]['power_stc']=Installed_PV_area/Single_Module_Surface_Area*Module_Power_STC_condition
         self.pv_g_stc=1000 #W/m2
            
        
@@ -136,9 +136,9 @@ class PV_system():
 
         '''
         # ProductionWh=self.weather['ghi']
-        for k,v in self._pv_efficiencies.items():
-            PVDF=v
-            Production_watt=PVDF['power_stc']*PVDF['rel_eta']*PVDF['poa_global']/self.pv_g_stc
+        for Surface,Dataframe in self._pv_efficiencies.items():
+            Photovoltaic_Generation_DataFrame=Dataframe
+            Production_watt=Photovoltaic_Generation_DataFrame['power_stc']*Photovoltaic_Generation_DataFrame['rel_eta']*Photovoltaic_Generation_DataFrame['poa_global']/self.pv_g_stc
             ProductionWh=Production_watt/CONFIG.ts_per_hour
             
         ProductionWh.index=ProductionWh.index+pd.Timedelta(minutes=30)
@@ -163,7 +163,7 @@ class PV_system():
         and taken from battery. therefore it is also capable of calculating the grid 
         electricity.
         returns:
-            state: battery charge level in [Ah]
+            State: battery charge level in [Ah]
             tobattery: energy stored in batteries at each timestep [Wh]
             frombattery: energy taken from the batteries at each timestep [Wh]
             togrid: energy giveb to grid at each timestep [Wh]
@@ -176,38 +176,38 @@ class PV_system():
 
         electricity=electricity.to_numpy()
 
-        inout=pv_prod-electricity
-        charger=inout.copy()
-        discharger=inout.copy()
+        Generation_Consumption_Balance=pv_prod-electricity
+        charger=Generation_Consumption_Balance.copy()
+        discharger=Generation_Consumption_Balance.copy()
         charger[charger<0]=0
         discharger[discharger>0]=0
-        state=np.zeros_like(discharger)
-        statediff=np.zeros_like(state)
+        State=np.zeros_like(discharger)
+        State_Change=np.zeros_like(State)
         maxcharge=self.battery_parameters['max_charge']*self.battery_parameters['voltage']*self.battery_parameters['capacity']
         mincharge=self.battery_parameters['min_charge']*self.battery_parameters['voltage']*self.battery_parameters['capacity']
-        statechange=charger*self.battery_parameters['charge_efficiency']+discharger*self.battery_parameters['discharge_efficiency']
+        Momentual_Charge_Dischare=charger*self.battery_parameters['charge_efficiency']+discharger*self.battery_parameters['discharge_efficiency']
         
-        for j, elem in np.ndenumerate(state):
+        for j, elem in np.ndenumerate(State):
             i=j[0]
             if i==0:
-                state[i]=state[i]
-                statediff[i]=0
+                State[i]=State[i]
+                State_Change[i]=0
             else:
 
-                state[i]=state[i-1]+statechange[i-1]
-                if state[i] > maxcharge:
-                    state[i]=maxcharge
-                if state[i]<mincharge:
-                    if state[i]<0:
-                        state[i]=0
-                    if state[i-1]>=mincharge:
-                        state[i]=mincharge
-                statediff[i]=state[i]-state[i-1]
+                State[i]=State[i-1]+Momentual_Charge_Dischare[i-1]
+                if State[i] > maxcharge:
+                    State[i]=maxcharge
+                if State[i]<mincharge:
+                    if State[i]<0:
+                        State[i]=0
+                    if State[i-1]>=mincharge:
+                        State[i]=mincharge
+                State_Change[i]=State[i]-State[i-1]
         
-        state=state/self.battery_parameters['voltage']
-        tobattery=np.minimum(statechange,statediff)
+        State=State/self.battery_parameters['voltage']
+        tobattery=np.minimum(Momentual_Charge_Dischare,State_Change)
         tobattery[tobattery<0]=0
-        frombattery=np.maximum(statechange,statediff)
+        frombattery=np.maximum(Momentual_Charge_Dischare,State_Change)
         frombattery[frombattery>0]=0 
         frombattery=np.abs(frombattery)
         togrid=charger-tobattery
@@ -217,7 +217,7 @@ class PV_system():
         
         
 
-        return [state , tobattery, frombattery, togrid, fromgrid, directsolar]
+        return [State , tobattery, frombattery, togrid, fromgrid, directsolar]
                 
         
         
