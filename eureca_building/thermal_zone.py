@@ -721,6 +721,8 @@ Thermal zone {self.name} 2C params:
                     h_r = surface.get_surface_external_radiative_coefficient()
 
                     irradiance = irradiances[float(surface._azimuth_round)][float(surface._height_round)]
+                    
+                    
                     BRV = irradiance['direct']
                     TRV = irradiance['global']
                     DRV = TRV - BRV

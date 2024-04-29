@@ -43,21 +43,13 @@ Betalab - DII, University of Padua
 
 
 
-import os
-
-
-
 import pandas as pd
 import numpy as np
 
 import pvlib
-from pvlib import pvsystem as pvs
-## https://pvlib-python.readthedocs.io
-
 from eureca_building.weather import WeatherFile
 from eureca_building.config import CONFIG
 #class
-        
 class PV_system():
     '''
     initializing the PV system for each thermal zone. 
@@ -65,15 +57,15 @@ class PV_system():
     
     def __init__(self,
                  name: str,
-                 epw_path: str,
+                 weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
                  coverage_factor=0.8):
-        self.epw=epw_path
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
-        self.weather,self.weather_md=pvlib.iotools.read_epw(self.epw)
+        self.weather=weatherobject._epw_hourly_data
+        self.weather_md=weatherobject._epw_general_data
         self.pv_data_adr()
         self.pv_efficiencies()
         self.pv_data_install()

@@ -455,10 +455,9 @@ class City():
                     volume=footprint_area * n_floors * floor_height * bd_data["VolCoeff"],
                     number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                 )
-
                 pv=PV_system(name=f"Bd {name} PV system",
-                         surface_list=surfaces_list,
-                         epw_path=self.weather_file_path)
+                             weatherobject=self.weather_file,
+                             surface_list=surfaces_list)
                 self.pvprod=pv.pv_production()
                 
                 

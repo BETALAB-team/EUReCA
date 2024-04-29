@@ -306,7 +306,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         tz_names = [tz.name for tz in self._thermal_zones_list]
         columns_tz = pd.MultiIndex.from_product([tz_labels,tz_names])
         columns_bd = pd.MultiIndex.from_product([bd_labels,[f"Bd {self.name}"]])
-        indexes = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
+        Time_index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
         tz = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_tz)
         bd = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_bd)
         total = pd.concat([bd, tz], axis=1)
@@ -314,7 +314,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             total[tz_result_label] = results[tz_result_label]
         for bd_result_label in bd_labels:
             total[bd_result_label] = results[bd_result_label]
-        total.index=indexes    
+        total.index=Time_index    
         total['Electric consumption [Wh]'] += total["Heating system electric consumption [Wh]"]\
                 + total["Cooling system electric consumption [Wh]"] \
                 + total["Appliances electric consumption [Wh]"] \
@@ -331,8 +331,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         
         weatherpath=weather_object.weatherepw
         Photovoltaic=PV_system(name=f"TZ {name} PV system",
-                    surface_list=building_surface_list,
-                    epw_path=weatherpath)
+                               weatherobject=weather_object,
+                               surface_list=building_surface_list)
         pv_production=Photovoltaic.pv_production()
         pv_production.index=pd.to_datetime(pv_production.index.strftime('2023-%m-%d %H:%M:%S'))
         common_index = pv_production.index.union( total.index)
