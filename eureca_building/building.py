@@ -39,7 +39,7 @@ class Building:
         model : str, default 2C
             model to be used: 1C or 2C
         """
-
+        self.PV_systems=[]
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
@@ -63,7 +63,7 @@ class Building:
     @property
     def _model(self) -> str:
         return self.__model
-
+    
     @_model.setter
     def _model(self, value: str):
         try:
@@ -93,7 +93,7 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
-
+    
     def set_hvac_system(self, heating_system, cooling_system):
         f"""Sets using roperties the heating and cooling system type (strings)
 
@@ -331,16 +331,19 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         Photovoltaic=PV_system(name=f"TZ {name} PV system",
                                weatherobject=weather_object,
                                surface_list=building_surface_list)
+        #Associate PV to the building
+        self.PV_systems.append(Photovoltaic)
         pv_production=Photovoltaic.pv_production()
-        pv_production.index=pd.to_datetime(pv_production.index.strftime('2023-%m-%d %H:%M:%S'))
+        pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
         common_index = pv_production.index.union( total.index)
         pv_production= pv_production.reindex(common_index)
         pv_production=pv_production.interpolate(method='time')
         
         [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=Photovoltaic.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0],pv_prod=pv_production)
-        total["PVprod [Wh]"]=pv_production
-        total["Battery State [Ah]"]=BatteryState
+        total["PV production [Wh]"]=pv_production
+        total["Battery State [%]"]=BatteryState
         total["Given to Batteries [Wh]"]=tobattery
+        
         total["Taken from the Batteries [Wh]"]=frombattery
         total["Given to Grid [Wh]"]=togrid
         total["Taken from the Gird [Wh]"]=fromgrid

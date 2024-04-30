@@ -213,11 +213,11 @@ class PV_system():
         togrid=charger-tobattery
         fromgrid=np.abs(discharger)-frombattery
         directsolar=np.minimum(pv_prod,electricity)
-
+        State_percent=State/self.battery_parameters['capacity']
         
         
 
-        return [State , tobattery, frombattery, togrid, fromgrid, directsolar]
+        return [State_percent , tobattery, frombattery, togrid, fromgrid, directsolar]
                 
         
         

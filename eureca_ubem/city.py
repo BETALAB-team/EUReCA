@@ -71,9 +71,6 @@ class City():
         """
 
         self.__city_surfaces = []  # List of all the external surfaces of a city
-        
-        self.weather_file_path=epw_weather_file
-
         # Loading weather file
         self.weather_file = WeatherFile(
             epw_weather_file,
@@ -455,10 +452,7 @@ class City():
                     volume=footprint_area * n_floors * floor_height * bd_data["VolCoeff"],
                     number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                 )
-                pv=PV_system(name=f"Bd {name} PV system",
-                             weatherobject=self.weather_file,
-                             surface_list=surfaces_list)
-                self.pvprod=pv.pv_production()
+
                 
                 
                 
@@ -596,7 +590,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             "TZ AHU pre heater load [W]",
             "TZ AHU post heater load [W]",
             "TZ DHW demand [W]",
-            "PVprod [Wh]"
+            "PV production [Wh]"
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -664,7 +658,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0]
             district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0]
             district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0]
-            district_hourly_results["PVprod [Wh]"] += results["PVprod [Wh]"]
+            district_hourly_results["PV production [Wh]"] += results["PV production [Wh]"]
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
