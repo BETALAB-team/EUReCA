@@ -199,6 +199,17 @@ class Surface:
             
         # Window layout for natural ventilation
         self._define_windows_layout(n_window_layers=n_window_layers)
+        
+        #Initializing the value horizon to create a list for horizon shading later
+        self._shading_horizon=[]
+        
+    # @property 
+    # def _shading_horizon(self) -> list:
+    #     return self._shading_horizon
+
+    # @_shading_horizon.setter
+    # def _shading_horizon(self,value: list):
+    #     self._shading_horizon=value
 
     @property
     def _vertices(self) -> tuple:

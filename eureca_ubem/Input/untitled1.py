@@ -58,7 +58,7 @@ max_number_of_neighborhoods = len(surfaces) if len(surfaces) < maxis else maxis
 _, filtered_indices = plg_kdtree.query(list_of_centroids, k=max_number_of_neighborhoods)
 indices_list = filtered_indices.tolist()
 THE=0
-for i in range(50):
+for i in range(45000):
     if (i%100==0):
         print(f"{i} from {len(surfaces)}")
     current_surface=surfaces[i]
@@ -91,10 +91,6 @@ for i in range(50):
     # vertix= current_surface._Surface__vertices[2]
         # shaders=np.array([0,0])
         shaders=shader_starter
-
-
-
-        
 
 
         horizon = pd.DataFrame({'x': x_values, 'y': np.zeros_like(x_values)})
@@ -153,51 +149,51 @@ for i in range(50):
         #     plt.figure()
         #     plt.plot(horizon['x'], horizon['y'], color='red', linestyle='-')
             # plt.ylim([0,90])
-        plt.figure()
-        plt.plot(horizon['x'], horizon['y'], color='red', linestyle='-')
-        plt.ylim([0,90])
+        # plt.figure()
+        # plt.plot(horizon['x'], horizon['y'], color='red', linestyle='-')
+        # plt.ylim([0,90])
         
         
 
 
-        # Assign variable names for easier reading.
-        surface_tilt = current_surface._height_round
-        surface_azimuth =  current_surface._azimuth
-        solar_azimuth = solar_position.azimuth
-        solar_zenith = solar_position.apparent_zenith
-        solar_elevation = solar_position.apparent_elevation
-        dni = clearsky.dni
-        ghi = clearsky.ghi
-        dhi = clearsky.dhi
+        # # Assign variable names for easier reading.
+        # surface_tilt = current_surface._height_round
+        # surface_azimuth =  current_surface._azimuth
+        # solar_azimuth = solar_position.azimuth
+        # solar_zenith = solar_position.apparent_zenith
+        # solar_elevation = solar_position.apparent_elevation
+        # dni = clearsky.dni
+        # ghi = clearsky.ghi
+        # dhi = clearsky.dhi
         
-        horizon_elevation_data = np.interp(
-            solar_azimuth, horizon_profile.index, horizon_profile
-            )
+        # horizon_elevation_data = np.interp(
+        #     solar_azimuth, horizon_profile.index, horizon_profile
+        #     )
 
-        # Convert to Pandas Series for easier usage.
-        horizon_elevation_data = pd.Series(horizon_elevation_data, times)
+        # # Convert to Pandas Series for easier usage.
+        # horizon_elevation_data = pd.Series(horizon_elevation_data, times)
 
-        # Adjust DNI based on data - note this is returned as numpy array
-        dni_adjusted = np.where(solar_elevation > horizon_elevation_data, dni, 0)
-        dni_adjusted=pd.Series(dni_adjusted,times)
-        # Adjust GHI and set it to DHI for time-periods where 'dni_adjusted' is 0.
-        # Note this is returned as numpy array
-        ghi_adjusted = np.where(dni_adjusted == 0, dhi, ghi)
-        ghi_adjusted=pd.Series(ghi_adjusted,times)
+        # # Adjust DNI based on data - note this is returned as numpy array
+        # dni_adjusted = np.where(solar_elevation > horizon_elevation_data, dni, 0)
+        # dni_adjusted=pd.Series(dni_adjusted,times)
+        # # Adjust GHI and set it to DHI for time-periods where 'dni_adjusted' is 0.
+        # # Note this is returned as numpy array
+        # ghi_adjusted = np.where(dni_adjusted == 0, dhi, ghi)
+        # ghi_adjusted=pd.Series(ghi_adjusted,times)
+        # # plt.figure(figsize=(10, 6))  # Adjust the figure size if needed
+        # # plt.plot(ghi, label='Series 1')
+        # # plt.plot(ghi_adjusted, label='Series 2')
+        # irrad_pre_adj = pvlib.irradiance.get_total_irradiance(
+        #     surface_tilt, surface_azimuth, solar_zenith, solar_azimuth, dni, ghi, dhi
+        #     )
+
+        # irrad_post_adj = pvlib.irradiance.get_total_irradiance(
+        #     surface_tilt, surface_azimuth, solar_zenith, solar_azimuth, dni_adjusted,
+        #     ghi_adjusted, dhi
+        #     )
         # plt.figure(figsize=(10, 6))  # Adjust the figure size if needed
-        # plt.plot(ghi, label='Series 1')
-        # plt.plot(ghi_adjusted, label='Series 2')
-        irrad_pre_adj = pvlib.irradiance.get_total_irradiance(
-            surface_tilt, surface_azimuth, solar_zenith, solar_azimuth, dni, ghi, dhi
-            )
+        # plt.plot(irrad_pre_adj.poa_global, label='Series 1')
+        # plt.plot(irrad_post_adj.poa_global, label='Series 2')
 
-        irrad_post_adj = pvlib.irradiance.get_total_irradiance(
-            surface_tilt, surface_azimuth, solar_zenith, solar_azimuth, dni_adjusted,
-            ghi_adjusted, dhi
-            )
-
-        plt.figure(figsize=(10, 6))  # Adjust the figure size if needed
-        plt.plot(irrad_pre_adj.poa_global, label='Series 1')
-        plt.plot(irrad_post_adj.poa_global, label='Series 2')
 
     

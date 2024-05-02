@@ -21,7 +21,9 @@ weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 schedules_file = os.path.join(".","Schedules1.xlsx")
 materials_file = os.path.join(".","total envelope types.xlsx")
 city_model_file = os.path.join(".","Padova_City_Center.geojson")
-
+import time
+print(time.time())
+print("here")
 city_geojson = City(
     city_model=city_model_file, 
     epw_weather_file=weather_file,
