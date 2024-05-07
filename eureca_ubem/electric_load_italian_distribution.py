@@ -10,7 +10,7 @@ __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
 from scipy.stats import lognorm, triang, weibull_min, gamma, norm, expon, uniform
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import io
 import pandas as pd
 import numpy as np

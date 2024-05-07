@@ -11,7 +11,7 @@ __maintainer__ = "Enrico Prataviera"
 import os
 from eureca_building.config import load_config
 
-config_path = os.path.join('.', 'eureca_building', 'test', 'config.ini')
+config_path = os.path.join('.', 'eureca_building', 'test', 'config.json')
 load_config(config_path)
 from eureca_building.config import CONFIG
 import pytest
@@ -49,7 +49,7 @@ class TestWeatherFile:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        WeatherFile(path, time_steps=4)
+        WeatherFile(path, time_steps=CONFIG.ts_per_hour)
 
     def test_weather_file_2(self):
         path = os.path.join(
@@ -57,7 +57,7 @@ class TestWeatherFile:
             "example_scripts",
             "ITA_Venezia-Tessera.161050_IGDG.epw",
         )
-        WeatherFile(path, time_steps= 4, azimuth_subdivisions=6, height_subdivisions=2)
+        WeatherFile(path, azimuth_subdivisions=CONFIG.azimuth_subdivisions, height_subdivisions=CONFIG.height_subdivisions, time_steps=CONFIG.ts_per_hour)
 
 
 class TestThermalZone:

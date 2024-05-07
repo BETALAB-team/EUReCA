@@ -34,10 +34,11 @@ from eureca_building.weather import WeatherFile
 from eureca_building.surface import Surface, SurfaceInternalMass
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.internal_load import People, Lights, ElectricLoad
-from eureca_building.ventilation import NaturalVentilation
+from eureca_building.ventilation import Infiltration, MechanicalVentilation
 from eureca_building.schedule import Schedule
 from eureca_building.construction_dataset import ConstructionDataset
 from eureca_building.setpoints import SetpointDualBand
+from eureca_building.air_handling_unit import AirHandlingUnit
 
 TESTS = [1,3,
          2,4,
@@ -172,13 +173,13 @@ tz_L._VDI6007_params()
 ########################################################################################################################
 
 weather_file.hourly_data['out_air_db_temperature'] = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 weather_file.general_data['average_dt_air_sky'] = 0.
 
-weather_file.hourly_data_irradiances[0][90]['global'] = np.array([0]*365*24)
-weather_file.hourly_data_irradiances[0][90]['direct'] = np.array([0]*365*24)
-weather_file.hourly_data_irradiances[0][90]['AOI'] = np.array([0]*365*24)
+weather_file.hourly_data_irradiances[0][90]['global'] = np.array([0.]*365*24)
+weather_file.hourly_data_irradiances[0][90]['direct'] = np.array([0.]*365*24)
+weather_file.hourly_data_irradiances[0][90]['AOI'] = np.array([0.]*365*24)
 
 # Test 1 schedule
 app_sched = Schedule(
@@ -201,10 +202,10 @@ tz_S.add_internal_load(app_sens)
 tz_L.add_internal_load(app_sens)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
-tz_L.extract_convective_radiative_latent_load()
+tz_L.extract_convective_radiative_latent_electric_load()
 tz_L.calculate_zone_loads_ISO13790(weather_file)
 tz_L.calculate_zone_loads_VDI6007(weather_file)
 
@@ -213,23 +214,23 @@ tz_L._air_thermal_capacity = 0.
 tz_S._air_thermal_capacity = 0.
 
 tz_S.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 tz_L.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 
 # Setpoints
 heat_t = Schedule(
     "t_heat",
     "temperature",
-    np.array([10] * 365*24),
+    np.array([10.] * 365*24),
 )
 
 cool_t = Schedule(
     "t_cool",
     "temperature",
-    np.array([80] * 365*24),
+    np.array([80.] * 365*24),
 )
 
 heat_h = Schedule(
@@ -271,7 +272,7 @@ infiltration_sched = Schedule(
     np.array([0.0] * 24 * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit='Vol/h',
     nominal_value=1.,
@@ -279,10 +280,75 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_L.add_natural_ventilation(inf_obj)
-tz_L.extract_natural_ventilation(weather_file)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_L.add_infiltration(inf_obj)
+tz_L.calc_infiltration(weather_file)
+tz_S.calc_infiltration(weather_file)
+
+
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_L,
+)
+
 
 # %% Simulation
 preprocessing_timsteps = 0
@@ -382,7 +448,7 @@ tz_L._ISO13790_params()
 tz_L._VDI6007_params()
 
 weather_file.hourly_data['out_air_db_temperature'] = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 weather_file.general_data['average_dt_air_sky'] = 0.
 
@@ -411,10 +477,10 @@ tz_S.add_internal_load(app_sens)
 tz_L.add_internal_load(app_sens)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
-tz_L.extract_convective_radiative_latent_load()
+tz_L.extract_convective_radiative_latent_electric_load()
 tz_L.calculate_zone_loads_ISO13790(weather_file)
 tz_L.calculate_zone_loads_VDI6007(weather_file)
 
@@ -423,10 +489,10 @@ tz_L._air_thermal_capacity = 0.
 tz_S._air_thermal_capacity = 0.
 
 tz_S.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 tz_L.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 
 # Setpoints
@@ -481,7 +547,7 @@ infiltration_sched = Schedule(
     np.array([0.0] * 24 * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit='Vol/h',
     nominal_value=1.,
@@ -489,10 +555,74 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_L.add_natural_ventilation(inf_obj)
-tz_L.extract_natural_ventilation(weather_file)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_L.add_infiltration(inf_obj)
+tz_L.calc_infiltration(weather_file)
+tz_S.calc_infiltration(weather_file)
+
+
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_L,
+)
 
 # %% Simulation
 
@@ -634,7 +764,7 @@ tz_S.add_internal_load(app_conv)
 tz_S.add_internal_load(app_rad)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
 
@@ -688,7 +818,7 @@ infiltration_sched = Schedule(
     np.array([0.0] * 24 * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit='Vol/h',
     nominal_value=1.,
@@ -696,8 +826,58 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_S.calc_infiltration(weather_file)
+
+
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
 
 # %% Simulation
 
@@ -754,7 +934,7 @@ tz_S._ISO13790_params()
 tz_S._VDI6007_params()
 
 weather_file.hourly_data['out_air_db_temperature'] = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 weather_file.general_data['average_dt_air_sky'] = 0.
 
@@ -782,7 +962,7 @@ app_sens = ElectricLoad(
 tz_S.add_internal_load(app_sens)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
 
@@ -790,11 +970,11 @@ tz_S._air_thermal_capacity = 0.
 
 
 tz_S.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 
 # Setpoints
-sp_sched = np.array(([22] * 6 + [27] * 12 + [22] * 6) * 365)
+sp_sched = np.array(([22.] * 6 + [27.] * 12 + [22.] * 6) * 365)
 heat_t = Schedule(
     "t_heat",
     "temperature",
@@ -844,7 +1024,7 @@ infiltration_sched = Schedule(
     np.array([0.0] * 24 * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit='Vol/h',
     nominal_value=1.,
@@ -852,8 +1032,58 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_S.calc_infiltration(weather_file)
+
+
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
 
 # %% Simulation
 
@@ -913,7 +1143,7 @@ tz_S._ISO13790_params()
 tz_S._VDI6007_params()
 
 weather_file.hourly_data['out_air_db_temperature'] = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 weather_file.general_data['average_dt_air_sky'] = 0.
 
@@ -941,7 +1171,7 @@ app_sens = ElectricLoad(
 tz_S.add_internal_load(app_sens)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
 
@@ -949,11 +1179,11 @@ tz_S._air_thermal_capacity = 0.
 
 
 tz_S.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 
 # Setpoints
-sp_sched = np.array(([22] * 6 + [27] * 12 + [22] * 6) * 365)
+sp_sched = np.array(([22.] * 6 + [27.] * 12 + [22.] * 6) * 365)
 heat_t = Schedule(
     "t_heat",
     "temperature",
@@ -1003,7 +1233,7 @@ infiltration_sched = Schedule(
     np.array([0.0] * 24 * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit='Vol/h',
     nominal_value=1.,
@@ -1011,8 +1241,58 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_S.calc_infiltration(weather_file)
+
+
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
 
 # %% Simulation
 
@@ -1123,14 +1403,14 @@ tz_S.add_internal_load(app_conv)
 tz_S.add_internal_load(app_rad)
 
 # IHG preprocessing
-tz_S.extract_convective_radiative_latent_load()
+tz_S.extract_convective_radiative_latent_electric_load()
 tz_S.calculate_zone_loads_ISO13790(weather_file)
 tz_S.calculate_zone_loads_VDI6007(weather_file)
 
 tz_S._air_thermal_capacity = 0.
 
 tz_S.theta_eq_tot = np.array(
-    [22]*365*24
+    [22.]*365*24
 )
 
 # Setpoints
@@ -1183,7 +1463,7 @@ infiltration_sched = Schedule(
     np.array(([1.] * 7 + [0.5] * 10 + [1.] * 7) * 365),
 )
 
-inf_obj = NaturalVentilation(
+inf_obj = Infiltration(
     name='inf_obj',
     unit="m3/s",
     nominal_value=100./3600,
@@ -1191,9 +1471,57 @@ inf_obj = NaturalVentilation(
 )
 
 # Natural Ventilation preprocessing
-tz_S.add_natural_ventilation(inf_obj)
-tz_S.extract_natural_ventilation(weather_file)
+tz_S.add_infiltration(inf_obj)
+tz_S.calc_infiltration(weather_file)
 
+
+
+vent_sched = Schedule(
+    "vent_sched",
+    "dimensionless",
+    np.array(([.0] * 8 + [0.] * 2 + [0] * 4 + [0.] * 10) * 365),
+)
+
+vent_obj = MechanicalVentilation(
+    name='vent_obj',
+    unit='Vol/h',
+    nominal_value=1,
+    schedule=vent_sched,
+)
+
+T_supply_sched = Schedule(
+    "T_supply_sched",
+    "temperature",
+    np.array(([23.] * 8 + [23.] * 2 + [23.] * 4  + [23.] * 10 ) * 365),
+)
+
+x_supply_sched = Schedule(
+    "x_supply_sched",
+    "dimensionless",
+    np.array(([0.0101] * 8 + [0.0101] * 2 + [0.0101] * 4 + [0.0101] * 10) * 365)*0.7,
+)
+
+availability_sched = np.array(([0] * 8 + [1] * 2  + [0] * 4 + [1] * 10) * 365)
+availability_sched[120*24:273*24] = -1*availability_sched[120*24:273*24]
+ahu_availability_sched = Schedule(
+    "ahu_availability_sched",
+    "availability",
+    availability_sched,
+)
+
+ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz_S,
+)
 # %% Simulation
 
 preprocessing_timsteps = 0

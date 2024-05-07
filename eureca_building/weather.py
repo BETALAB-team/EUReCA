@@ -53,7 +53,7 @@ class WeatherFile():
         urban_shading_tol: list, default [80.,100.,80.]
             list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)
         '''
-
+        self.weatherepw=epw
         # Importing and processing weather data from .epw
         try:
             epw = pvlib.iotools.read_epw(epw, coerce_year=year)  # Reading the epw via pvlib
@@ -309,7 +309,7 @@ def _get_irradiance(weather_obj, surf_tilt, surf_az):
 
     # Use pvlib function to calculate the irradiance on the surface
 
-    surf_az = surf_az + 180
+    surf_az = surf_az
     POA_irradiance = pvlib.irradiance.get_total_irradiance(
         surface_tilt=surf_tilt,
         surface_azimuth=surf_az,

@@ -9,6 +9,7 @@ __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
 import json
+import io
 import os
 import configparser
 import logging
@@ -65,13 +66,16 @@ def load_config(file: str = None):
         else:
             raise ValueError(f'Config file must be .json or .ini')
     except (FileNotFoundError, AttributeError):
-        message = "Config file not found: Trying to load default config"
-        print(message)
-        logging.warning(message)
-        CONFIG = Config()
-        CONFIG.read(DEFAULTCONFIG_FILE)
-        message = "Default config loaded"
-        print(message)
+        if isinstance(file, dict):
+            CONFIG = Config.from_json(file)
+        else:
+            message = "Config file not found: Trying to load default config"
+            print(message)
+            logging.warning(message)
+            CONFIG = Config()
+            CONFIG.read(DEFAULTCONFIG_FILE)
+            message = "Default config loaded"
+            print(message)
 
     globals().update(CONFIG)
     return CONFIG
@@ -229,9 +233,11 @@ class Config(configparser.ConfigParser):
         """
         config_dict = cls()
         try:
-
-            with open(file_path, "r") as json_data_file:
-                config_dict.read_dict(json.load(json_data_file))
+            if isinstance(file_path, dict):
+                config_dict.read_dict(file_path)
+            else:
+                with open(file_path, "r") as json_data_file:
+                    config_dict.read_dict(json.load(json_data_file))
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file {file_path} not found")
         # Generic config settings
