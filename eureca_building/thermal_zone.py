@@ -57,7 +57,10 @@ class ThermalZone(object):
             footprint area of the zone in m2. If None searches for a GroundFloor surface
         volume : float, default None
             volume of the zone in m3. If None sets 0 m3.
-
+        number_of_units : int, default 1
+            number of units/dwellings in the thermal zone (for DHW)
+        NV_ACH_limit : float, default None
+            maximum accepted ACH for the thermal zone in Vol/h. If None, leave None.
         """
         self.name = name
         self._surface_list = surface_list
@@ -82,7 +85,7 @@ class ThermalZone(object):
 
         self.internal_loads_list = []
         self.infiltration_list = []
-        self.natural_ventilation_list = []
+        self.natural_ventilation = None
         self.domestic_hot_water_list = []
         self.design_heating_system_power = 1e20  # W
         self.design_cooling_system_power = -1e20  # W
@@ -386,6 +389,17 @@ class ThermalZone(object):
             infiltration_vapour_flow_rate += vapour_rate
         self.infiltration_air_flow_rate = infiltration_air_flow_rate
         self.infiltration_vapour_flow_rate = infiltration_vapour_flow_rate
+        self.nat_vent_air_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)
+        self.nat_vent_info = {
+            'airflow_rate' : {'kg/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'm3/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'L/s' : np.zeros([CONFIG.number_of_time_steps]),
+                              'm3/h' : np.zeros([CONFIG.number_of_time_steps]),
+                              'vol/h' : np.zeros([CONFIG.number_of_time_steps]),
+                              },
+            'windows_opening' : {'open_fraction' : np.zeros([CONFIG.number_of_time_steps]),
+                                 },
+            }
         return {'infiltration_air_flow_rate [kg/s]': infiltration_air_flow_rate,
                 'infiltration_vapour_flow_rate [kg/s]': infiltration_vapour_flow_rate, }
     
@@ -394,8 +408,8 @@ class ThermalZone(object):
 
         Parameters
         ----------
-        natural_ventilation : eureca_building.ventilation.Infiltration
-            As many eureca_building.ventilation.Infiltration can be provided
+        natural_ventilation : eureca_building.ventilation.NaturalVentilation
+            As many eureca_building.ventilation.NaturalVentilation can be provided
 
         """
         if not isinstance(natural_ventilation, NaturalVentilation):
@@ -1363,7 +1377,28 @@ Thermal zone {self.name} 2C params:
             phi_load = [self.Q_il_kon_I[t], self.Q_il_str_aw[t], self.Q_il_str_iw[t]]
 
         # Natural Ventilation
-        nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        # nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        # nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        # nat_vent_vol_flow = nv_outcomes[2]  #m3/s
+        nat_vent_vol_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  # [kg/s]
+        self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow  # [kg/s]
+        # self.nat_vent_info = {
+        #     "airflow_rate" : {'kg/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'm3/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'L/s' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       'vol/h' : np.zeros([CONFIG.number_of_time_steps]),
+        #                       },
+        #     "windows_opening" : {'open_fraction' : np.zeros([CONFIG.number_of_time_steps]),
+        #                          'open_area' : np.zeros([CONFIG.number_of_time_steps]),
+        #                          },
+        #     }
+        self.nat_vent_info['airflow_rate']['kg/s'][t] = nat_vent_mass_flow
+        self.nat_vent_info['airflow_rate']['m3/s'][t] = nat_vent_vol_flow
+        self.nat_vent_info['airflow_rate']['L/s'][t] = nat_vent_vol_flow/1000
+        self.nat_vent_info['airflow_rate']['m3/h'][t] = nat_vent_vol_flow*3600
+        self.nat_vent_info['airflow_rate']['vol/h'][t] = nat_vent_vol_flow/self._volume*3600
+        self.nat_vent_info['windows_opening']['open_fraction'][t] = self.natural_ventilation.windows_opening[t]
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 

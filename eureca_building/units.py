@@ -34,7 +34,7 @@ material_limits = {
 }
 
 window_material_limits = {
-    "window_u_value": [1.0, 7.0],
+    "window_u_value": [0.2, 7.0],
     "solar_heat_gain_coefficient": [0.0, 1.0],
     "non_dimensional_coefficient": [0.0, 1.0],
 }
