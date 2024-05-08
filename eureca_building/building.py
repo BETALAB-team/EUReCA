@@ -17,6 +17,7 @@ import pandas as pd
 
 from eureca_building.config import CONFIG
 from eureca_building.thermal_zone import ThermalZone
+from eureca_building.PV_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -38,10 +39,11 @@ class Building:
         model : str, default 2C
             model to be used: 1C or 2C
         """
-
+        self.PV_systems=[]
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
+
 
     @property
     def _thermal_zones_list(self) -> list:
@@ -61,7 +63,7 @@ class Building:
     @property
     def _model(self) -> str:
         return self.__model
-
+    
     @_model.setter
     def _model(self, value: str):
         try:
@@ -91,7 +93,7 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
-
+    
     def set_hvac_system(self, heating_system, cooling_system):
         f"""Sets using roperties the heating and cooling system type (strings)
 
@@ -247,15 +249,21 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ latent load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU pre heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU post heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU electric load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
 
         electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / CONFIG.ts_per_hour
@@ -266,6 +274,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
+
+                 
             results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
             results['TZ To [°C]'][t - t_start,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
             results['TZ Tmr [°C]'][t - t_start,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
@@ -276,14 +286,19 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['TZ AHU pre heater load [W]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
             results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
-
-
+            results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
+                                                                      self._thermal_zones_list]
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
             results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system DH consumption [Wh]'][t - t_start,0] = self.heating_system.DH_consumption
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
+            results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
 
+
+    
         # Saving results
 
         tz_labels = [res for res in results.keys() if res.startswith("TZ")]
@@ -291,6 +306,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         tz_names = [tz.name for tz in self._thermal_zones_list]
         columns_tz = pd.MultiIndex.from_product([tz_labels,tz_names])
         columns_bd = pd.MultiIndex.from_product([bd_labels,[f"Bd {self.name}"]])
+        Time_index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
         tz = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_tz)
         bd = pd.DataFrame(0., index = range(CONFIG.number_of_time_steps), columns = columns_bd)
         total = pd.concat([bd, tz], axis=1)
@@ -298,7 +314,45 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             total[tz_result_label] = results[tz_result_label]
         for bd_result_label in bd_labels:
             total[bd_result_label] = results[bd_result_label]
+        total.index=Time_index    
+        total['Electric consumption [Wh]'] += total["Heating system electric consumption [Wh]"]\
+                + total["Cooling system electric consumption [Wh]"] \
+                + total["Appliances electric consumption [Wh]"] \
+                + total['AHU electric consumption [Wh]']
+        '''
+        PV production
+        '''
+        building_surface_list=[]
+        for tz in self._thermal_zones_list:
+            for s in tz._surface_list:
+                building_surface_list.append(s)
 
+        name=tz.name
+        Photovoltaic=PV_system(name=f"TZ {name} PV system",
+                               weatherobject=weather_object,
+                               surface_list=building_surface_list)
+        #Associate PV to the building
+        self.PV_systems.append(Photovoltaic)
+        pv_production=Photovoltaic.pv_production()
+        pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
+        common_index = pv_production.index.union( total.index)
+        pv_production= pv_production.reindex(common_index)
+        pv_production=pv_production.interpolate(method='time')
+        
+        [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=Photovoltaic.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0],pv_prod=pv_production)
+        total["PV production [Wh]"]=pv_production
+        total["Battery State [%]"]=BatteryState
+        total["Given to Batteries [Wh]"]=tobattery
+        
+        total["Taken from the Batteries [Wh]"]=frombattery
+        total["Given to Grid [Wh]"]=togrid
+        total["Taken from the Gird [Wh]"]=fromgrid
+        total["directly from the PV [Wh]"]=directsolar
+        total["PV System self consumption"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
+
+        
+        #total = pd.concat([total, pv_production], axis=1)
+        #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
             if not os.path.isdir(output_folder):
                 os.mkdir(output_folder)
@@ -339,5 +393,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 "coordinates": [floors]
             }
         }
+    
 
 
