@@ -43,7 +43,7 @@ class ThermalZone(object):
     """Thermal zone class. Manages all the models and time step solution of the sensible and latent systems
     """
 
-    def __init__(self, name: str, surface_list: list, net_floor_area=None, volume=None, number_of_units: int=1, NV_ACH_limit: float = None):
+    def __init__(self, name: str, surface_list: list, net_floor_area=None, volume=None, number_of_units: int=1):
         """Int method. Creates the thermal zone object from a list of eureca_building.surface.Surface.
         Checks the inputs through properties
 
@@ -83,23 +83,9 @@ class ThermalZone(object):
         # Number of unit/dwelling in the thermal zone (for DHW)
         self.number_of_units = number_of_units
 
-        # Setting the maximum limit for NV air flow rate based on accepted ACH and thermal zone volume
-        self.NV_ACH_limit = NV_ACH_limit
-        if NV_ACH_limit is not None:
-            try:
-                NV_ACH_limit = float(NV_ACH_limit)
-            except TypeError:
-                raise TypeError(f"Thermal zone {self.name}, maximum air flow rate not number or numeric string: {NV_ACH_limit}")
-            except ValueError:
-                raise ValueError(f"Thermal zone {self.name}, maximum air flow rate not float: {NV_ACH_limit}")
-            self.vol_airflow_limit = self.NV_ACH_limit * self._volume / 3600  # [m3/s]
-        else:
-            self.vol_airflow_limit = None
-
-
         self.internal_loads_list = []
         self.infiltration_list = []
-        self.natural_ventilation_list = []
+        self.natural_ventilation = None
         self.domestic_hot_water_list = []
         self.design_heating_system_power = 1e20  # W
         self.design_cooling_system_power = -1e20  # W
@@ -1393,7 +1379,7 @@ Thermal zone {self.name} 2C params:
         # nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         # nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         # nat_vent_vol_flow = nv_outcomes[2]  #m3/s
-        nat_vent_vol_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather, self.vol_airflow_limit)
+        nat_vent_vol_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  # [kg/s]
         self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow  # [kg/s]
         # self.nat_vent_info = {

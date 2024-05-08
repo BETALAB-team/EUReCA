@@ -54,7 +54,6 @@ eureca_building/test/__pycache__/
 build/
 dist/
 venv/
-
 .pytest_cache
 logging.log
 .spyproject

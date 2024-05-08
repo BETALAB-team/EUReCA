@@ -241,6 +241,7 @@ class NaturalVentilation(Ventilation):
             tag: str = None,
             surfaces_with_opening: list = None,
             weather: WeatherFile = None,
+            vol_flow_limit: float = None
     ):
         """Init method. Call the Ventilation super() init and then store few more input
 
@@ -260,11 +261,24 @@ class NaturalVentilation(Ventilation):
             list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes
         weather : eureca_building.weather.WeatherFile
             Weather object
+        vol_flow_limit : float
+            Limit to natural vent in m3/s
         """
         super().__init__(name,unit,nominal_value,schedule,tag)
         self._get_windows_opening()
         if (weather != None) and (surfaces_with_opening != None):
             self.define_pressure_coef(weather, surfaces_with_opening)
+        
+        if vol_flow_limit is not None:
+            try:
+                vol_flow_limit = float(vol_flow_limit)
+            except TypeError:
+                raise TypeError(f"Ventilation object {self.name}, maximum air flow rate not number or numeric string: {vol_flow_limit}")
+            except ValueError:
+                raise ValueError(f"Ventilation object {self.name}, maximum air flow rate not float: {vol_flow_limit}")
+            self.vol_flow_limit = vol_flow_limit
+        else:
+            self.vol_flow_limit = 1e15
                 
     @property
     def schedule(self):
@@ -410,7 +424,7 @@ class NaturalVentilation(Ventilation):
             s.angle_of_incidence = angle_of_incidence
             s._c_coeff = s.wind_pressure_coeff*weather.hourly_data["wind_speed"]**2   # Coeff c = wind pressure coeff * (wind speed)^2 for calculation of natural ventilation flow rate
 
-    def get_timestep_ventilation_mass_flow(self, ts, t_zone, weather, vol_flow_limit: float = None):
+    def get_timestep_ventilation_mass_flow(self, ts, t_zone, weather):
         """TODO : Per Giacomo compila la documentazione
 
         Parameters
@@ -493,15 +507,8 @@ class NaturalVentilation(Ventilation):
             #         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
         # vol_flow_tot = vol_flow.sum()
         vol_inflow_tot = vol_inflow.sum()
-        if vol_flow_limit is not None:
-            try:
-                vol_flow_limit = float(vol_flow_limit)
-            except TypeError:
-                raise TypeError(f"Ventilation object {self.name}, maximum air flow rate not number or numeric string: {vol_flow_limit}")
-            except ValueError:
-                raise ValueError(f"Ventilation object {self.name}, maximum air flow rate not float: {vol_flow_limit}")
-            if vol_inflow_tot > vol_flow_limit:
-                vol_inflow_tot = vol_flow_limit
+        if vol_inflow_tot > self.vol_flow_limit:
+            vol_inflow_tot = self.vol_flow_limit
         # vol_outflow_tot = vol_outflow.sum()
         # mass_flow_tot = vol_flow_tot * air_properties["density"] # kg/s
         # vapour_flow_tot = mass_flow_tot * weather.hourly_data["out_air_specific_humidity"][ts] # kg_vap/s
