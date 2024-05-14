@@ -358,42 +358,92 @@ for i in range(1):
 
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
-    bd = Building("Bd 1", thermal_zones_list=[tz1], model = "2C")
+    tz2 = ThermalZone(
+    name="Zone 2",
+    surface_list=[wall_north, wall_west, roof, floor, intceiling],
+    net_floor_area=floor._area*2*1.5,
+    volume=floor._area*3.3*2*1.5)
+
+    zones.append(tz2)
+    tz2._ISO13790_params()
+    tz2._VDI6007_params()
+
+    tz2.add_internal_load(people)
+    tz2.add_internal_load(lights, pc)
+
+    # IHG preprocessing
+    tz_loads = tz2.extract_convective_radiative_latent_electric_load()
+    tz2.calculate_zone_loads_ISO13790(weather_file)
+    # tz1._plot_ISO13790_IHG()
+
+    # 2C model
+    tz2.calculate_zone_loads_VDI6007(weather_file)
+    # tz1._plot_VDI6007_IHG(weather_file)
+
+    tz2.add_temperature_setpoint(t_sp)
+    tz2.add_humidity_setpoint(h_sp)
+
+    # Natural Ventilation preprocessing
+    tz2.add_infiltration(inf_obj)
+    tz_inf = tz2.calc_infiltration(weather_file)
+
+    ahu = AirHandlingUnit(
+    "ahu",
+    vent_obj,
+    T_supply_sched,
+    x_supply_sched,
+    ahu_availability_sched,
+    True,
+    0.5,
+    0.5,
+    0.9,
+    weather_file,
+    tz2,
+)
+    
+    cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model = "1C")
+    heating_peak_load = tz2.design_heating_load(-5.)
+
+    tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+
+
+
+    bd = Building("Bd 1", thermal_zones_list=[tz1,tz2], model = "2C")
     bd.set_hvac_system("Coal Heater, Centralized, High Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
     start = time.time()
     df_res = bd.simulate(weather_file, output_folder="Results")
     print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
-    tz1.solve_quasisteadystate_method(weather_file)
-    print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
+    # tz1.solve_quasisteadystate_method(weather_file)
+    # print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
 
-qss_method_results = pd.DataFrame({
-    "Qss TZ Sens [kWh]":tz1.sensible_zone_demand_qss_method,
-    "Qss TZ Lat [kWh]":tz1.latent_zone_demand_qss_method,
-    "Qss AHU Sens [kWh]":tz1.sensible_AHU_demand_qss_method,
-    "Qss AHU Lat [kWh]":tz1.latent_AHU_demand_qss_method,
-})
+# qss_method_results = pd.DataFrame({
+#     "Qss TZ Sens [kWh]":tz1.sensible_zone_demand_qss_method,
+#     "Qss TZ Lat [kWh]":tz1.latent_zone_demand_qss_method,
+#     "Qss AHU Sens [kWh]":tz1.sensible_AHU_demand_qss_method,
+#     "Qss AHU Lat [kWh]":tz1.latent_AHU_demand_qss_method,
+# })
 
 
-qss_method_results['Qss AHU'] = qss_method_results[["Qss AHU Sens [kWh]", "Qss AHU Lat [kWh]"]].sum(axis=1)
-qss_method_results.drop(["Qss AHU Sens [kWh]", "Qss AHU Lat [kWh]"],axis = 1,inplace = True)
+# qss_method_results['Qss AHU'] = qss_method_results[["Qss AHU Sens [kWh]", "Qss AHU Lat [kWh]"]].sum(axis=1)
+# qss_method_results.drop(["Qss AHU Sens [kWh]", "Qss AHU Lat [kWh]"],axis = 1,inplace = True)
 
-qss_method_results.plot(kind='bar')
+# qss_method_results.plot(kind='bar')
 
-hourly = pd.read_csv(os.path.join('Results','Results Bd 1.csv'), header = [0,1], delimiter = ";")
-hourly.set_index(pd.date_range(start=CONFIG.start_date,end=CONFIG.final_date,periods=CONFIG.number_of_time_steps), inplace = True)
-hourly.columns = hourly.columns.droplevel(level = 1)
-hourly_res = hourly[['TZ sensible load [W]','TZ latent load [W]','TZ AHU pre heater load [W]','TZ AHU post heater load [W]']]
-hourly_res['AHU'] = hourly_res[['TZ AHU pre heater load [W]','TZ AHU post heater load [W]']].sum(axis=1)
-hourly_res.drop(['TZ AHU pre heater load [W]','TZ AHU post heater load [W]'],axis = 1,inplace = True)
-hourly_res = hourly_res.resample('1M').sum()/1000
+# hourly = pd.read_csv(os.path.join('Results','Results Bd 1.csv'), header = [0,1], delimiter = ";")
+# hourly.set_index(pd.date_range(start=CONFIG.start_date,end=CONFIG.final_date,periods=CONFIG.number_of_time_steps), inplace = True)
+# hourly.columns = hourly.columns.droplevel(level = 1)
+# hourly_res = hourly[['TZ sensible load [W]','TZ latent load [W]','TZ AHU pre heater load [W]','TZ AHU post heater load [W]']]
+# hourly_res['AHU'] = hourly_res[['TZ AHU pre heater load [W]','TZ AHU post heater load [W]']].sum(axis=1)
+# hourly_res.drop(['TZ AHU pre heater load [W]','TZ AHU post heater load [W]'],axis = 1,inplace = True)
+# hourly_res = hourly_res.resample('1M').sum()/1000
 
-hourly_res.plot(kind = 'bar')
+# hourly_res.plot(kind = 'bar')
 
-fig, [ax1, ax2,ax3] = plt.subplots(nrows = 3)
+# fig, [ax1, ax2,ax3] = plt.subplots(nrows = 3)
 
-for ax, i in zip ([ax1, ax2,ax3],range(3)):
-    pd.DataFrame({
-        qss_method_results.columns[i] : qss_method_results[qss_method_results.columns[i]].values,
-        hourly_res.columns[i] : hourly_res[hourly_res.columns[i]].values,
-    }).plot(ax = ax, kind = 'bar')
+# for ax, i in zip ([ax1, ax2,ax3],range(3)):
+#     pd.DataFrame({
+#         qss_method_results.columns[i] : qss_method_results[qss_method_results.columns[i]].values,
+#         hourly_res.columns[i] : hourly_res[hourly_res.columns[i]].values,
+#     }).plot(ax = ax, kind = 'bar')

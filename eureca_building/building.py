@@ -39,7 +39,7 @@ class Building:
         model : str, default 2C
             model to be used: 1C or 2C
         """
-        self.PV_systems=[]
+        # self.PV_systems=[]
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
@@ -260,7 +260,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            # 'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
@@ -331,8 +331,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         Photovoltaic=PV_system(name=f"TZ {name} PV system",
                                weatherobject=weather_object,
                                surface_list=building_surface_list)
-        #Associate PV to the building
-        self.PV_systems.append(Photovoltaic)
+        # Associate PV to the building
+        # self.PV_systems.append(Photovoltaic)
         pv_production=Photovoltaic.pv_production()
         pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
         common_index = pv_production.index.union( total.index)
@@ -340,15 +340,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         pv_production=pv_production.interpolate(method='time')
         
         [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=Photovoltaic.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0],pv_prod=pv_production)
-        total["PV production [Wh]"]=pv_production
-        total["Battery State [%]"]=BatteryState
-        total["Given to Batteries [Wh]"]=tobattery
+        total["PV production [Wh]",f"Bd {self.name}"]=pv_production
+        total["Battery State [%]",f"Bd {self.name}"]=BatteryState
+        total["Given to Batteries [Wh]",f"Bd {self.name}"]=tobattery
         
-        total["Taken from the Batteries [Wh]"]=frombattery
-        total["Given to Grid [Wh]"]=togrid
-        total["Taken from the Gird [Wh]"]=fromgrid
-        total["directly from the PV [Wh]"]=directsolar
-        total["PV System self consumption"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
+        total["Taken from the Batteries [Wh]",f"Bd {self.name}"]=frombattery
+        total["Given to Grid [Wh]",f"Bd {self.name}"]=togrid
+        total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
+        total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
+        total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
 
         
         #total = pd.concat([total, pv_production], axis=1)

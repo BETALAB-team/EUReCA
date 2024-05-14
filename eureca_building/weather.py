@@ -86,7 +86,7 @@ class WeatherFile():
 
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
-            self._epw_hourly_data = epw[0].resample(m).interpolate(method='linear')
+            self._epw_hourly_data = epw[0].resample(m).bfill()
 
         # Weather Data and Average temperature difference between Text and Tsky
         self.hourly_data = {}
@@ -165,8 +165,7 @@ class WeatherFile():
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
         if self.general_data['time_steps_per_hour'] > 1:
             m = str(60 / float(self.general_data['time_steps_per_hour'])) + 'min'
-            self._solar_position = self._solar_position.resample(m).interpolate(
-                method='ffill')  # Bfill for azimuth that is not continuous
+            self._solar_position = self._solar_position.resample(m).ffill()  # Bfill for azimuth that is not continuous
         self.hourly_data["solar_position_apparent_zenith"] = self._solar_position['apparent_zenith'].values
         self.hourly_data["solar_position_zenith"] = self._solar_position['zenith'].values
         self.hourly_data["solar_position_apparent_elevation"] = self._solar_position['apparent_elevation'].values
