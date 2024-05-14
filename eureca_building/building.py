@@ -188,15 +188,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             heat_load += tz.air_handling_unit.posth_Dem
 
             # For the moment not latent
-            # if tz.latent_zone_load > 0.:
-            #     heat_load += tz.latent_zone_load
-            # else:
-            #     cool_load += tz.latent_zone_load
+            if tz.latent_zone_load > 0.:
+                heat_load += tz.latent_zone_load
+            else:
+                cool_load += tz.latent_zone_load
 
-            # if tz.latent_zone_load > 0.:
-            #     heat_load += tz.latent_zone_load
-            # else:
-            #     cool_load += tz.latent_zone_load
+            if tz.latent_zone_load > 0.:
+                heat_load += tz.latent_zone_load
+            else:
+                cool_load += tz.latent_zone_load
 
             # DHW
             heat_load += tz.domestic_hot_water_demand[t]
