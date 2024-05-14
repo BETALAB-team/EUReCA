@@ -350,7 +350,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
 
-        
+         
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
