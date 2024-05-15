@@ -363,6 +363,7 @@ for i in range(1):
     surface_list=[wall_north, wall_west, roof, floor, intceiling],
     net_floor_area=floor._area*2*1.5,
     volume=floor._area*3.3*2*1.5)
+    bd = Building("Bd 1", thermal_zones_list=[tz1,tz2], model = "2C")
 
     zones.append(tz2)
     tz2._ISO13790_params()
@@ -408,7 +409,6 @@ for i in range(1):
 
 
 
-    bd = Building("Bd 1", thermal_zones_list=[tz1,tz2], model = "2C")
     bd.set_hvac_system("Coal Heater, Centralized, High Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
     start = time.time()

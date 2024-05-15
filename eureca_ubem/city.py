@@ -302,6 +302,8 @@ class City():
             self.cityjson["ExtWallCoeff"] = 1.
         if "VolCoeff" not in self.cityjson.columns:
             self.cityjson["VolCoeff"] = 1.
+        if "Lower End Use" not in self.cityjson.columns:
+            self.cityjson["Lower End Use"] = ''
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -309,25 +311,56 @@ class City():
 
         # Extrusion from the footprint operation
         for i in self.cityjson.index:
-            id = str(self.cityjson.loc[i]['id'])#  + "_" + str(i[1])
+            id = str(self.cityjson.loc[i]['id']) #  + "_" + str(i[1])
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
+            n_floors = int(self.cityjson.loc[i]['Floors'])
+            floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
             building_parts = list(self.cityjson.loc[i].geometry.geoms)
-            counter_for_sub_parts = 0
             surf_counter = 0
             footprint_area = 0.
-            surfaces_list = []
+
+            building_parts_data = {
+                "single End Use": {
+                    "surfaces objs": [],
+                    "end use": self.cityjson["End Use"],
+                    "surfaces counter": 0.,
+                    "subpart counter": 0.,
+                    "footprint area": 0.,
+                },
+                
+                "upper End Use": {
+                    "surfaces objs": [],
+                    "end use": self.cityjson["End Use"],
+                    "surfaces counter": 0.,
+                    "subpart counter": 0.,
+                    "footprint area": 0.,
+                },
+                
+                "lower End Use": {
+                    "surfaces objs": [],
+                    "end use": self.cityjson["Lower End Use"],
+                    "surfaces counter": 0.,
+                    "subpart counter": 0.,
+                    "footprint area": 0.,
+                },
+            }
+
             for g in building_parts:
                 x,y = g.exterior.coords.xy
                 coords = np.dstack((x,y)).tolist()
-                coords=coords[0]
+                coords = coords[0]
                 coords.pop()
-                build_surf=[]
+                build_surf = []
                 pavimento = []
                 soffitto = []
+                lower_build_surf=[]
+                lower_pavimento = []
+                upper_build_surf=[]
+                upper_soffitto = []
                 z_pav = 0
                 z_soff = self.cityjson.loc[i]['Height']
                 normal = normal_versor_2(tuple([tuple(coords[n] + [z_pav]) for n in range(len(coords))]))
@@ -337,11 +370,21 @@ class City():
                 for n in range(len(coords)):
                     pavimento.append(tuple(coords[n]+[z_pav]))
                     soffitto.append(tuple(coords[-n]+[z_soff]))
+                    lower_pavimento.append(tuple(coords[n]+[z_pav]))
+                    upper_soffitto.append(tuple(coords[-n]+[z_soff]))
                 for n in range(len(coords)):
                     build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
                                         tuple(coords[n]+[z_soff]),\
                                         tuple(coords[n]+[z_pav]),\
                                         tuple(coords[n-1]+[z_pav])]))
+                    lower_build_surf.append(tuple([tuple(coords[n-1]+[floor_height]),\
+                                        tuple(coords[n]+[floor_height]),\
+                                        tuple(coords[n]+[z_pav]),\
+                                        tuple(coords[n-1]+[z_pav])]))
+                    upper_build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
+                                        tuple(coords[n]+[z_soff]),\
+                                        tuple(coords[n]+[z_pav + floor_height]),\
+                                        tuple(coords[n-1]+[z_pav + floor_height])]))
 
                 list_of_int_rings = []
                 area_of_int_rings = []
@@ -362,113 +405,138 @@ class City():
                                             tuple(coords_int[n-1]+[z_pav]),\
                                             tuple(coords_int[n]+[z_pav]),\
                                             tuple(coords_int[n]+[z_soff]),]))
+                        lower_build_surf.append(tuple([tuple(coords_int[n-1]+[floor_height]),\
+                                            tuple(coords_int[n-1]+[z_pav]),\
+                                            tuple(coords_int[n]+[z_pav]),\
+                                            tuple(coords_int[n]+[floor_height]),]))
+                        upper_build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
+                                            tuple(coords_int[n-1]+[z_pav + floor_height]),\
+                                            tuple(coords_int[n]+[z_pav + floor_height]),\
+                                            tuple(coords_int[n]+[z_soff]),]))
 
                 build_surf.append(tuple(pavimento))
                 build_surf.append(tuple(soffitto))
 
+                lower_build_surf.append(tuple(lower_pavimento))
+                upper_build_surf.append(tuple(upper_soffitto))
+
                 area_of_int_rings = np.array(area_of_int_rings).sum()
 
-                # TODO: implement volume and external wall multiplication coefficients
-                # self.rh_net = 1.
-                # self.rh_gross = 1.
+                building_parts_data["single End Use"]["surfaces coord"] = build_surf
+                building_parts_data["lower End Use"]["surfaces coord"] = lower_build_surf
+                building_parts_data["upper End Use"]["surfaces coord"] = upper_build_surf
 
                 # Creation of surfaces
                 if bd_data["Simulate"]:
                     envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
-                for vertices in build_surf:
-                    surface = Surface(
-                            name = f"Bd {name}: surface {surf_counter}",
-                            vertices = vertices,
-                        )
 
-                    if surface.surface_type != "GroundFloor":
-                        self.__city_surfaces.append(surface)
+                for part_k, part_v in building_parts_data.items():
+                    for vertices in part_v["surfaces coord"]:
+                        surface = Surface(
+                                name = f"Bd {name}: surface {surf_counter}",
+                                vertices = vertices,
+                            )
 
-                    if surface.surface_type in ["GroundFloor","Roof"]:
-                        surface.reduce_area(area_of_int_rings)
+                        if surface.surface_type != "GroundFloor":
+                            self.__city_surfaces.append(surface)
 
-                    # TODO: Update wwr calculation
+                        if surface.surface_type in ["GroundFloor","Roof"]:
+                            surface.reduce_area(area_of_int_rings)
 
-                    if surface.surface_type == "ExtWall":
-                        surface._wwr = 0.125
+                        # TODO: Update wwr calculation
 
-                    if bd_data["Simulate"]:
-                        if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
-                            surface.apply_ext_surf_coeff(bd_data["ExtWallCoeff"])
-                        surface.construction = {
-                            "ExtWall": envelope.external_wall,
-                            "Roof": envelope.roof,
-                            "GroundFloor": envelope.ground_floor,
-                        }[surface.surface_type]
+                        if surface.surface_type == "ExtWall":
+                            surface._wwr = 0.125
 
-                        surface.window = envelope.window
+                        if bd_data["Simulate"]:
+                            if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
+                                surface.apply_ext_surf_coeff(bd_data["ExtWallCoeff"])
+                            surface.construction = {
+                                "ExtWall": envelope.external_wall,
+                                "Roof": envelope.roof,
+                                "GroundFloor": envelope.ground_floor,
+                            }[surface.surface_type]
 
-                    surfaces_list.append(surface)
-                    surf_counter += 1
+                            surface.window = envelope.window
 
-                    if surface.surface_type == "GroundFloor":
-                        footprint_area += surface._area
+                        part_v["surfaces objs"].append(surface)
+                        
+                        part_v["surfaces counter"] += 1
 
-                    counter_for_sub_parts += 1
+                        if surface.surface_type == "GroundFloor":
+                            part_v["footprint area"] += surface._area
+                            
+                        part_v["subpart counter"] += 1
+            
 
             if bd_data["Simulate"]:
                 # Add internal walls and ceilings 3.3 m height
-                n_floors = int(self.cityjson.loc[i]['Floors'])
                 floor_height = self.cityjson.loc[i]['Height'] / n_floors
                 surf_counter = 0
-                for i in range(1, n_floors):
-                    surfaces_list.append(SurfaceInternalMass(
-                        name=f"Bd {name}: internal surface {surf_counter}",
-                        area=footprint_area,
-                        surface_type="IntCeiling",
-                        construction=envelope.interior_ceiling
-                    ))
 
-                    surfaces_list.append(SurfaceInternalMass(
-                        name=f"Bd {name}: internal surface {surf_counter + 1}",
-                        area=footprint_area,
-                        surface_type="IntFloor",
-                        construction=envelope.interior_floor
-                    ))
+                building_parts_data["single End Use"]["number of floors"] = n_floors
+                building_parts_data["lower End Use"]["number of floors"] = 1
+                building_parts_data["upper End Use"]["number of floors"] = n_floors - 1
 
-                    surf_counter += 2
+                for part_k, part_v in building_parts_data.items():
+                    for _ in range(1, part_v["number of floors"]):
+                        part_v["surfaces objs"].append(SurfaceInternalMass(
+                            name=f"Bd {name}: internal surface {part_v['surfaces counter']}",
+                            area=part_v["footprint area"],
+                            surface_type="IntCeiling",
+                            construction=envelope.interior_ceiling
+                        ))
 
-                surfaces_list.append(
-                    SurfaceInternalMass(
-                        name=f"Bd {name}: internal surface {surf_counter}",
-                        area=footprint_area * n_floors * 2.5,
-                        surface_type="IntWall",
-                        construction=envelope.interior_wall
+                        part_v["surfaces objs"].append(SurfaceInternalMass(
+                            name=f"Bd {name}: internal surface {part_v['surfaces counter'] + 1}",
+                            area=part_v["footprint area"],
+                            surface_type="IntFloor",
+                            construction=envelope.interior_floor
+                        ))
+
+                        part_v["surfaces counter"] += 2
+
+                    part_v["surfaces objs"].append(
+                        SurfaceInternalMass(
+                            name=f"Bd {name}: internal surface {part_v['surfaces counter']}",
+                            area=part_v["footprint area"] * part_v["number of floors"] * 2.5,
+                            surface_type="IntWall",
+                            construction=envelope.interior_wall
+                        )
                     )
-                )
 
-                n_units = int(np.around(footprint_area * n_floors / 77.))
-                if n_units == 0: n_units = 1
+                    n_units = int(np.around(part_v["footprint area"] * part_v["number of floors"] / 77.))
+                    if n_units == 0: n_units = 1
 
-                thermal_zone = ThermalZone(
-                    name=f"Bd {name} thermal zone",
-                    surface_list=surfaces_list,
-                    net_floor_area=footprint_area * n_floors,
-                    volume=footprint_area * n_floors * floor_height * bd_data["VolCoeff"],
-                    number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
-                )
+                    part_v["tz"] = ThermalZone(
+                        name=f"Bd {name} thermal zone {part_k}",
+                        surface_list= part_v["surfaces objs"],
+                        net_floor_area=part_v["footprint area"] * part_v["number of floors"],
+                        volume=part_v["footprint area"] * part_v["number of floors"] * floor_height * bd_data["VolCoeff"],
+                        number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
+                    )
 
                 
-                
+                if self.cityjson.loc[i]['Lower End Use'] != '':
+                    tz_list = [building_parts_data["upper End Use"]["tz"], building_parts_data["lower End Use"]["tz"]]
+                else:
+                    tz_list = [building_parts_data["single End Use"]["tz"]]
+
+
                 
                 self.buildings_info[id] = bd_data
-                self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
+                self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=tz_list,
                                                               model=self.building_model)
 
         # Geometric preprocessing
         self.geometric_preprocessing()
 
         for bd_k, bd in self.buildings_objects.items():
-            thermal_zone = bd._thermal_zones_list[0]
-            {
-                "1C": thermal_zone._ISO13790_params,
-                "2C": thermal_zone._VDI6007_params,
-            }[self.building_model]()
+            for thermal_zone in bd._thermal_zones_list:
+                {
+                    "1C": thermal_zone._ISO13790_params,
+                    "2C": thermal_zone._VDI6007_params,
+                }[self.building_model]()
 
     def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
@@ -484,74 +552,84 @@ class City():
         for bd_id, building_info in self.buildings_info.items():
             # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
-            use = self.end_uses_dict[building_info["End Use"]]
-            tz = building_obj._thermal_zones_list[0]
-            
-            # TODO: copy.deepcopy
-            if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
-                try:
-                    italian_el_loads
-                except NameError:
-                    raise ValueError("""If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:
+
+            if building_info["Lower End Use"] != '':
+                zones_objs = [
+                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["End Use"]]],
+                    [building_obj._thermal_zones_list[1], self.end_uses_dict[building_info["Lower End Use"]]],
+                ]
+            else:
+                zones_objs = [
+                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["End Use"]]],
+                ]
+
+            for tz, use in zones_objs:
+
+                # TODO: copy.deepcopy
+                if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
+                    try:
+                        italian_el_loads
+                    except NameError:
+                        raise ValueError("""If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:
 For example: city.loads_calculation(region='Piemonte').
 Available regions:
 ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,
 FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,
 Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
- """)
-                # TODO: Update with real values.
-                app_nv = italian_el_loads["Tot"].loc[bd_id] * 1000 # W/kW
-                app = copy.deepcopy(use.heat_gains['appliances'])
-                app.unit = "W"
-                app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units
+    """)
+                    # TODO: Update with real values.
+                    app_nv = italian_el_loads["Tot"].loc[bd_id] * 1000 # W/kW
+                    app = copy.deepcopy(use.heat_gains['appliances'])
+                    app.unit = "W"
+                    app.nominal_value = app_nv / (app.schedule.schedule.sum() / CONFIG.ts_per_hour) * tz.number_of_units
 
-                tz.add_internal_load(
-                    app,
-                    use.heat_gains['people'],
+                    tz.add_internal_load(
+                        app,
+                        use.heat_gains['people'],
+                    )
+                else:
+                    tz.add_internal_load(
+                        use.heat_gains['appliances'],
+                        use.heat_gains['people'],
+                        use.heat_gains['lighting'],
+                    )
+                
+                tz.extract_convective_radiative_latent_electric_load()
+                {
+                    "1C": tz.calculate_zone_loads_ISO13790,
+                    "2C": tz.calculate_zone_loads_VDI6007
+                }[self.building_model](self.weather_file)
+
+                tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
+                tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
+
+                tz.add_infiltration(use.infiltration['infiltration'])
+                tz.calc_infiltration(self.weather_file)
+
+                ahu = AirHandlingUnit(
+                    name = f"ahu Bd {building_info['Name']}",
+                    mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
+                    supply_temperature = use.air_handling_unit_system['ahu_supply_temperature'],
+                    supply_specific_humidity = use.air_handling_unit_system['ahu_supply_humidity'],
+                    ahu_operation = use.air_handling_unit_system['ahu_availability'],
+                    humidity_control = use.air_handling_unit_system['ahu_humidity_control'],
+                    sensible_heat_recovery_eff = use.air_handling_unit_system['ahu_sensible_heat_recovery'],
+                    latent_heat_recovery_eff = use.air_handling_unit_system['ahu_latent_heat_recovery'],
+                    outdoor_air_ratio = use.air_handling_unit_system['outdoor_air_ratio'],
+                    weather = self.weather_file,
+                    thermal_zone = tz,
                 )
-            else:
-                tz.add_internal_load(
-                    use.heat_gains['appliances'],
-                    use.heat_gains['people'],
-                    use.heat_gains['lighting'],
-                )
-            
-            tz.extract_convective_radiative_latent_electric_load()
-            {
-                "1C": tz.calculate_zone_loads_ISO13790,
-                "2C": tz.calculate_zone_loads_VDI6007
-            }[self.building_model](self.weather_file)
+                
 
-            tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
-            tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
-
-            tz.add_infiltration(use.infiltration['infiltration'])
-            tz.calc_infiltration(self.weather_file)
-
-            ahu = AirHandlingUnit(
-                name = f"ahu Bd {building_info['Name']}",
-                mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
-                supply_temperature = use.air_handling_unit_system['ahu_supply_temperature'],
-                supply_specific_humidity = use.air_handling_unit_system['ahu_supply_humidity'],
-                ahu_operation = use.air_handling_unit_system['ahu_availability'],
-                humidity_control = use.air_handling_unit_system['ahu_humidity_control'],
-                sensible_heat_recovery_eff = use.air_handling_unit_system['ahu_sensible_heat_recovery'],
-                latent_heat_recovery_eff = use.air_handling_unit_system['ahu_latent_heat_recovery'],
-                outdoor_air_ratio = use.air_handling_unit_system['outdoor_air_ratio'],
-                weather = self.weather_file,
-                thermal_zone = tz,
-            )
-            
-
-            tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
-            
-            tz.design_heating_load(-5.)
-            
-            tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-            
+                tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+                
+                tz.design_heating_load(-5.)
+                
+                tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
+                
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
-            # print(f"{int(100*iiii/jjjj)} %: load calc")
+                # print(f"{int(100*iiii/jjjj)} %: load calc")
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
@@ -599,8 +677,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
-
-            info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+            info = {}
+            for tz in self.buildings_objects[bd_id]._thermal_zones_list:
+                info[f"TZ {tz.name}"] = tz.get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
@@ -653,12 +732,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                                                                     + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
                                                                     + results["Appliances electric consumption [Wh]"].iloc[:,0] \
                                                                     + results['AHU electric consumption [Wh]'].iloc[:,0]
-            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0]
-            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0]
-            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0]
-            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0]
-            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0]
-            district_hourly_results["PV production [Wh]"] += results["PV production [Wh]"]
+            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["PV production [Wh]"] += results["PV production [Wh]"].iloc[:,0]
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")

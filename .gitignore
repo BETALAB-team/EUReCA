@@ -9,6 +9,7 @@ RCenv.yml
 /eureca_ubem/Input/geojson_numba/
 /eureca_ubem/Input/logging.log
 /eureca_ubem/Input/total envelope types.xlsx
+/eureca_ubem/Input/Schedules_total.xlsx
 /eureca_ubem/__pycache__/
 /eureca_ubem.egg-info/
 /OutputReport/1C/*.csv
