@@ -102,7 +102,7 @@ def create_shading_horizon(surfaces):
             shading_surface_vertices=shader_surfaces[shading_surface_index]._Surface__vertices
             shading_surface_vertices=[np.array(tuple_) for tuple_ in shading_surface_vertices]
             #create points alongside the edges to increase the precision
-            num_interpolated_points=3 
+            num_interpolated_points=2 
             shading_surface_vertices_interpolated=interpolate_points_along_path(shading_surface_vertices, num_interpolated_points)
             #calculate the vertices in polar coordinate (height and azimuth) relative to the 
             #point being studied

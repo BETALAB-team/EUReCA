@@ -4,7 +4,7 @@ import math
 import os
 import json
 import concurrent.futures
-import psutil
+import tracemalloc
 
 import pickle as pickle
 import pandas as pd
@@ -100,7 +100,8 @@ class City():
         if not os.path.isdir(output_folder):
             os.mkdir(output_folder)
         self.output_folder = output_folder
-
+        tracemalloc.start()
+        
     @property
     def building_model(self) -> str:
         return self._building_model
@@ -272,9 +273,13 @@ class City():
 
             self.output_geojson["features"].append(geojson_feature)
 
-
+        memory_stats = tracemalloc.get_traced_memory()
+        current_memory, peak_memory = memory_stats
+        print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
         self.geometric_preprocessing()
-
+        memory_stats = tracemalloc.get_traced_memory()
+        current_memory, peak_memory = memory_stats
+        print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
         for bd_k, bd in self.buildings_objects.items():
             thermal_zone = bd._thermal_zones_list[0]
             {
@@ -461,8 +466,13 @@ class City():
                 self.buildings_objects[id] = Building(name=f"Bd {name}", thermal_zones_list=[thermal_zone],
                                                               model=self.building_model)
 
-        # Geometric preprocessing
+        memory_stats = tracemalloc.get_traced_memory()
+        current_memory, peak_memory = memory_stats
+        print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
         self.geometric_preprocessing()
+        memory_stats = tracemalloc.get_traced_memory()
+        current_memory, peak_memory = memory_stats
+        print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
 
         for bd_k, bd in self.buildings_objects.items():
             thermal_zone = bd._thermal_zones_list[0]
@@ -739,7 +749,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         import time
         print("ended")
         print(time.time())
-        #             if dist == 0.0:
+        
+     #             if dist == 0.0:
         #                 theta=0
         #             else:
 

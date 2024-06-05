@@ -24,6 +24,9 @@ city_model_file = os.path.join(".","Padova_City_Center.geojson")
 import time
 print(time.time())
 print("here")
+
+
+
 city_geojson = City(
     city_model=city_model_file, 
     epw_weather_file=weather_file,
