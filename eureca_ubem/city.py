@@ -13,8 +13,6 @@ import geopandas as gpd
 import numpy as np
 from cjio import cityjson
 from scipy.spatial import cKDTree
-from shapely.ops import transform
-from shapely.geometry import shape
 from shapely.validation import make_valid
 from eureca_building.config import CONFIG
 from eureca_building.PV_system import PV_system
