@@ -13,7 +13,9 @@ import geopandas as gpd
 import numpy as np
 from cjio import cityjson
 from scipy.spatial import cKDTree
-
+from shapely.ops import transform
+from shapely.geometry import shape
+from shapely.validation import make_valid
 from eureca_building.config import CONFIG
 from eureca_building.PV_system import PV_system
 from eureca_building.weather import WeatherFile
@@ -129,10 +131,24 @@ class City():
 
         # Case of cityJSON file availability:
         self.n_Floors = 0
+        # Function to fix invalid geometries
+        def fix_geometry(geom):
+            if geom.is_valid:
+                return geom
+            else:
+                try:
+                    # Try to fix invalid geometry
+                    fixed_geom = make_valid(geom)
+                    return fixed_geom
+                except:
+                    return None
 
         try:
             with open(json_path, 'r') as f:
                 self.cityjson = cityjson.CityJSON(file=f)
+                #fix geometries
+                self.cityjson['geometry'] = self.cityjson['geometry'].apply(fix_geometry)
+                self.cityjson = self.cityjson[~self.cityjson['geometry'].isna()]
         except FileNotFoundError:
             raise FileNotFoundError(f'ERROR Cityjson object not found: {json_path}. Give a proper path')
 
@@ -294,8 +310,23 @@ class City():
             Path to geojson file.
 
         '''
+        # Function to fix invalid geometries
+        def fix_geometry(geom):
+            if geom.is_valid:
+                return geom
+            else:
+                try:
+                    # Try to fix invalid geometry
+                    fixed_geom = make_valid(geom)
+                    return fixed_geom
+                except:
+                    return None
         # Case of GeoJSON file availability:
+        
         self.cityjson = gpd.read_file(json_path)# .explode(index_parts=True)
+        #fix geometries
+        self.cityjson['geometry'] = self.cityjson['geometry'].apply(fix_geometry)
+        self.cityjson = self.cityjson[~self.cityjson['geometry'].isna()]
         if "Simulate" not in self.cityjson.columns:
             self.cityjson["Simulate"] = True
         if "ExtWallCoeff" not in self.cityjson.columns:
