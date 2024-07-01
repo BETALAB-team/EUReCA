@@ -3,6 +3,7 @@ import copy
 import math
 import os
 import json
+import gc
 import concurrent.futures
 
 import pandas as pd
@@ -455,14 +456,12 @@ class City():
 
         # Geometric preprocessing
         self.geometric_preprocessing()
-
         for bd_k, bd in self.buildings_objects.items():
             thermal_zone = bd._thermal_zones_list[0]
             {
                 "1C": thermal_zone._ISO13790_params,
                 "2C": thermal_zone._VDI6007_params,
             }[self.building_model]()
-
     def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
@@ -471,15 +470,18 @@ class City():
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
-        
-        # iiii=0
+        import psutil
+        iiii=0
         # jjjj=3608
         for bd_id, building_info in self.buildings_info.items():
-            # iiii=iiii+1
+            iiii=iiii+1
+            jjjj=100
+
+            if iiii%jjjj==0:print(iiii)
             building_obj = self.buildings_objects[bd_id]
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
-            
+
             # TODO: copy.deepcopy
             if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
                 try:
@@ -508,19 +510,21 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     use.heat_gains['people'],
                     use.heat_gains['lighting'],
                 )
-            
+            memory_info = psutil.virtual_memory()
+            used_now=memory_info.used
             tz.extract_convective_radiative_latent_electric_load()
             {
                 "1C": tz.calculate_zone_loads_ISO13790,
                 "2C": tz.calculate_zone_loads_VDI6007
             }[self.building_model](self.weather_file)
-
+            # if iiii%400==0: gc.collect()
+            memory_info = psutil.virtual_memory()
+            used_then=memory_info.used
+            print(f"{used_then-used_now}")
             tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
             tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
-
             tz.add_infiltration(use.infiltration['infiltration'])
             tz.calc_infiltration(self.weather_file)
-
             ahu = AirHandlingUnit(
                 name = f"ahu Bd {building_info['Name']}",
                 mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
@@ -534,14 +538,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 weather = self.weather_file,
                 thermal_zone = tz,
             )
-            
+
 
             tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
-            
             tz.design_heating_load(-5.)
-            
             tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-            
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
             # print(f"{int(100*iiii/jjjj)} %: load calc")

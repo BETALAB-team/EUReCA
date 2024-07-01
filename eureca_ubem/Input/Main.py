@@ -18,11 +18,11 @@ from eureca_ubem.city import City
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 schedules_file = os.path.join(".","Schedules.xlsx")
 materials_file = os.path.join(".","total envelope types.xlsx")
-city_model_file = os.path.join(".","Padova_City_Center.geojson")
+city_model_file = os.path.join(".","PiovegoRestricted_with_holes.geojson")
 
 city_geojson = City(
     city_model=city_model_file,
-    epw_weather_file=weather_file,
+    epw_weather_file=weather_file, 
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
     shading_calculation=True,

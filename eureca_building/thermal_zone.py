@@ -756,7 +756,7 @@ Thermal zone {self.name} 2C params:
                 phi_sol_op = F_sh_urban_shading * TRV * alpha * sr * U_net * A_op - \
                              F_r * sr * U_net * A_op * h_r * \
                              weather.general_data['average_dt_air_sky']
-
+                del F_sh_urban_shading                
             # Total solar gain
             phi_sol_gl_tot += phi_sol_gl
             phi_sol_op_tot += phi_sol_op
@@ -783,7 +783,7 @@ Thermal zone {self.name} 2C params:
             WeatherFile obj
 
         '''
-
+        import psutil
         # Check input data type
 
         if not isinstance(weather, WeatherFile):
@@ -795,14 +795,15 @@ Thermal zone {self.name} 2C params:
         #
         # T_ext vettore
 
-
+    
         Eatm, Eerd, theta_erd, theta_atm = long_wave_radiation(weather.hourly_data['out_air_db_temperature'])
 
         alpha_str_lw = (Eatm + Eerd)/(theta_atm - theta_erd)
         alpha_str_lw[(alpha_str_lw == 0.) & ((theta_atm - theta_erd) == 0)] = 5.
-
+        import sys
         # Creates some vectors and set some parameters
-
+        import weakref
+        import gc
         T_ext = weather.hourly_data['out_air_db_temperature']
         theta_eq = np.zeros([len(T_ext), len(self._surface_list)])
         delta_theta_eq_lw = np.zeros([len(T_ext), len(self._surface_list)])
@@ -811,35 +812,45 @@ Thermal zone {self.name} 2C params:
         Q_il_str_A_iw = 0
         Q_il_str_A_aw = 0
         Q_il_kon_A = 0
+        theta_eq_ref = weakref.proxy(theta_eq)
+        delta_theta_eq_ref_lw = weakref.proxy(delta_theta_eq_lw)
+        delta_theta_eq_ref_kw = weakref.proxy(delta_theta_eq_kw)
+        theta_eq_ref_w = weakref.proxy(theta_eq_w)
 
         # Solar radiation
         irradiances = weather.hourly_data_irradiances
 
         i = -1
-
+        memory_info = psutil.virtual_memory()
+        used_now=memory_info.used
         # Lists all surfaces to calculate the irradiance on each one and creates the solar gains
-
         for surface in self._surface_list:
             i += 1
             if surface.surface_type in ['ExtWall', 'Roof']:
                 # Some value loaded from surface and weather object
+
                 h_r = surface.get_surface_external_radiative_coefficient()
+
                 alpha_str_a = surface.construction.rad_heat_trans_coef
                 alpha_a = surface.construction._conv_heat_trans_coef_ext + surface.construction.rad_heat_trans_coef
                 phi = surface._sky_view_factor
                 F_sh_urban_shading = calculate_shading_coefficient(weather.hourly_data,surface) if len(surface._shading_horizon)>0 else 1
                 irradiance = irradiances[float(surface._azimuth_round)][float(surface._height_round)]
+
                 AOI = irradiance['AOI']
                 BRV = irradiance['direct']
                 TRV = irradiance['global']
+
+
                 # Delta T long wave
-                delta_theta_eq_lw[:, i] = ((theta_erd - T_ext) * (1 - phi) +
+                delta_theta_eq_ref_lw[:, i] = ((theta_erd - T_ext) * (1 - phi) +
                                            (theta_atm - T_ext) * phi) * alpha_str_lw * 0.9 / (0.93 * alpha_a)
-                delta_theta_eq_kw[:, i] = (BRV * F_sh_urban_shading + (TRV - BRV)) * surface.construction.ext_absorptance / alpha_a
-                theta_eq[:, i] = (T_ext + delta_theta_eq_lw[:, i] + delta_theta_eq_kw[:, i]) * \
+                delta_theta_eq_ref_kw[:, i] = (BRV * F_sh_urban_shading + (TRV - BRV)) * surface.construction.ext_absorptance / alpha_a
+                theta_eq_ref[:, i] = (T_ext + delta_theta_eq_ref_lw[:, i] + delta_theta_eq_ref_kw[:, i]) * \
                                  surface.construction._u_value * surface._opaque_area / self.UA_tot
+                
                 if hasattr(surface, 'window'):
-                    theta_eq_w[:, i] = (T_ext + delta_theta_eq_lw[:, i]) * \
+                    theta_eq_ref_w[:, i] = (T_ext + delta_theta_eq_ref_lw[:, i]) * \
                                        surface.window.u_value * surface._glazed_area / self.UA_tot
                     frame_factor = 1 - surface.window._frame_factor
                     F_sh = surface.window._shading_coef_ext
@@ -865,13 +876,13 @@ Thermal zone {self.name} 2C params:
                     Q_il_kon_A += convective_inward_solar_radiation
 
             if surface.surface_type == 'GroundFloor':
-                theta_eq[:, i] = T_ext * surface.construction._u_value * surface._opaque_area / self.UA_tot
-
+                theta_eq_ref[:, i] = T_ext * surface.construction._u_value * surface._opaque_area / self.UA_tot
         # self.Q_il_str_A = self.Q_il_str_A.to_numpy()
         # self.carichi_sol = (Q_il_str_A_iw+ Q_il_str_A_aw).to_numpy()
 
-        self.theta_eq_tot = theta_eq.sum(axis=1) + theta_eq_w.sum(axis=1)
 
+        self.theta_eq_tot = theta_eq_ref.sum(axis=1) + theta_eq_ref_w.sum(axis=1)
+        # del delta_theta_eq_lw,delta_theta_eq_kw,theta_eq,theta_eq_w
         # Calculates internal heat gains
         phi_int = self.extract_convective_radiative_latent_electric_load()
 
@@ -883,7 +894,6 @@ Thermal zone {self.name} 2C params:
 
         self.Q_il_str_iw = Q_il_str_A_iw + Q_il_str_I_iw
         self.Q_il_str_aw = Q_il_str_A_aw + Q_il_str_I_aw
-
 
         # sigma_fhk: fraction of radiant heating/cooling surfaces on total heating/cooling load
         # sigma_fhk_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
