@@ -24,6 +24,7 @@ from eureca_building.ventilation import NaturalVentilation, Infiltration
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_building.domestic_hot_water import DomesticHotWater
 from eureca_building.weather import WeatherFile
+from  eureca_building.shading_horizon import calculate_shading_coefficient
 from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.setpoints import Setpoint
 from eureca_building.exceptions import (
@@ -717,7 +718,7 @@ Thermal zone {self.name} 2C params:
             phi_sol_gl = 0
 
             if surface.surface_type in ['ExtWall', 'Roof']:
-                F_sh_urban_shading = surface.shading_coefficient if hasattr(surface, "shading_coefficient") else 1.
+                F_sh_urban_shading = calculate_shading_coefficient(weather.hourly_data,surface) if len(surface._shading_horizon)>0 else 1
                 if hasattr(surface, 'window'):
                     h_r = surface.get_surface_external_radiative_coefficient()
 
@@ -826,7 +827,7 @@ Thermal zone {self.name} 2C params:
                 alpha_str_a = surface.construction.rad_heat_trans_coef
                 alpha_a = surface.construction._conv_heat_trans_coef_ext + surface.construction.rad_heat_trans_coef
                 phi = surface._sky_view_factor
-                F_sh_urban_shading = surface.shading_coefficient if hasattr(surface, "shading_coefficient") else 1.
+                F_sh_urban_shading = calculate_shading_coefficient(weather.hourly_data,surface) if len(surface._shading_horizon)>0 else 1
                 irradiance = irradiances[float(surface._azimuth_round)][float(surface._height_round)]
                 AOI = irradiance['AOI']
                 BRV = irradiance['direct']
