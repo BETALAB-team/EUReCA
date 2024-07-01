@@ -11,7 +11,7 @@ import geopandas as gpd
 import numpy as np
 from cjio import cityjson
 from scipy.spatial import cKDTree
-
+from eureca_building.shading_horizon import create_shading_horizon
 from eureca_building.config import CONFIG
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
@@ -651,40 +651,26 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
-
     def geometric_preprocessing(self):
         '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
         Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
         '''
-
-        toll_az = CONFIG.urban_shading_tolerances[0]
-        toll_dist = CONFIG.urban_shading_tolerances[1]
-        toll_theta = CONFIG.urban_shading_tolerances[2]
-
-        # Each surface is compared with all the others
-        # qqq=len(self.__city_surfaces)
-        # qqqq=qqq*(qqq-1)/2
-        # iiii=0
-        # jjjj=0
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
-        max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
+        max_number_of_neighbor_couple = len(self.__city_surfaces) if len(self.__city_surfaces) < 50 else 10
+        # max_number_of_neighbor_shading = len(self.__city_surfaces) if len(self.__city_surfaces) < 50 else 50
         for x in range(len(self.__city_surfaces)):
-            # jjjj=jjjj+1
-            # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
-           
+            if x%100==0: print(str(x)+":"+str(len(self.__city_surfaces)))
+
             # Function to filter using scipy the nearest points (centroids)
-            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
-            
-            # iiiii=0
+            _, filtered_indices_couple = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighbor_couple)
+            # _, filtered_indices_shade = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighbor_shading)
+
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
-            for y in filtered_indices:
-                # iiii=iiii+1
-                # iiiii=iiiii+1
-                # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
+            for y in filtered_indices_couple:
 
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
@@ -709,196 +695,257 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
                     self.__city_surfaces[y].shading_coupled_surfaces = []
+          
+            if self.shading_calculation:
+                create_shading_horizon(self.__city_surfaces,self.__city_surfaces[x],filtered_indices_couple)
 
-                if self.shading_calculation:
-                    if dist == 0.0:
-                        theta=0
-                    else:
+    # def geometric_preprocessing(self):
+    #     '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
+    #     Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
+    #     '''
 
-                        # Calculation of the vector direction between the centroids of the two surfaces under examination
-                        theta_xy = np.degrees(np.arccos((self.__city_surfaces[y]._centroid[0]-self.__city_surfaces[x]._centroid[0])/dist))
-                        theta = -(theta_xy + 90)
-                        if self.__city_surfaces[y]._centroid[1] < self.__city_surfaces[x]._centroid[1]:
-                            theta = theta + 2*theta_xy
-                        if theta < -180:
-                            theta = theta + 360
-                        if theta > 180:
-                            theta = theta - 360
+    #     toll_az = CONFIG.urban_shading_tolerances[0]
+    #     toll_dist = CONFIG.urban_shading_tolerances[1]
+    #     toll_theta = CONFIG.urban_shading_tolerances[2]
 
-                    # Conditions:
-                    #    1. the distance between surfaces must be less than toll_dist
-                    #    2. the theta angle between surfaces must be within the range
-                    #    3. the azimuth angle of the second surface must be within the range
+    #     # Each surface is compared with all the others
+    #     # qqq=len(self.__city_surfaces)
+    #     # qqqq=qqq*(qqq-1)/2
+    #     # iiii=0
+    #     # jjjj=0
+    #     list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
+    #     plg_kdtree=cKDTree(list_of_centroids)
+    #     max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
+    #     for x in range(len(self.__city_surfaces)):
+    #         # jjjj=jjjj+1
+    #         # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
+           
+    #         # Function to filter using scipy the nearest points (centroids)
+    #         _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
+            
+    #         # iiiii=0
+    #         try:
+    #             self.__city_surfaces[x].shading_coupled_surfaces
+    #         except AttributeError:
+    #             self.__city_surfaces[x].shading_coupled_surfaces = []
+    #         for y in filtered_indices:
+    #             # iiii=iiii+1
+    #             # iiiii=iiiii+1
+    #             # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
-                    if dist < toll_dist:
-                        if self.__city_surfaces[x]._azimuth < 0:
-                            azimuth_opp = self.__city_surfaces[x]._azimuth + 180
-                            azimuth_opp_max = azimuth_opp + toll_az
-                            azimuth_opp_min = azimuth_opp - toll_az
-                            theta_max = self.__city_surfaces[x]._azimuth + toll_theta
-                            theta_min = self.__city_surfaces[x]._azimuth - toll_theta
-                            if theta_min < -180:
-                                theta_min = theta_min + 360
-                                if theta_min < theta < 180 or -180 < theta < theta_max:
-                                    if azimuth_opp_max > 180:
-                                        azimuth_opp_max = azimuth_opp_max - 360
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                                    else:
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                            else:
-                                if theta_min < theta < theta_max:
-                                    if azimuth_opp_max > 180:
-                                        azimuth_opp_max = azimuth_opp_max - 360
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                                    else:
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                        else:
-                            azimuth_opp = self.__city_surfaces[x]._azimuth - 180
-                            azimuth_opp_max = azimuth_opp + toll_az
-                            azimuth_opp_min = azimuth_opp - toll_az
-                            theta_max = self.__city_surfaces[x]._azimuth + toll_theta
-                            theta_min = self.__city_surfaces[x]._azimuth - toll_theta
-                            if theta_max > 180:
-                                theta_max = theta_max - 360
-                                if theta_min < theta < 180 or -180 <= theta < theta_max:
-                                    if azimuth_opp_min < -180:
-                                        azimuth_opp_min = azimuth_opp_min + 360
-                                        if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                                    else:
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                            else:
-                                if theta_min < theta < theta_max:
-                                    if azimuth_opp_min < -180:
-                                        azimuth_opp_min = azimuth_opp_min + 360
-                                        if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
-                                    else:
-                                        if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
-                                            self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
-                                            self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #             try:
+    #                 self.__city_surfaces[y].shading_coupled_surfaces
+    #             except AttributeError:
+    #                 self.__city_surfaces[y].shading_coupled_surfaces = []
+
+    #             # Calculation of the distance between the centroids of the two surfaces under examination
+    #             dist = math.sqrt(
+    #                 (self.__city_surfaces[x]._centroid[0]-self.__city_surfaces[y]._centroid[0])**2 +
+    #                 (self.__city_surfaces[x]._centroid[1]-self.__city_surfaces[y]._centroid[1])**2
+    #             )
+
+    #             # Reducing the area of the coincidence surfaces
+    #             if dist < 15.:
+    #                 if self.__city_surfaces[x].check_surface_coincidence(self.__city_surfaces[y]):
+    #                     intersectionArea = self.__city_surfaces[x].calculate_intersection_area(self.__city_surfaces[y])
+    #                     self.__city_surfaces[y].reduce_area(intersectionArea)
+    #                     self.__city_surfaces[x].reduce_area(intersectionArea)
+
+    #             # print(f" {int(iiii/jjjj)*100} percent: geometry")
+    #             try:
+    #                 self.__city_surfaces[y].shading_coupled_surfaces
+    #             except AttributeError:
+    #                 self.__city_surfaces[y].shading_coupled_surfaces = []
+
+    #             if self.shading_calculation:
+    #                 if dist == 0.0:
+    #                     theta=0
+    #                 else:
+
+    #                     # Calculation of the vector direction between the centroids of the two surfaces under examination
+    #                     theta_xy = np.degrees(np.arccos((self.__city_surfaces[y]._centroid[0]-self.__city_surfaces[x]._centroid[0])/dist))
+    #                     theta = -(theta_xy + 90)
+    #                     if self.__city_surfaces[y]._centroid[1] < self.__city_surfaces[x]._centroid[1]:
+    #                         theta = theta + 2*theta_xy
+    #                     if theta < -180:
+    #                         theta = theta + 360
+    #                     if theta > 180:
+    #                         theta = theta - 360
+
+    #                 # Conditions:
+    #                 #    1. the distance between surfaces must be less than toll_dist
+    #                 #    2. the theta angle between surfaces must be within the range
+    #                 #    3. the azimuth angle of the second surface must be within the range
+
+    #                 if dist < toll_dist:
+    #                     if self.__city_surfaces[x]._azimuth < 0:
+    #                         azimuth_opp = self.__city_surfaces[x]._azimuth + 180
+    #                         azimuth_opp_max = azimuth_opp + toll_az
+    #                         azimuth_opp_min = azimuth_opp - toll_az
+    #                         theta_max = self.__city_surfaces[x]._azimuth + toll_theta
+    #                         theta_min = self.__city_surfaces[x]._azimuth - toll_theta
+    #                         if theta_min < -180:
+    #                             theta_min = theta_min + 360
+    #                             if theta_min < theta < 180 or -180 < theta < theta_max:
+    #                                 if azimuth_opp_max > 180:
+    #                                     azimuth_opp_max = azimuth_opp_max - 360
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                                 else:
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                         else:
+    #                             if theta_min < theta < theta_max:
+    #                                 if azimuth_opp_max > 180:
+    #                                     azimuth_opp_max = azimuth_opp_max - 360
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180 or -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                                 else:
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                     else:
+    #                         azimuth_opp = self.__city_surfaces[x]._azimuth - 180
+    #                         azimuth_opp_max = azimuth_opp + toll_az
+    #                         azimuth_opp_min = azimuth_opp - toll_az
+    #                         theta_max = self.__city_surfaces[x]._azimuth + toll_theta
+    #                         theta_min = self.__city_surfaces[x]._azimuth - toll_theta
+    #                         if theta_max > 180:
+    #                             theta_max = theta_max - 360
+    #                             if theta_min < theta < 180 or -180 <= theta < theta_max:
+    #                                 if azimuth_opp_min < -180:
+    #                                     azimuth_opp_min = azimuth_opp_min + 360
+    #                                     if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                                 else:
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                         else:
+    #                             if theta_min < theta < theta_max:
+    #                                 if azimuth_opp_min < -180:
+    #                                     azimuth_opp_min = azimuth_opp_min + 360
+    #                                     if -180 <= self.__city_surfaces[y]._azimuth < azimuth_opp_max or azimuth_opp_min < self.__city_surfaces[y]._azimuth <= 180:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
+    #                                 else:
+    #                                     if azimuth_opp_min < self.__city_surfaces[y]._azimuth < azimuth_opp_max:
+    #                                         self.__city_surfaces[x].shading_coupled_surfaces.append([dist,y])
+    #                                         self.__city_surfaces[y].shading_coupled_surfaces.append([dist,x])
         
-        if self.shading_calculation:
-            # SECTION 2: Calculation of the shading effect
-            for x in range(len(self.__city_surfaces)):
-                self.__city_surfaces[x].shading_coefficient = 1.
-                # iiiii=0
-                if self.__city_surfaces[x].shading_coupled_surfaces != []:
-                    self.__city_surfaces[x].shading_calculation = 'On'
-                    shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
-                    for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
-                        # iiii=iiii+1
-                        # iiiii=iiiii+1
-                        # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
+    #     if self.shading_calculation:
+    #         # SECTION 2: Calculation of the shading effect
+    #         for x in range(len(self.__city_surfaces)):
+    #             self.__city_surfaces[x].shading_coefficient = 1.
+    #             # iiiii=0
+    #             if self.__city_surfaces[x].shading_coupled_surfaces != []:
+    #                 self.__city_surfaces[x].shading_calculation = 'On'
+    #                 shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
+    #                 for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
+    #                     # iiii=iiii+1
+    #                     # iiiii=iiiii+1
+    #                     # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
 
-                        distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
-                        surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]
+    #                     distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
+    #                     surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]
 
-                        # Calculation of the solar height limit
-                        if distance == 0:
-                            # Case of distance = 0
-                            sol_h_lim = 90.
-                        else:
-                            sol_h_lim = np.degrees(
-                                np.arctan(
-                                    (self.__city_surfaces[surface_opposite_index].max_height() -
-                                     self.__city_surfaces[x]._centroid[2])/distance
-                                )
-                            )
-                        self.__city_surfaces[x].shading_coupled_surfaces[y].append(sol_h_lim)
+    #                     # Calculation of the solar height limit
+    #                     if distance == 0:
+    #                         # Case of distance = 0
+    #                         sol_h_lim = 90.
+    #                     else:
+    #                         sol_h_lim = np.degrees(
+    #                             np.arctan(
+    #                                 (self.__city_surfaces[surface_opposite_index].max_height() -
+    #                                  self.__city_surfaces[x]._centroid[2])/distance
+    #                             )
+    #                         )
+    #                     self.__city_surfaces[x].shading_coupled_surfaces[y].append(sol_h_lim)
                         
-                        # Calculation of the solar azimuth limits
-                        sol_az_lim1_xy = np.degrees(
-                            np.arccos(
-                                (self.__city_surfaces[surface_opposite_index]._vertices[0][0] -
-                                 self.__city_surfaces[x]._centroid[0])/
-                                math.sqrt(
-                                    (self.__city_surfaces[x]._centroid[0] -
-                                     self.__city_surfaces[surface_opposite_index]._vertices[0][0])**2
-                                    + (self.__city_surfaces[x]._centroid[1] -
-                                       self.__city_surfaces[surface_opposite_index]._vertices[0][1])**2)
-                            )
-                        )
-                        sol_az_lim2_xy = np.degrees(
-                            np.arccos(
-                                (self.__city_surfaces[surface_opposite_index]._vertices[2][0]
-                                 - self.__city_surfaces[x]._centroid[0])
-                                /math.sqrt(
-                                    (self.__city_surfaces[x]._centroid[0] -
-                                     self.__city_surfaces[surface_opposite_index]._vertices[2][0])**2 +
-                                    (self.__city_surfaces[x]._centroid[1]
-                                     - self.__city_surfaces[surface_opposite_index]._vertices[2][1])**2
-                                )
-                            )
-                        )
-                        sol_az_lim1 = -(sol_az_lim1_xy + 90)
-                        sol_az_lim2 = -(sol_az_lim2_xy + 90)
-                        if self.__city_surfaces[surface_opposite_index]._vertices[0][1] < self.__city_surfaces[x]._centroid[1]:
-                            sol_az_lim1 = sol_az_lim1 + 2*sol_az_lim1_xy
-                        if sol_az_lim1 < -180:
-                            sol_az_lim1 = sol_az_lim1 + 360
-                        if sol_az_lim1 > 180:
-                            sol_az_lim1 = sol_az_lim1 - 360
-                        if self.__city_surfaces[surface_opposite_index]._vertices[2][1] < self.__city_surfaces[x]._centroid[1]:
-                            sol_az_lim2 = sol_az_lim2 + 2*sol_az_lim2_xy
-                        if sol_az_lim2 < -180:
-                            sol_az_lim2 = sol_az_lim2 + 360
-                        if sol_az_lim2 > 180:
-                            sol_az_lim2 = sol_az_lim2 - 360
+    #                     # Calculation of the solar azimuth limits
+    #                     sol_az_lim1_xy = np.degrees(
+    #                         np.arccos(
+    #                             (self.__city_surfaces[surface_opposite_index]._vertices[0][0] -
+    #                              self.__city_surfaces[x]._centroid[0])/
+    #                             math.sqrt(
+    #                                 (self.__city_surfaces[x]._centroid[0] -
+    #                                  self.__city_surfaces[surface_opposite_index]._vertices[0][0])**2
+    #                                 + (self.__city_surfaces[x]._centroid[1] -
+    #                                    self.__city_surfaces[surface_opposite_index]._vertices[0][1])**2)
+    #                         )
+    #                     )
+    #                     sol_az_lim2_xy = np.degrees(
+    #                         np.arccos(
+    #                             (self.__city_surfaces[surface_opposite_index]._vertices[2][0]
+    #                              - self.__city_surfaces[x]._centroid[0])
+    #                             /math.sqrt(
+    #                                 (self.__city_surfaces[x]._centroid[0] -
+    #                                  self.__city_surfaces[surface_opposite_index]._vertices[2][0])**2 +
+    #                                 (self.__city_surfaces[x]._centroid[1]
+    #                                  - self.__city_surfaces[surface_opposite_index]._vertices[2][1])**2
+    #                             )
+    #                         )
+    #                     )
+    #                     sol_az_lim1 = -(sol_az_lim1_xy + 90)
+    #                     sol_az_lim2 = -(sol_az_lim2_xy + 90)
+    #                     if self.__city_surfaces[surface_opposite_index]._vertices[0][1] < self.__city_surfaces[x]._centroid[1]:
+    #                         sol_az_lim1 = sol_az_lim1 + 2*sol_az_lim1_xy
+    #                     if sol_az_lim1 < -180:
+    #                         sol_az_lim1 = sol_az_lim1 + 360
+    #                     if sol_az_lim1 > 180:
+    #                         sol_az_lim1 = sol_az_lim1 - 360
+    #                     if self.__city_surfaces[surface_opposite_index]._vertices[2][1] < self.__city_surfaces[x]._centroid[1]:
+    #                         sol_az_lim2 = sol_az_lim2 + 2*sol_az_lim2_xy
+    #                     if sol_az_lim2 < -180:
+    #                         sol_az_lim2 = sol_az_lim2 + 360
+    #                     if sol_az_lim2 > 180:
+    #                         sol_az_lim2 = sol_az_lim2 - 360
                         
-                        # Necessary conditions:
-                        #    1. solar height less than the solar height limit
-                        #    2. solar azimuth between the solar azimuth limits
+    #                     # Necessary conditions:
+    #                     #    1. solar height less than the solar height limit
+    #                     #    2. solar azimuth between the solar azimuth limits
                         
-                        shading_sol_h = np.less(
-                            self.weather_file.hourly_data["solar_position_elevation"],
-                            sol_h_lim
-                        )
-                        sol_az_lim_inf = min(sol_az_lim1,sol_az_lim2)
-                        sol_az_lim_sup = max(sol_az_lim1,sol_az_lim2)
-                        if abs(sol_az_lim_inf - sol_az_lim_sup) < 180:
-                            self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
-                            shading_sol_az = [
-                                np.less(
-                                self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup
-                            ),np.greater(
-                                self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf
-                            )
-                            ]
-                            shading_tot = shading_sol_h & shading_sol_az[0] & shading_sol_az[1]
-                        else:
-                            sol_az_lim_inf = max(sol_az_lim1,sol_az_lim2)
-                            sol_az_lim_sup = min(sol_az_lim1,sol_az_lim2)
-                            self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
-                            shading_sol_az1 = [np.less_equal(self.weather_file.hourly_data["solar_position_azimuth"],180),
-                                               np.greater(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf)]
-                            shading_sol_az2 = [np.less(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup),
-                                               np.greater_equal(self.weather_file.hourly_data["solar_position_azimuth"],-180)]
-                            shading_az1 = shading_sol_az1[0] & shading_sol_az1[1]
-                            shading_az2 = shading_sol_az2[0] & shading_sol_az2[1]
-                            shading_az = shading_az1 | shading_az2
-                            shading_tot = shading_sol_h & shading_az
-                        shading[y] = shading_tot
-                    for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
-                        if y == 0:
-                            shading_eff = shading[y]
-                        else:
-                            shading_eff = shading_eff | shading[y]
-                    shading_eff_01 = (1 - np.where(shading_eff==True,1,shading_eff))
-                    shading_eff_01 = np.where(shading_eff_01==0, 0. ,shading_eff_01)
-                    self.__city_surfaces[x].shading_coefficient = shading_eff_01
+    #                     shading_sol_h = np.less(
+    #                         self.weather_file.hourly_data["solar_position_elevation"],
+    #                         sol_h_lim
+    #                     )
+    #                     sol_az_lim_inf = min(sol_az_lim1,sol_az_lim2)
+    #                     sol_az_lim_sup = max(sol_az_lim1,sol_az_lim2)
+    #                     if abs(sol_az_lim_inf - sol_az_lim_sup) < 180:
+    #                         self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
+    #                         shading_sol_az = [
+    #                             np.less(
+    #                             self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup
+    #                         ),np.greater(
+    #                             self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf
+    #                         )
+    #                         ]
+    #                         shading_tot = shading_sol_h & shading_sol_az[0] & shading_sol_az[1]
+    #                     else:
+    #                         sol_az_lim_inf = max(sol_az_lim1,sol_az_lim2)
+    #                         sol_az_lim_sup = min(sol_az_lim1,sol_az_lim2)
+    #                         self.__city_surfaces[x].shading_coupled_surfaces[y].append([sol_az_lim_inf,sol_az_lim_sup])
+    #                         shading_sol_az1 = [np.less_equal(self.weather_file.hourly_data["solar_position_azimuth"],180),
+    #                                            np.greater(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_inf)]
+    #                         shading_sol_az2 = [np.less(self.weather_file.hourly_data["solar_position_azimuth"],sol_az_lim_sup),
+    #                                            np.greater_equal(self.weather_file.hourly_data["solar_position_azimuth"],-180)]
+    #                         shading_az1 = shading_sol_az1[0] & shading_sol_az1[1]
+    #                         shading_az2 = shading_sol_az2[0] & shading_sol_az2[1]
+    #                         shading_az = shading_az1 | shading_az2
+    #                         shading_tot = shading_sol_h & shading_az
+    #                     shading[y] = shading_tot
+    #                 for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
+    #                     if y == 0:
+    #                         shading_eff = shading[y]
+    #                     else:
+    #                         shading_eff = shading_eff | shading[y]
+    #                 shading_eff_01 = (1 - np.where(shading_eff==True,1,shading_eff))
+    #                 shading_eff_01 = np.where(shading_eff_01==0, 0. ,shading_eff_01)
+    #                 self.__city_surfaces[x].shading_coefficient = shading_eff_01
 
     # def create_urban_canyon(self,sim_time,calc,data):
     #
