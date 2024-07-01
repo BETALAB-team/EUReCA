@@ -239,7 +239,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         """
         for tz in self._thermal_zones_list:
             tz.reset_init_values()
-
         results = {
             'TZ Ta [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ To [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
@@ -265,16 +264,17 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
-
         electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / CONFIG.ts_per_hour
         results['Appliances electric consumption [Wh]'][:, 0] = electric_consumption[CONFIG.start_time_step:CONFIG.final_time_step]
 
         results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
         results['TZ DHW demand [W]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
-
+        
         for t in range(t_start - preprocessing_ts, t_stop):
-            self.solve_timestep(t, weather_object)
+            
 
+            self.solve_timestep(t, weather_object)
+            
                  
             results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
             results['TZ To [°C]'][t - t_start,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
@@ -296,11 +296,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
-
-
-    
+            
         # Saving results
-
         tz_labels = [res for res in results.keys() if res.startswith("TZ")]
         bd_labels = [res for res in results.keys() if not res.startswith("TZ")]
         tz_names = [tz.name for tz in self._thermal_zones_list]
@@ -326,13 +323,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
                 building_surface_list.append(s)
-
         name=tz.name
         Photovoltaic=PV_system(name=f"TZ {name} PV system",
                                weatherobject=weather_object,
                                surface_list=building_surface_list)
         #Associate PV to the building
         self.PV_systems.append(Photovoltaic)
+        
         pv_production=Photovoltaic.pv_production()
         pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
         common_index = pv_production.index.union( total.index)
@@ -349,8 +346,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Taken from the Gird [Wh]"]=fromgrid
         total["directly from the PV [Wh]"]=directsolar
         total["PV System self consumption"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
-
-        
+        print(1)
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
@@ -362,6 +358,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
             else:
                 raise KeyError(f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
+        print(1)
         return total
 
     def get_geojson_feature_parser(self):

@@ -820,7 +820,6 @@ Thermal zone {self.name} 2C params:
         i = -1
 
         # Lists all surfaces to calculate the irradiance on each one and creates the solar gains
-
         for surface in self._surface_list:
             i += 1
             if surface.surface_type in ['ExtWall', 'Roof']:
@@ -868,24 +867,17 @@ Thermal zone {self.name} 2C params:
 
             if surface.surface_type == 'GroundFloor':
                 theta_eq[:, i] = T_ext * surface.construction._u_value * surface._opaque_area / self.UA_tot
-
         # self.Q_il_str_A = self.Q_il_str_A.to_numpy()
         # self.carichi_sol = (Q_il_str_A_iw+ Q_il_str_A_aw).to_numpy()
-
         self.theta_eq_tot = theta_eq.sum(axis=1) + theta_eq_w.sum(axis=1)
-
         # Calculates internal heat gains
         phi_int = self.extract_convective_radiative_latent_electric_load()
-
         Q_il_str_I = phi_int['radiative [W]']
         self.Q_il_kon_I = phi_int['convective [W]'] + Q_il_kon_A
-
         Q_il_str_I_iw = Q_il_str_I * (self.Araum_tot - self.Aaw_tot) / self.Araum_tot
         Q_il_str_I_aw = Q_il_str_I * self.Aaw_tot / self.Araum_tot
-
         self.Q_il_str_iw = Q_il_str_A_iw + Q_il_str_I_iw
         self.Q_il_str_aw = Q_il_str_A_aw + Q_il_str_I_aw
-
 
         # sigma_fhk: fraction of radiant heating/cooling surfaces on total heating/cooling load
         # sigma_fhk_aw: fraction of radiant heating/cooling inside external walls on the total radiant heating/cooling load
