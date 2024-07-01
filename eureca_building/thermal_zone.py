@@ -1380,7 +1380,7 @@ Thermal zone {self.name} 2C params:
         # nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         # nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         # nat_vent_vol_flow = nv_outcomes[2]  #m3/s
-        nat_vent_vol_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
+        nat_vent_vol_flow = 0 if self.natural_ventilation is None else self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
         nat_vent_mass_flow = nat_vent_vol_flow * air_properties['density']  # [kg/s]
         self.nat_vent_air_flow_rate[t] = nat_vent_mass_flow  # [kg/s]
         # self.nat_vent_info = {
@@ -1398,7 +1398,7 @@ Thermal zone {self.name} 2C params:
         self.nat_vent_info['airflow_rate']['L/s'][t] = nat_vent_vol_flow/1000
         self.nat_vent_info['airflow_rate']['m3/h'][t] = nat_vent_vol_flow*3600
         self.nat_vent_info['airflow_rate']['vol/h'][t] = nat_vent_vol_flow/self._volume*3600
-        self.nat_vent_info['windows_opening']['open_fraction'][t] = self.natural_ventilation.windows_opening[t]
+        # self.nat_vent_info['windows_opening']['open_fraction'][t] = self.natural_ventilation.windows_opening[t]
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 
