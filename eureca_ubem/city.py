@@ -276,7 +276,10 @@ class City():
         memory_stats = tracemalloc.get_traced_memory()
         current_memory, peak_memory = memory_stats
         print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
+        import time
+        start=time.time()
         self.geometric_preprocessing()
+        print(time.time()-start)
         memory_stats = tracemalloc.get_traced_memory()
         current_memory, peak_memory = memory_stats
         print(f"Current memory usage: {peak_memory / (1024 ** 2):.2f} MiB")
@@ -484,21 +487,15 @@ class City():
     def loads_calculation(self, region = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
-        
         if isinstance(region, str):
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
         
-        # iiii=0
-        # jjjj=3608
         for bd_id, building_info in self.buildings_info.items():
-            # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
             use = self.end_uses_dict[building_info["End Use"]]
             tz = building_obj._thermal_zones_list[0]
-            
-            # TODO: copy.deepcopy
             if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
                 try:
                     italian_el_loads
@@ -574,9 +571,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         output_type : str, default 'parquet'
             It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
         """
-       
+        
         import time
         start = time.time()
+        
         # parallel simulation commented
         # bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]
         # def bd_parallel_solve(x):
@@ -610,15 +608,15 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
-
+            
             info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
+
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
-
             demand = results[["TZ sensible load [W]",
                               "TZ latent load [W]",
                               "TZ AHU pre heater load [W]",
@@ -628,7 +626,6 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
             monthly = results.resample("M").sum()
-
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
@@ -696,26 +693,30 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
         Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
         '''
+        import time
+        start=time.time()
         
         toll_az = CONFIG.urban_shading_tolerances[0]
         toll_dist = CONFIG.urban_shading_tolerances[1]
         toll_theta = CONFIG.urban_shading_tolerances[2]
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
-        max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 10 else 10
+        max_number_of_neighbor_couple = len(self.__city_surfaces) if len(self.__city_surfaces) < 50 else 10
+        # max_number_of_neighbor_shading = len(self.__city_surfaces) if len(self.__city_surfaces) < 50 else 50
         for x in range(len(self.__city_surfaces)):
+            if x%100==0: print(str(x)+":"+str(len(self.__city_surfaces)))
             # jjjj=jjjj+1
             # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
            
             # Function to filter using scipy the nearest points (centroids)
-            _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
-            
+            _, filtered_indices_couple = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighbor_couple)
+            # _, filtered_indices_shade = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighbor_shading)
             # iiiii=0
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
-            for y in filtered_indices:
+            for y in filtered_indices_couple:
                 # iiii=iiii+1
                 # iiiii=iiiii+1
                 # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
@@ -743,13 +744,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
                     self.__city_surfaces[y].shading_coupled_surfaces = []
+          
+            if self.shading_calculation:
+                create_shading_horizon(self.__city_surfaces,self.__city_surfaces[x],filtered_indices_couple)
 
-        if self.shading_calculation:
-            create_shading_horizon(self.__city_surfaces)
-        import time
-        print("ended")
-        print(time.time())
-        
+        print(time.time()-start)
      #             if dist == 0.0:
         #                 theta=0
         #             else:
