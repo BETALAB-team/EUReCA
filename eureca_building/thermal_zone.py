@@ -828,7 +828,7 @@ Thermal zone {self.name} 2C params:
                 alpha_str_a = surface.construction.rad_heat_trans_coef
                 alpha_a = surface.construction._conv_heat_trans_coef_ext + surface.construction.rad_heat_trans_coef
                 phi = surface._sky_view_factor
-                F_sh_urban_shading = calculate_shading_coefficient(weather.hourly_data,surface) if len(surface._shading_horizon)>0 else 1
+                F_sh_urban_shading = calculate_shading_coefficient(weather.hourly_data,surface) if len(surface._shading_horizon)>0 else 1               
                 irradiance = irradiances[float(surface._azimuth_round)][float(surface._height_round)]
                 AOI = irradiance['AOI']
                 BRV = irradiance['direct']

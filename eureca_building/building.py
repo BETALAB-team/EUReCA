@@ -269,7 +269,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
         results['TZ DHW demand [W]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
-        
+        print("is it this one?")
         for t in range(t_start - preprocessing_ts, t_stop):
             
 
@@ -296,7 +296,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
-            
+        print("is it this one?!!!")    
         # Saving results
         tz_labels = [res for res in results.keys() if res.startswith("TZ")]
         bd_labels = [res for res in results.keys() if not res.startswith("TZ")]
