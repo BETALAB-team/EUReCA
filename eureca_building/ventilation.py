@@ -222,6 +222,7 @@ class Ventilation:
         air = self.get_air_flow_rate(area=area, volume=volume)
         return air, vapuor
 
+
 class Infiltration(Ventilation):
     """This is just an inherited version of the Ventilation class, without any change
     """
@@ -240,6 +241,7 @@ class NaturalVentilation(Ventilation):
             tag: str = None,
             surfaces_with_opening: list = None,
             weather: WeatherFile = None,
+            vol_flow_limit: float = None
     ):
         """Init method. Call the Ventilation super() init and then store few more input
 
@@ -259,11 +261,24 @@ class NaturalVentilation(Ventilation):
             list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes
         weather : eureca_building.weather.WeatherFile
             Weather object
+        vol_flow_limit : float
+            Limit to natural vent in m3/s
         """
         super().__init__(name,unit,nominal_value,schedule,tag)
         self._get_windows_opening()
         if (weather != None) and (surfaces_with_opening != None):
             self.define_pressure_coef(weather, surfaces_with_opening)
+        
+        if vol_flow_limit is not None:
+            try:
+                vol_flow_limit = float(vol_flow_limit)
+            except TypeError:
+                raise TypeError(f"Ventilation object {self.name}, maximum air flow rate not number or numeric string: {vol_flow_limit}")
+            except ValueError:
+                raise ValueError(f"Ventilation object {self.name}, maximum air flow rate not float: {vol_flow_limit}")
+            self.vol_flow_limit = vol_flow_limit
+        else:
+            self.vol_flow_limit = 1e15
                 
     @property
     def schedule(self):
@@ -420,23 +435,35 @@ class NaturalVentilation(Ventilation):
             zone temperature [°C]
         weather : eureca_building.weather.WeatherFile
             WeatherFile object
+        vol_flow_limit : float
+            Upper limit for the NV flow rate [m3/s]
+            
+        Returns
+        ----------
+        float
+            NV air flow rate [m3/s]
+            
         """
         # To be completed and commented
         
         opening_percentage = self.windows_opening[ts]
-        
+        # Avoid singularity in neutral plane calc
+        if abs(weather.hourly_data["out_air_db_temperature"][ts] - t_zone) <= 0.2:
+            __t_zone__ = weather.hourly_data["out_air_db_temperature"][ts] - 0.2
+        else:
+            __t_zone__ = t_zone
         a_coeff = [s._a_coeff * opening_percentage for s in self.surfaces_with_opening]
-        b_coeff = (2*(t_zone - weather.hourly_data["out_air_db_temperature"][ts])*gravitational_acceleration)/(t_zone +273.15)   # Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate
+        b_coeff = (2*(__t_zone__ - weather.hourly_data["out_air_db_temperature"][ts])*gravitational_acceleration)/(__t_zone__ +273.15)   # Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate
         c_coeff = [s._c_coeff[ts] for s in self.surfaces_with_opening]
         
         z_n = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
         vol_flow = np.zeros([len(self.surfaces_with_opening[0]._h_bottom_windows), len(self.surfaces_with_opening)])
         vol_flow_sopra = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
+        vol_inflow = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
+        vol_outflow = np.zeros(len(self.surfaces_with_opening[0]._h_bottom_windows))
         for floor in range(len(self.surfaces_with_opening[0]._h_bottom_windows)):
             h_top = [s._h_top_windows[floor] for s in self.surfaces_with_opening]
             h_bottom = [s._h_bottom_windows[floor] for s in self.surfaces_with_opening]
-            
-            #if abs(weather.hourly_data["out_air_db_temperature"][ts] - t_zone) >= 0.1:
             res = fsolve(calc_neutral_plane_nat_vent, 5., args = (a_coeff, b_coeff, c_coeff, h_top, h_bottom))
             z_n[floor] = res[0]
             # else:
@@ -444,14 +471,33 @@ class NaturalVentilation(Ventilation):
             # z_n[floor] = np.nan
             
 
+            # i = 0
+            # for s in self.surfaces_with_opening:
+            #     #if s._h_bottom_windows[floor] < z_n[floor]:
+
+            #     vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+            #     #if s._h_top_windows[floor] < z_n[floor]:
+            #     vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+            #     i+=1
+            
             i = 0
             for s in self.surfaces_with_opening:
-                #if s._h_bottom_windows[floor] < z_n[floor]:
-
                 vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                #if s._h_top_windows[floor] < z_n[floor]:
                 vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                i+=1
+                if s._h_bottom_windows[floor] < z_n[floor] < s._h_top_windows[floor]:
+                    vol_inflow[floor] += np.abs((2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff))
+                    vol_outflow[floor] += np.abs(2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
+                elif z_n[floor] < s._h_bottom_windows[floor]:
+                    if vol_flow[floor][i] > 0:
+                        vol_inflow[floor] += vol_flow[floor][i]
+                    else:
+                        vol_outflow[floor] += vol_flow[floor][i]
+                else:
+                    if vol_flow[floor][i] > 0:
+                        vol_inflow[floor] += vol_flow[floor][i]
+                    else:
+                        vol_outflow[floor] += vol_flow[floor][i]
+                i += 1
 
             # vol_flow_sopra[floor] = 0
             # for s in self.surfaces_with_opening:
@@ -459,11 +505,15 @@ class NaturalVentilation(Ventilation):
             #         vol_flow_sopra[floor] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
             #     if s._h_top_windows[floor] > z_n[floor]:
             #         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)
-                
-            
-        return z_n, vol_flow, vol_flow_sopra
-
-
+        # vol_flow_tot = vol_flow.sum()
+        vol_inflow_tot = vol_inflow.sum()
+        if vol_inflow_tot > self.vol_flow_limit:
+            vol_inflow_tot = self.vol_flow_limit
+        # vol_outflow_tot = vol_outflow.sum()
+        # mass_flow_tot = vol_flow_tot * air_properties["density"] # kg/s
+        # vapour_flow_tot = mass_flow_tot * weather.hourly_data["out_air_specific_humidity"][ts] # kg_vap/s
+        # return mass_flow_tot, z_n, vol_inflow_tot, vol_outflow_tot, vol_flow #, vapour_flow_tot
+        return vol_inflow_tot
 
 class MechanicalVentilation(Ventilation):
     """The same as Natural/Ventilation object but different check on units

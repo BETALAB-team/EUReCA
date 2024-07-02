@@ -36,12 +36,21 @@ from eureca_building._geometry_auxiliary_functions import (
 
 # %% Surface class
 def delete_duplicates(lst):
-    seen = set()
-    for item in lst:
-        # Convert the inner list to a tuple before checking for uniqueness
-        item_tuple = tuple(item)
-        seen.add(item_tuple)
-    return tuple(seen)
+
+    # initialize a null list
+    unique_list = []
+
+    # traverse for all elements
+    for x in lst:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+    # seen = set()
+    # for item in lst:
+    #     # Convert the inner list to a tuple before checking for uniqueness
+    #     item_tuple = tuple(item)
+    #     seen.add(item_tuple)
+    return unique_list
 
 
 
@@ -62,6 +71,49 @@ class Surface:
     
     _discharge_coefficient_nat_vent = 0.6
 
+    @classmethod
+    def from_area_azimuth_height(
+            cls,
+            name: str,
+            area: float,
+            height: float,
+            azimuth: float,
+            wwr=None,
+            subdivisions_solar_calc=None,
+            surface_type=None,
+            construction=None,
+            window=None,
+            n_window_layers: int = 1
+    ):
+        phi_x = np.deg2rad(height)
+        phi_z = np.deg2rad(-azimuth)
+
+        R_x = np.array([[1, 0, 0], [0, np.cos(phi_x), -np.sin(phi_x)], [0, np.sin(phi_x), np.cos(phi_x)]])
+        R_z = np.array([[np.cos(phi_z), -np.sin(phi_z), 0], [np.sin(phi_z), np.cos(phi_z), 0], [0, 0, 1]])
+
+        resize_factor = 1
+        square_l = np.sqrt(area)
+        v = np.array([
+            [0, 0, 0],
+            [resize_factor * square_l, 0, 0],
+            [resize_factor * square_l, square_l / resize_factor, 0],
+            [0, square_l / resize_factor, 0],
+        ])
+
+        v_ = tuple(map(tuple, np.matmul(R_z, np.dot(R_x, v.T)).T))
+
+        s = cls(
+            name = name,
+            vertices=v_,
+            wwr = wwr,
+            subdivisions_solar_calc=subdivisions_solar_calc,
+            surface_type=surface_type,
+            construction=construction,
+            window=window,
+            n_window_layers = n_window_layers,
+        )
+        return s
+
     def __init__(
             self,
             name: str,
@@ -71,7 +123,9 @@ class Surface:
             surface_type=None,
             construction=None,
             window=None,
-            n_window_layers: int = 1
+            n_window_layers: int = 1,
+            h_window: float = 1.5,
+            h_bottom: float = 1.2
     ):
         """Creates the surface object. Checks all the inputs using properties setter methods
 
@@ -100,6 +154,8 @@ class Surface:
             the construction object with the materials
         window : eureca_building.window.SimpleWindow
             the Window object with the materials
+       
+        TODO: Inserire gli ultimi 3 input
 
         """
 
@@ -146,7 +202,7 @@ class Surface:
             self.window = window
             
         # Window layout for natural ventilation
-        self._define_windows_layout(n_window_layers=n_window_layers)
+        self._define_windows_layout(n_window_layers=n_window_layers, h_window=h_window, h_bottom=h_bottom)
 
     @property
     def _vertices(self) -> tuple:
@@ -154,11 +210,11 @@ class Surface:
 
     @_vertices.setter
     def _vertices(self, value: tuple):
+        value = delete_duplicates(value)
         try:
             value = tuple(value)
         except ValueError:
             raise TypeError(f"Vertices of surface {self.name} are not a tuple: {value}")
-        value = delete_duplicates(value)
         if len(value) < 3:  # Not a plane - no area
             raise SurfaceWrongNumberOfVertices(
                 f"Surface {self.name}. Number of vertices lower than 3: {value}"
@@ -180,10 +236,10 @@ class Surface:
                 raise ValueError(
                     f"Surface {self.name}. One vertex contains non float values: {vtx}"
                 )
-            # Check coplanarity
+        # Check coplanarity
 
-            if not check_complanarity(value):
-                raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
+        if not check_complanarity(value):
+            raise NonPlanarSurface(f"Surface {self.name}. Non planar points")
         self.__vertices = value
 
     @property
@@ -382,7 +438,7 @@ class Surface:
         self._opaque_area = (1 - wwr) * self._area
         self._glazed_area = wwr * self._area
         
-    def _define_windows_layout(self, n_window_layers: int = 1):
+    def _define_windows_layout(self, n_window_layers: int = 1, h_window: float = 1.5, h_bottom: float = 1.2):
         """USED FOR NATURAL VENTILATION
         Defines the windows layout (sill height, width, number, ...)
 
@@ -390,14 +446,17 @@ class Surface:
         ----------
         n_window_layers : int, default 1
             Number of rows to consider
+            
+        TODO: Inserire i parametri mancanti della function
+            
         """
-        _h_window_default = 1.5
+        _h_window_default = h_window
         if not isinstance(n_window_layers, int):
             raise TypeError(f"Surface {self.name}: number of window layers is not an integer: n_window_layers {n_window_layers}")
         area_layer = self._glazed_area/n_window_layers
         self._w_window = area_layer/_h_window_default
         self._h_window = _h_window_default
-        self._h_bottom_windows = np.array([1.2 + n*3.3 for n in range(n_window_layers)])       
+        self._h_bottom_windows = np.array([h_bottom + n*3.3 for n in range(n_window_layers)])       
         self._h_top_windows = self._h_bottom_windows + self._h_window
         self._a_coeff = self._discharge_coefficient_nat_vent*self._w_window   # Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate
 
@@ -600,6 +659,32 @@ class Surface:
             self._area = 0.0000001
         self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
 
+    def apply_ext_surf_coeff(self, ext_wall_correction_coef):
+        '''Reduces the area of the surface by an input correction coeffienct
+
+        Parameters
+        ----------
+        ext_wall_correction_coef : float
+            the factor to multiply [-] to the total area
+        '''
+
+        # Check Input data type
+
+        if not isinstance(ext_wall_correction_coef, float) or ext_wall_correction_coef < 0.:
+            try:
+                ext_wall_correction_coef = float(ext_wall_correction_coef)
+            except ValueError:
+                raise ValueError(
+                    f"ERROR Surface class, surface {self.name}, apply_ext_surf_coeff. The factor is not a positive float: factor {ext_wall_correction_coef}")
+
+        # Area reduction
+
+        if self._area * ext_wall_correction_coef > 0.0000001:
+            self._area = self._area * ext_wall_correction_coef
+        else:
+            self._area = 0.0000001
+        self._calc_glazed_and_opaque_areas(self._wwr) # This runs again the glazed and opaque calculation
+
     def __str__(self):
         return f"""
 Name: {self.name}
@@ -607,7 +692,7 @@ Name: {self.name}
     Azimuth: {self._azimuth:.2f}
     Height: {self._height:.2f}
     U value: {self.construction._u_value:.2f}
-    Area: {self._area} ({self._wwr:.1%} glazed)
+    Area: {self._area:.1f} ({self._wwr:.1%} glazed)
 """
 
 # %%---------------------------------------------------------------------------------------------------

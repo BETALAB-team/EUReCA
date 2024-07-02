@@ -32,6 +32,7 @@ fuels_pci = {
     "Natural Gas": 9970,   # Wh/Nm3
     "Oil": 9908, # Wh/L
     "Wood": 5000, # Wh/kg
+    "Coal": 7152, # Wh/kg
 }
 
 gravitational_acceleration = 9.81  # m/s2
