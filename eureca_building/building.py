@@ -17,7 +17,7 @@ import pandas as pd
 
 from eureca_building.config import CONFIG
 from eureca_building.thermal_zone import ThermalZone
-from eureca_building.PV_system import PV_system
+from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -160,6 +160,20 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 """)
         self.heating_system.set_system_capacity(heating_capacity, weather_object)
         self.cooling_system.set_system_capacity(cooling_capacity, weather_object)
+
+    def add_pv_system(self, weather_obj):
+
+        '''
+        PV production
+        '''
+        building_surface_list=[]
+        for tz in self._thermal_zones_list:
+            for s in tz._surface_list:
+                building_surface_list.append(s)
+
+        self.pv_system = PV_system(name=f"Bd {self.name} PV system",
+                               weatherobject=weather_obj,
+                               surface_list=building_surface_list)
 
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
@@ -319,27 +333,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 + total["Cooling system electric consumption [Wh]"] \
                 + total["Appliances electric consumption [Wh]"] \
                 + total['AHU electric consumption [Wh]']
-        '''
-        PV production
-        '''
-        building_surface_list=[]
-        for tz in self._thermal_zones_list:
-            for s in tz._surface_list:
-                building_surface_list.append(s)
 
-        name=tz.name
-        Photovoltaic=PV_system(name=f"TZ {name} PV system",
-                               weatherobject=weather_object,
-                               surface_list=building_surface_list)
         # Associate PV to the building
-        # self.PV_systems.append(Photovoltaic)
-        pv_production=Photovoltaic.pv_production()
-        pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
-        common_index = pv_production.index.union( total.index)
-        pv_production= pv_production.reindex(common_index)
-        pv_production=pv_production.interpolate(method='time')
-        
-        [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=Photovoltaic.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0],pv_prod=pv_production)
+        if hasattr(self, 'pv_system'):
+            pv_production=self.pv_system.pv_production()
+            [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
+        else:
+            pv_production = np.nan
+            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.nan]*6
+
         total["PV production [Wh]",f"Bd {self.name}"]=pv_production
         total["Battery State [%]",f"Bd {self.name}"]=BatteryState
         total["Given to Batteries [Wh]",f"Bd {self.name}"]=tobattery

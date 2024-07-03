@@ -15,7 +15,7 @@ from cjio import cityjson
 from scipy.spatial import cKDTree
 from shapely.validation import make_valid
 from eureca_building.config import CONFIG
-from eureca_building.PV_system import PV_system
+from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.building import Building
@@ -333,6 +333,8 @@ class City():
             self.cityjson["VolCoeff"] = 1.
         if "Lower End Use" not in self.cityjson.columns:
             self.cityjson["Lower End Use"] = ''
+        if "Solar technologies" not in self.cityjson.columns:
+            self.cityjson["Solar technologies"] = ''
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -658,7 +660,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
-                # print(f"{int(100*iiii/jjjj)} %: load calc")
+
+            building_obj.add_pv_system(weather_obj=self.weather_file)
+
+
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 

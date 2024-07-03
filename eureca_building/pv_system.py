@@ -64,41 +64,34 @@ class PV_system():
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
-        self.weather=weatherobject._epw_hourly_data
-        self.weather_md=weatherobject._epw_general_data
+        # self.weather=weatherobject._epw_hourly_data
+        # self.weather_md=weatherobject._epw_general_data
         self.pv_data_adr()
-        self.pv_efficiencies()
+        self._run_pv_efficiencies(weatherobject)
         self.pv_data_install()
         self.Battery()
     
 
     
-    def pv_efficiencies(self):
+    def _run_pv_efficiencies(self, weatherobject):
         '''
         calculates the efficiency of the photovoltaic cells at each timestep
         currently it uses ADR method
 
         '''
-        Weather=self.weather
-        Weather_dataframe = pd.DataFrame({'ghi': Weather['ghi'], 'dhi': Weather['dhi'], 'dni': Weather['dni'],
-                           'temp_air': Weather['temp_air'],
-                           'wind_speed': Weather['wind_speed']
-                           })
-        Weather_dataframe.index=Weather_dataframe.index-pd.Timedelta(minutes=30)
-        LocationAttributes=pvlib.location.Location.from_epw(self.weather_md)
-        # LocationAttributes = Weather._site
-        Solar_position=LocationAttributes.get_solarposition(Weather_dataframe.index)
+
         efficiencies={}
         for s in self._surfaces:
             tilt=s._height_round
             orient=s._azimuth_round
-            
-            total_irrad=pvlib.irradiance.get_total_irradiance(tilt,orient,Solar_position.apparent_zenith,
-                                                              Solar_position.azimuth,Weather_dataframe.dni,Weather_dataframe.ghi,Weather_dataframe.dhi)
-            Weather_dataframe['poa_global']=total_irrad.poa_global
-            Weather_dataframe['temp_pv']=pvlib.temperature.faiman(Weather_dataframe.poa_global,Weather_dataframe.temp_air,Weather_dataframe.wind_speed)
-            Weather_dataframe['rel_eta']=pvlib.pvarray.pvefficiency_adr(Weather_dataframe['poa_global'],Weather_dataframe['temp_pv'],**self.adr_parameters)
-            efficiencies[s]=Weather_dataframe
+
+            poa_global = weatherobject.hourly_data_irradiances[orient][tilt]['global']
+            pv_temp = pvlib.temperature.faiman(poa_global,weatherobject.hourly_data["out_air_db_temperature"],weatherobject.hourly_data["wind_speed"])
+            pv_rel_eta = pvlib.pvarray.pvefficiency_adr(poa_global,pv_temp,**self.adr_parameters)
+            efficiencies[s]={
+                "poa_global": poa_global,
+                "pv_rel_eta": pv_rel_eta,
+            }
         self._pv_efficiencies=efficiencies
         
         
@@ -135,14 +128,10 @@ class PV_system():
         the production is calculated for each timestep
 
         '''
-        # ProductionWh=self.weather['ghi']
-        for Surface,Dataframe in self._pv_efficiencies.items():
-            Photovoltaic_Generation_DataFrame=Dataframe
-            Production_watt=Photovoltaic_Generation_DataFrame['power_stc']*Photovoltaic_Generation_DataFrame['rel_eta']*Photovoltaic_Generation_DataFrame['poa_global']/self.pv_g_stc
+        for Surface,Dict_pv_data in self._pv_efficiencies.items():
+            Production_watt=Dict_pv_data['power_stc']*Dict_pv_data['pv_rel_eta']*Dict_pv_data['poa_global']/self.pv_g_stc
             ProductionWh=Production_watt/CONFIG.ts_per_hour
-            
-        ProductionWh.index=ProductionWh.index+pd.Timedelta(minutes=30)
-        
+
         return ProductionWh
     
     def Battery(self):
@@ -163,7 +152,7 @@ class PV_system():
         and taken from battery. therefore it is also capable of calculating the grid 
         electricity.
         returns:
-            State: battery charge level in [Ah]
+            State: battery charge level in [%]
             tobattery: energy stored in batteries at each timestep [Wh]
             frombattery: energy taken from the batteries at each timestep [Wh]
             togrid: energy giveb to grid at each timestep [Wh]
@@ -171,10 +160,6 @@ class PV_system():
             directsolar: energy consumed directly from solar production at each timestep [Wh]
 
         '''
-
-        pv_prod=pv_prod.to_numpy()
-
-        electricity=electricity.to_numpy()
 
         Generation_Consumption_Balance=pv_prod-electricity
         charger=Generation_Consumption_Balance.copy()
@@ -214,8 +199,6 @@ class PV_system():
         fromgrid=np.abs(discharger)-frombattery
         directsolar=np.minimum(pv_prod,electricity)
         State_percent=State/self.battery_parameters['capacity']
-        
-        
 
         return [State_percent , tobattery, frombattery, togrid, fromgrid, directsolar]
                 
