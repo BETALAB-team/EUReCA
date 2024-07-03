@@ -339,8 +339,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             pv_production=self.pv_system.pv_production()
             [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
         else:
-            pv_production = np.nan
+            pv_production = 0.
             [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.nan]*6
+            fromgrid = total['Electric consumption [Wh]'].iloc[:, 0].values
+            togrid = 0.
 
         total["PV production [Wh]",f"Bd {self.name}"]=pv_production
         total["Battery State [%]",f"Bd {self.name}"]=BatteryState

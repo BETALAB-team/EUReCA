@@ -335,6 +335,8 @@ class City():
             self.cityjson["Lower End Use"] = ''
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
+        self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
+
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -661,7 +663,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
 
-            building_obj.add_pv_system(weather_obj=self.weather_file)
+            if "PV" in building_info["Solar technologies"]:
+                building_obj.add_pv_system(weather_obj=self.weather_file)
+                # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
 
 
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
@@ -702,7 +706,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             "TZ AHU pre heater load [W]",
             "TZ AHU post heater load [W]",
             "TZ DHW demand [W]",
-            "PV production [Wh]"
+            "Net PV production to grid [Wh]"
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -771,7 +775,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["PV production [Wh]"] += results["PV production [Wh]"].iloc[:,0]
+            district_hourly_results["Net PV production to grid [Wh]"] += results["Given to Grid [Wh]"].iloc[:,0]
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
