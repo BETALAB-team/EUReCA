@@ -411,6 +411,7 @@ for i in range(1):
 
     bd.set_hvac_system("Coal Heater, Centralized, High Temp Radiator", "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
+    bd.add_pv_system(weather_obj=weather_file)
     start = time.time()
     df_res = bd.simulate(weather_file, output_folder="Results")
     print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")
