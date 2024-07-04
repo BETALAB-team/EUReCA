@@ -43,9 +43,9 @@ eureca_building/test/hvac_plots/
 eureca_building/example_scripts/__pycache__/
 eureca_building/example_scripts/eureca_example.py
 eureca_building/example_scripts/logging.log
-eureca_building/example_scripts/Results/
+/eureca_building/example_scripts/Results/
 eureca_building/Ventilation_CPH/
-eureca_building/example_scripts/Results/Results Bd 1.csv
+/eureca_building/example_scripts/Results/Results Bd 1.csv
 eureca_building/example_scripts/domestic_hotwater_example.py
 eureca_building/example_scripts/VDI_bestests.py
 eureca_building/example_scripts/logging.log
