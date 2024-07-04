@@ -1832,6 +1832,8 @@ Thermal zone {self.name} 2C params:
             "Zone temperature cooling setpoint [K]": self._temperature_setpoint.schedule_upper.schedule[CONFIG.start_time_step: CONFIG.final_time_step] + 273.15,
             "Zone humidification setpoint [-]": self._humidity_setpoint.schedule_lower.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
             "Zone dehumidification setpoint [-]": self._humidity_setpoint.schedule_upper.schedule[CONFIG.start_time_step: CONFIG.final_time_step],
+
+            "DHW demand [W]": self.domestic_hot_water_demand,
         })
 
 
@@ -1844,24 +1846,24 @@ Thermal zone {self.name} 2C params:
                    newline='\n',
                    fmt = ["%.0f","%.2E","%.2E","%.2E","%.2E","%.2E",
                           "%.2E","%.2E","%.2E","%.2E","%.2E","%.2E",
-                          "%.2E"],
+                          "%.2E","%.2E"],
                    header = intestazione,
                    comments='',)
 
-        name_class = f'Classe_{self.name.replace(" ", "_")}'
-        with open(os.path.join(output_folder, f'modello_{self.name.replace(" ", "_")}.mo'), "w") as file:
-            file.write(
-                f"""
-model {name_class}
-Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
-tableOnFile = true, 
-smoothness = Modelica.Blocks.Types.Smoothness.ConstantSegments, 
-tableName = "tab1", fileName = "{output_folder.replace(os.sep,"/") + "/data_Zone_1.txt"}", timeScale = 1, columns = {{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}}) annotation(
-    Placement(transformation(origin = {{-74, 78}}, extent = {{{{-10, -10}}, {{10, 10}}}})));
-equation
-
-annotation(
-    experiment(StartTime = {CONFIG.start_time_step*CONFIG.time_step}, StopTime = {CONFIG.final_time_step*CONFIG.time_step}, Interval = {CONFIG.time_step}, Tolerance = 1e-6));
-end {name_class};
-"""
-            )
+#         name_class = f'Classe_{self.name.replace(" ", "_")}'
+#         with open(os.path.join(output_folder, f'modello_{self.name.replace(" ", "_")}.mo'), "w") as file:
+#             file.write(
+#                 f"""
+# model {name_class}
+# Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(
+# tableOnFile = true,
+# smoothness = Modelica.Blocks.Types.Smoothness.ConstantSegments,
+# tableName = "tab1", fileName = "{output_folder.replace(os.sep,"/") + "/data_Zone_1.txt"}", timeScale = 1, columns = {{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}}) annotation(
+#     Placement(transformation(origin = {{-74, 78}}, extent = {{{{-10, -10}}, {{10, 10}}}})));
+# equation
+#
+# annotation(
+#     experiment(StartTime = {CONFIG.start_time_step*CONFIG.time_step}, StopTime = {CONFIG.final_time_step*CONFIG.time_step}, Interval = {CONFIG.time_step}, Tolerance = 1e-6));
+# end {name_class};
+# """
+#             )
