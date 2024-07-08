@@ -11,6 +11,8 @@ __maintainer__ = "Enrico Prataviera"
 import copy
 import logging
 import os
+import re
+import importlib.resources
 
 import numpy as np
 import pandas as pd
@@ -393,6 +395,51 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 "coordinates": [floors]
             }
         }
-    
+
+    def get_modelica_bd_model(self, path_of_mos, path_of_hourly_data, x = 0, y = 0):
+        self._thermal_zones_list[0].print_modelica_class_with_output_csv(path_of_hourly_data)
+        mod_file = importlib.resources.read_text("eureca_modelica_classes", "ExampleModel.mo")
+
+        start_regex = re.compile("model (.*)\n")
+        name_of_the_model = start_regex.search(mod_file).group(1)
+
+        mod_str = mod_file.split(f"model {name_of_the_model}")[1].split(f"end {name_of_the_model}")[0]
+
+        mod_str = mod_str.replace("EUReCA2Modelica.Building_EUReCA building_EUReCA(",
+                                  f"EUReCA2Modelica.Building_EUReCA bd_EUReCA_{self.name.replace(' ', '_')}(")
+
+        mod_str = mod_str.replace("Htr_w=500,", f"Htr_w={self._thermal_zones_list[0].Htr_w:.2f},")
+        mod_str = mod_str.replace("Htr_is=3000,", f"Htr_is={self._thermal_zones_list[0].Htr_is:.2f},")
+        mod_str = mod_str.replace("Htr_ms=7000,", f"Htr_ms={self._thermal_zones_list[0].Htr_ms:.2f},")
+        mod_str = mod_str.replace("Htr_em=2000,", f"Htr_em={self._thermal_zones_list[0].Htr_em:.2f},")
+        mod_str = mod_str.replace("Cm=60000000,", f"Cm={self._thermal_zones_list[0].Cm:.2f},")
+
+        mod_str = mod_str.replace("cooling_design_flow_rate=-10000,", f"cooling_design_flow_rate={self._thermal_zones_list[0].design_sensible_cooling_system_power:.0f},")
+        mod_str = mod_str.replace("heating_design_flow_rate=50000,", f"heating_design_flow_rate={self._thermal_zones_list[0].design_heating_system_power:.0f},")
+
+        tz_data_file_name = f'data_{self._thermal_zones_list[0].name.replace(" ", "_")}.txt'
+
+        mod_str = mod_str.replace('''path_to_sched_file=
+                "C:/Users/pratenr82256/Desktop/ModelicaEUReCA/ClassiDaEUReCA/data_Zone_1.txt''',
+        f'''path_to_sched_file=
+                {os.path.join(path_of_hourly_data,tz_data_file_name)}''')
+
+        mod_str = mod_str.replace('''path_to_mos_weather_file="C:/Users/pratenr82256/Desktop/ModelicaEUReCA/ClassiDaEUReCA/ITA_Venezia-Tessera.161050_IGDG.mos"''',
+                                  f'''path_to_mos_weather_file={os.path.join(path_of_mos)}''')
+
+        mod_str = mod_str.replace('''annotation (Placement(transformation(extent={{30,52},{50,72}})));''',
+        f'''annotation (Placement(transformation(extent={{{{{x},{y}}},{{{x+20},{y+20}}}}})));''')
+
+        mod_str = mod_str.replace('''annotation (
+    Icon(coordinateSystem(preserveAspectRatio=false)),
+    Diagram(coordinateSystem(preserveAspectRatio=false)),
+    experiment(
+      StopTime=31536000,
+      Interval=3600,
+      __Dymola_Algorithm="Dassl"));''',
+                                  '''''')
+
+        return mod_str
+
 
 

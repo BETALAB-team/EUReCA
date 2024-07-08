@@ -24,7 +24,7 @@ import pandas as pd
 # Loads a global config object
 from eureca_building.config import load_config
 
-config_path = os.path.join('.', 'config.json')
+config_path = os.path.join('config.json')
 load_config(config_path)
 from eureca_building.config import CONFIG
 
@@ -46,14 +46,14 @@ from eureca_building.domestic_hot_water import DomesticHotWater
 
 #########################################################
 # Epw loading
-epw_path = os.path.join('..', 'example_scripts', 'ITA_Venezia-Tessera.161050_IGDG.epw')
+epw_path = os.path.join('../eureca_building', 'example_scripts', 'ITA_Venezia-Tessera.161050_IGDG.epw')
 weather_file = WeatherFile(epw_path,
                            time_steps=CONFIG.ts_per_hour,
                            azimuth_subdivisions=CONFIG.azimuth_subdivisions,
                            height_subdivisions=CONFIG.height_subdivisions, )
 #########################################################
 path = os.path.join(
-    "..",
+    "../eureca_building",
     "example_scripts",
     "materials_and_construction_test.xlsx",
 )
@@ -359,9 +359,91 @@ for i in range(1):
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
                        "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
-    tz1.print_modelica_class_with_output_csv("C:\\Users\\pratenr82256\\Desktop\\ModelicaEUReCA\\ClassiDaEUReCA")
+
+    tz2 = ThermalZone(
+        name="Zone 2",
+        surface_list=[wall_north, wall_west, roof, floor, intwall, intceiling],
+        net_floor_area=floor._area * 2,
+        volume=floor._area * 3.3 * 2)
+
+    zones.append(tz1)
+    tz2._ISO13790_params()
+    tz2._VDI6007_params()
+
+    tz2.add_internal_load(people)
+    tz2.add_internal_load(lights, pc)
+
+    # IHG preprocessing
+    tz_loads = tz2.extract_convective_radiative_latent_electric_load()
+    tz2.calculate_zone_loads_ISO13790(weather_file)
+    # tz1._plot_ISO13790_IHG()
+
+    # 2C model
+    tz2.calculate_zone_loads_VDI6007(weather_file)
+    # tz1._plot_VDI6007_IHG(weather_file)
+
+    tz2.add_temperature_setpoint(t_sp)
+    tz2.add_humidity_setpoint(h_sp)
+
+    # Natural Ventilation preprocessing
+    tz2.add_infiltration(inf_obj)
+    tz_inf = tz2.calc_infiltration(weather_file)
+
+    ahu = AirHandlingUnit(
+        "ahu",
+        vent_obj,
+        T_supply_sched,
+        x_supply_sched,
+        ahu_availability_sched,
+        True,
+        0.5,
+        0.5,
+        0.9,
+        weather_file,
+        tz2,
+    )
+
+    cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model="1C")
+    heating_peak_load = tz2.design_heating_load(-5.)
+
+    tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+
+    bd2 = Building("Bd 2", thermal_zones_list=[tz2], model="1C")
+    bd2.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
+                       "A-W chiller, Centralized, Radiant surface")
+    bd2.set_hvac_system_capacity(weather_file)
+    # tz1.print_modelica_class_with_output_csv("C:\\Users\\pratenr82256\\Desktop\\ModelicaEUReCA\\ClassiDaEUReCA")
+
+
+    weather_mos = os.path.join(os.getcwd(), "ExampleFiles", "ITA_Venezia-Tessera.161050_IGDG.mos")
+    path_example = os.path.join(os.getcwd(), "ExampleFiles")
+
+    mod_str1 = bd.get_modelica_bd_model(
+        weather_mos,path_example,x = 50, y = 50)
+
+    mod_str2 = bd2.get_modelica_bd_model(
+        weather_mos,path_example,x = 50, y = -70)
+
+
+    modelica_model = f"""within ;
+model EurecaModelicaModel
+{mod_str1}
+{mod_str2}
+  annotation (
+    Icon(coordinateSystem(preserveAspectRatio=false)),
+    Diagram(coordinateSystem(preserveAspectRatio=false)),
+    experiment(
+      StopTime=31536000,
+      Interval={CONFIG.time_step},
+      __Dymola_Algorithm="Dassl"))
+end EurecaModelicaModel;"""
+
+
+    with open(os.path.join(".","ExampleFiles","EurecamodelicaModel.mo"), "w") as file:
+        file.writelines(modelica_model)
+
 
     start = time.time()
 
-    df_res = bd.simulate(weather_file, output_folder="Results")
+    # df_res = bd.simulate(weather_file, output_folder="Results")
     print(f"2C model: \n\t{8760 * 2 - 1} time steps\n\t{(time.time() - start):.2f} s")

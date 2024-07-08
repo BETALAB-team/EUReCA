@@ -14,6 +14,8 @@ setup(
     author='betalab group UNIPD',
     author_email='enrico.prataviera@unipd.it',
     packages=find_packages(),
+    include_package_data=True,
+    
     scripts=[],
     url='https://github.com/BETALAB-team/EUReCA',
     license='LICENSE',
