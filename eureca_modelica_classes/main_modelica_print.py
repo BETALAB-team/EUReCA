@@ -414,33 +414,34 @@ for i in range(1):
     bd2.set_hvac_system_capacity(weather_file)
     # tz1.print_modelica_class_with_output_csv("C:\\Users\\pratenr82256\\Desktop\\ModelicaEUReCA\\ClassiDaEUReCA")
 
+    model_name = f"Mod{CONFIG.ts_per_hour}"
 
     weather_mos = os.path.join(os.getcwd(), "ExampleFiles", "ITA_Venezia-Tessera.161050_IGDG.mos")
     path_example = os.path.join(os.getcwd(), "ExampleFiles")
 
     mod_str1 = bd.get_modelica_bd_model(
-        weather_mos,path_example,x = 50, y = 50)
+        model_name,weather_mos,path_example,x = 50, y = 50)
 
     mod_str2 = bd2.get_modelica_bd_model(
-        weather_mos,path_example,x = 50, y = -70)
+        model_name,weather_mos,path_example,x = 50, y = -70)
 
 
     modelica_model = f"""within ;
-model EurecaModelicaModel
+model {model_name}
 {mod_str1}
 {mod_str2}
   annotation (
     Icon(coordinateSystem(preserveAspectRatio=false)),
     Diagram(coordinateSystem(preserveAspectRatio=false)),
     experiment(
-      StopTime=31532400,
+      StopTime={31536000},
       Interval={CONFIG.time_step},
       __Dymola_Algorithm="Dassl"));
-end EurecaModelicaModel;
+end {model_name};
 """
 
 
-    with open(os.path.join(".","ExampleFiles","EurecamodelicaModel.mo"), "w") as file:
+    with open(os.path.join(".","ExampleFiles",f"EurecamodelicaModel_{CONFIG.ts_per_hour}.mo"), "w") as file:
         file.writelines(modelica_model)
 
 

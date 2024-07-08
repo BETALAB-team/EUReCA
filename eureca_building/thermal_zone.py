@@ -1812,7 +1812,7 @@ Thermal zone {self.name} 2C params:
             "Zone design cooling load [kW]": self.design_sensible_cooling_system_power/1000,
         }
 
-    def print_modelica_class_with_output_csv(self, output_folder):
+    def print_modelica_class_with_output_csv(self, model_name, output_folder):
         self.modelica_schedules = pd.DataFrame({
             "time index": np.arange(CONFIG.start_time_step * CONFIG.time_step,
                                     CONFIG.final_time_step * CONFIG.time_step, CONFIG.time_step),
@@ -1840,7 +1840,7 @@ Thermal zone {self.name} 2C params:
         intestazione = f"#1\ndouble tab1({len(self.modelica_schedules.index)},{len(self.modelica_schedules.columns)})    # " + ", ".join(self.modelica_schedules.columns)
         # with open(os.path.join(output_folder, f'data_{self.name.replace(" ", "_")}.txt'), "w") as file:
         #     file.write(intestazione)
-        np.savetxt(os.path.join(output_folder, f'data_{self.name.replace(" ", "_")}.txt'),
+        np.savetxt(os.path.join(output_folder, f'data_{model_name}_{self.name.replace(" ", "_")}.txt'),
                    self.modelica_schedules.values,
                    delimiter = "\t",
                    newline='\n',

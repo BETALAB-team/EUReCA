@@ -68,3 +68,4 @@ logging.log
 /eureca_ubem/Input/gianmarco_bano/
 /eureca_ubem/Input/geojson_corr/
 /eureca_building/example_scripts/USA_CO_Denver-Stapleton.724690_TMY.epw
+/eureca_modelica_classes/ExampleFiles/*.txt
