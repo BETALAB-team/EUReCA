@@ -433,10 +433,11 @@ model EurecaModelicaModel
     Icon(coordinateSystem(preserveAspectRatio=false)),
     Diagram(coordinateSystem(preserveAspectRatio=false)),
     experiment(
-      StopTime=31536000,
+      StopTime=31532400,
       Interval={CONFIG.time_step},
-      __Dymola_Algorithm="Dassl"))
-end EurecaModelicaModel;"""
+      __Dymola_Algorithm="Dassl"));
+end EurecaModelicaModel;
+"""
 
 
     with open(os.path.join(".","ExampleFiles","EurecamodelicaModel.mo"), "w") as file:

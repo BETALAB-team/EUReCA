@@ -1,5 +1,5 @@
 within ;
-model EurecaModelicaModel
+model EurecaModelicaModel1
 
   EUReCA2Modelica.Building_EUReCA bd_EUReCA_Bd_1(
     Htr_w=307.08,
@@ -36,7 +36,8 @@ model EurecaModelicaModel
     Icon(coordinateSystem(preserveAspectRatio=false)),
     Diagram(coordinateSystem(preserveAspectRatio=false)),
     experiment(
-      StopTime=31532400,
+      StopTime=31536000,
       Interval=3600,
-      __Dymola_Algorithm="Dassl"));
-end EurecaModelicaModel;
+      __Dymola_Algorithm="Dassl"))
+end EurecaModelicaModel1;
+;

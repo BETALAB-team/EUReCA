@@ -1,5 +1,5 @@
 within ;
-model EurecaModelicaModel
+model EurecaModelicaModel2
 
   EUReCA2Modelica.Building_EUReCA bd_EUReCA_Bd_1(
     Htr_w=307.08,
@@ -7,7 +7,7 @@ model EurecaModelicaModel
     Htr_ms=32552.29,
     Htr_em=2135.74,
     Cm=345521229.59,
-    cooling_design_flow_rate=-22779,
+    cooling_design_flow_rate=-23985,
     heating_design_flow_rate=87113,
     path_to_sched_file=
         "C:/Users/pratenr82256/Desktop/ModelicaEUReCA/ClassiDaEUReCA/data_Zone_1.txt",
@@ -23,7 +23,7 @@ model EurecaModelicaModel
     Htr_ms=30803.47,
     Htr_em=1787.98,
     Cm=330728909.55,
-    cooling_design_flow_rate=-20587,
+    cooling_design_flow_rate=-22465,
     heating_design_flow_rate=71906,
     path_to_sched_file=
         "C:/Users/pratenr82256/Desktop/ModelicaEUReCA/ClassiDaEUReCA/data_Zone_1.txt",
@@ -36,7 +36,7 @@ model EurecaModelicaModel
     Icon(coordinateSystem(preserveAspectRatio=false)),
     Diagram(coordinateSystem(preserveAspectRatio=false)),
     experiment(
-      StopTime=31532400,
-      Interval=3600,
+      StopTime=31536000,
+      Interval=1800,
       __Dymola_Algorithm="Dassl"));
-end EurecaModelicaModel;
+end EurecaModelicaModel2;
