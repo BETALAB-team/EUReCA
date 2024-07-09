@@ -149,10 +149,12 @@ class Building:
 
         """
         heating_capacity, cooling_capacity = 0. ,0.
+        dhw_flow_rate = 0.
         try:
             for tz in self._thermal_zones_list:
                 cooling_capacity += tz.design_sensible_cooling_system_power
                 heating_capacity += tz.design_heating_system_power
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate
         except AttributeError:
             raise SimulationError(f"""
 Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
@@ -160,6 +162,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 """)
         self.heating_system.set_system_capacity(heating_capacity, weather_object)
         self.cooling_system.set_system_capacity(cooling_capacity, weather_object)
+        self.heating_system.set_dhw_design_capacity_tank(dhw_flow_rate, weather_object)
 
     def add_pv_system(self, weather_obj):
 
@@ -185,7 +188,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
-        heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
+        heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
             tz.solve_timestep(t, weather, model = self._model)
             air_t += tz.zone_air_temperature
@@ -218,7 +221,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
 
-        self.heating_system.solve_system(heat_load + dhw_load, weather, t, air_t, air_rh)
+        self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
     def simulate(self,
@@ -267,6 +270,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
+            'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -302,6 +309,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
             results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
                                                                       self._thermal_zones_list]
+
+            results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
+            results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
+            results['DHW tank charging rate [W]'][t - t_start, 0] = self.heating_system.dhw_capacity_to_tank
+
+
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption

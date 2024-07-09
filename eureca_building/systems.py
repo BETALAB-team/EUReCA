@@ -108,32 +108,53 @@ class System(metaclass=abc.ABCMeta):
             )
         self._system_type = value
 
-    def set_dhw_design_capacity_tank(self, dhw_demand, weather_file):
+    def set_dhw_design_capacity_tank(self, dhw_flow_rate, weather_file):
 
         T_tank = 55
         T_user = 40
         T_ground = weather_file.general_data['average_out_air_db_temperature']
 
         pre_heating_time = 2 # [h]
-        request_time = 2 # [h]
 
-        max_flow_rate = dhw_demand.max() * 3600 # m3/h
+        max_daily_flow_cons = (dhw_flow_rate[:364*24*CONFIG.ts_per_hour].reshape(364, 24*CONFIG.ts_per_hour)*CONFIG.time_step).sum(axis=1).max() # [m3]
+        max_flow_rate = dhw_flow_rate.max() * 3600 # m3/h
+        request_time = max_daily_flow_cons/max_flow_rate
 
         # from UNI 9182 [m3]
-        self.dhw_tank_volume = max_flow_rate * request_time * (T_user - T_ground) / \
+        self.dhw_tank_volume = 1.5*max_flow_rate * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * pre_heating_time / (T_tank - T_ground) # [m3]
-        self.dhw_design_load = max_flow_rate * 1000 * request_time * (T_user - T_ground) / \
+        self.dhw_tank_volume = np.round(self.dhw_tank_volume,decimals = 1)
+
+        self.dhw_design_load = 1.5*max_flow_rate * 1000 * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * 1.163 # [W]
 
         # DHW volume
         self.dhw_tank_design_delta_T = T_tank - T_user
         self.dhw_tank_design_charge = self.dhw_tank_volume * \
                                water_properties["density"] * \
-                               water_properties["specific heat"] * \
+                               water_properties["specific_heat"] * \
                                self.dhw_tank_design_delta_T / 3600    # [Wh]
 
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
+        self.charging_mode = 0.
+        self.dhw_capacity_to_tank = 0.
+        self.losses_discharging_rate = 0.02 # %/h
 
+    def dhw_tank_solver(self, dhw_demand):
+
+        if self.dhw_tank_current_charge < 0:
+            self.charging_mode = 1 # Turn on  system
+            self.dhw_capacity_to_tank = self.dhw_design_load
+        elif self.dhw_tank_current_charge > self.dhw_tank_design_charge:
+            self.charging_mode = 0 # Turn off  system
+            self.dhw_capacity_to_tank = 0.
+
+        self.dhw_tank_current_charge = self.dhw_tank_current_charge + \
+                                           ( self.dhw_capacity_to_tank - \
+                                        dhw_demand - \
+                                        self.dhw_tank_design_charge * self.losses_discharging_rate) \
+                                       / CONFIG.ts_per_hour
+        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge
 
 
 # %%---------------------------------------------------------------------------------------------------
@@ -180,7 +201,7 @@ class IdealLoad(System):
         """
         pass
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, weather, t, T_int, RH_int, *args):
         """Solve the system power for the time step
 
         Parameters
@@ -295,7 +316,7 @@ class CondensingBoiler(System):
         self.W_aux_P0 = (15)  # [W]
         self.FC_Pint = self.Pint / self.design_power
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate Condensing Boiler power and losses following
          the Standard UNI-TS 11300:2 - 2008
 
@@ -312,6 +333,10 @@ class CondensingBoiler(System):
          RH_int : float
              Zone relative humidity [%]
          '''
+
+        self.dhw_tank_solver(dhw_flow)
+        heat_flow += self.dhw_capacity_to_tank
+
         # Corrected efficiency and losses at nominal power
         self.eta_gn_Pn_cor = self.system_info['eta_nom [%]'][self.ID] + \
                              self.system_info['f_cor_Pn [-]'][self.ID] * (
@@ -459,7 +484,7 @@ class TraditionalBoiler(System):
         self.W_aux_P0 = (15)   # [W]
         self.FC_Pint = self.Pint / self.design_power
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate Traditional Boiler losses following
         the Standard UNI-TS 11300:2 - 2008
 
@@ -477,6 +502,10 @@ class TraditionalBoiler(System):
             Zone relative humidity [%]
 
         '''
+
+        self.dhw_tank_solver(dhw_flow)
+        heat_flow += self.dhw_capacity_to_tank
+
         # Corrected efficiency and losses at nominal power
         self.eta_gn_Pn_cor = self.system_info['eta_nom [%]'][self.ID] + \
                              self.system_info['f_cor_Pn [-]'][self.ID] * (
@@ -1158,7 +1187,7 @@ class Heating_EN15316(System):
 
         self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate the system power for each time step
 
         Parameters
@@ -1175,6 +1204,9 @@ class Heating_EN15316(System):
             Zone relative humidity [%]
         '''
         # Corrected efficiency and losses at nominal power
+
+        self.dhw_tank_solver(dhw_flow)
+        heat_flow += self.dhw_capacity_to_tank
 
         total_energy = heat_flow / self.total_efficiency
 
