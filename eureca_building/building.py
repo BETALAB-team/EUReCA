@@ -185,7 +185,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
-        heat_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
+        heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
             tz.solve_timestep(t, weather, model = self._model)
             air_t += tz.zone_air_temperature
@@ -213,12 +213,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 cool_load += tz.latent_zone_load
 
             # DHW
-            heat_load += tz.domestic_hot_water_demand[t]
+            dhw_load += tz.domestic_hot_water_demand[t]
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
 
-        self.heating_system.solve_system(heat_load, weather, t, air_t, air_rh)
+        self.heating_system.solve_system(heat_load + dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
     def simulate(self,

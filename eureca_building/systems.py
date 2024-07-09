@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 
 from eureca_building.systems_info import systems_info
-from eureca_building.fluids_properties import fuels_pci
+from eureca_building.fluids_properties import fuels_pci, water_properties
 from eureca_building.config import CONFIG
 
 # including Systems info from system_info json
@@ -107,6 +107,33 @@ class System(metaclass=abc.ABCMeta):
                 f"HVAC System, system type not string: {type(value)}"
             )
         self._system_type = value
+
+    def set_dhw_design_capacity_tank(self, dhw_demand, weather_file):
+
+        T_tank = 55
+        T_user = 40
+        T_ground = weather_file.general_data['average_out_air_db_temperature']
+
+        pre_heating_time = 2 # [h]
+        request_time = 2 # [h]
+
+        max_flow_rate = dhw_demand.max() * 3600 # m3/h
+
+        # from UNI 9182 [m3]
+        self.dhw_tank_volume = max_flow_rate * request_time * (T_user - T_ground) / \
+                               (pre_heating_time + request_time) * pre_heating_time / (T_tank - T_ground) # [m3]
+        self.dhw_design_load = max_flow_rate * 1000 * request_time * (T_user - T_ground) / \
+                               (pre_heating_time + request_time) * 1.163 # [W]
+
+        # DHW volume
+        self.dhw_tank_design_delta_T = T_tank - T_user
+        self.dhw_tank_design_charge = self.dhw_tank_volume * \
+                               water_properties["density"] * \
+                               water_properties["specific heat"] * \
+                               self.dhw_tank_design_delta_T / 3600    # [Wh]
+
+        self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
+
 
 
 # %%---------------------------------------------------------------------------------------------------
@@ -373,6 +400,8 @@ class TraditionalBoiler(System):
             (1-self.convective_fraction)/2, # Radiative AW
             self.convective_fraction)       # Convective
         }
+
+        self.dhw_tank_volume = 0.2 # [m3]
 
         # Vectors initialization
         # self.phi_gn_i_Px = np.zeros(l)  # [kW]
@@ -1102,6 +1131,8 @@ class Heating_EN15316(System):
             (1-self.convective_fraction)/2, # Radiative AW
             self.convective_fraction)       # Convective
         }
+
+        self.dhw_tank_volume = 0.2 # [m3]
 
         # Input Data
         # self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
