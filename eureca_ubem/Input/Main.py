@@ -37,16 +37,6 @@ city_geojson.simulate(print_single_building_results=True, output_type="csv")
 
 
 
-# Tank=TST(Volume=30,
-#             Overal_Heat_Transfer_coefficient=0.8,
-#             specific_heat_capacity=4.218, #kJ/kgK
-#             density=1000, #kg/m3
-#             stratification_temperature_difference=10, #C
-#             charge_temperature=25, #C
-#             min_temperature=5,
-#             max_temperature=95
-#             )
-# #
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
 #

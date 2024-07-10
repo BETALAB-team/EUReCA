@@ -108,7 +108,8 @@ class ThermalStorageTank_TES01:
             temperature=np.interp(np.linespace(0,1,self.Array_length),
                                   np.linspace(0,1,len(temperature)),
                                   temperature.flatten()).reshape(-1,1) 
-        self.Supply.append({"name":supply_name,"max_mass":mass_flow_rate,"temperature":temperature,"has_return":has_return,"median_temperature":np.median(temperature)})
+        self.Supply.append({"name":supply_name,"max_mass":mass_flow_rate,"temperature":temperature,
+                            "has_return":has_return,"median_temperature":np.median(temperature)})
         
         
     def _mass_balance(self):
@@ -142,12 +143,16 @@ class ThermalStorageTank_TES01:
         for i in range(self.Array_length):
             if i==0:
                 pass
-            else:
+            elif i<self.Array_length-1:
                 Temperature=self.Temperature[i-1]+timestep_seconds*thermal_diffusivity*\
                                 (Equivalent_exchanging_temperature[i-1]-self.Temperature[i-1])
                 self.Temperature[i]=min(max(Temperature,self.Minimum_temperature),
                                         self.Maximum_temperature)
-    
+            else :
+                Temperature=self.Temperature[i-1]+timestep_seconds*thermal_diffusivity*\
+                                (Equivalent_exchanging_temperature[i-1]-self.Temperature[i-1])
+                self.Temperature[0]=min(max(Temperature,self.Minimum_temperature),
+                                        self.Maximum_temperature)
     def Solve_TES(self,iternum=10):
         for iteration in range(iternum):
             self._mass_balance()
@@ -156,5 +161,9 @@ class ThermalStorageTank_TES01:
                 demand_array["mass"][demand_array["temperature"] > self.Temperature]=0
 
     
-        
-        
+'''
+1. Integrate the solar thermal with the layout that already exists in dev 
+2. the dhw tank volume calculation can be used to do the stuff 
+
+00. 
+'''
