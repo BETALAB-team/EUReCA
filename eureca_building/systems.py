@@ -142,6 +142,11 @@ class System(metaclass=abc.ABCMeta):
 
     def dhw_tank_solver(self, dhw_demand):
 
+        # if ST exists:
+        #     ST_prodction = ST prod[t]
+        # else
+        #     ST_prodction = 0 # Wh
+
         if self.dhw_tank_current_charge < 0:
             self.charging_mode = 1 # Turn on  system
             self.dhw_capacity_to_tank = self.dhw_design_load
@@ -150,7 +155,7 @@ class System(metaclass=abc.ABCMeta):
             self.dhw_capacity_to_tank = 0.
 
         self.dhw_tank_current_charge = self.dhw_tank_current_charge + \
-                                           ( self.dhw_capacity_to_tank - \
+                                           (self.dhw_capacity_to_tank - \
                                         dhw_demand - \
                                         self.dhw_tank_design_charge * self.losses_discharging_rate) \
                                        / CONFIG.ts_per_hour
@@ -261,6 +266,11 @@ class CondensingBoiler(System):
             self.convective_fraction)       # Convective
         }
 
+        # if ST exists:
+        #     self.ST_system = kwargs["ST system"]
+        # else:
+        #     self.ST_system = None
+
         # Vectors initialization
         # self.phi_gn_i_Px = np.zeros(l)  # [kW]
         # self.W_aux_Px = np.zeros(l)  # [kW]
@@ -315,6 +325,9 @@ class CondensingBoiler(System):
         self.W_aux_Pint = (15 * (self.design_power/1000) ** 0.48) # [W]
         self.W_aux_P0 = (15)  # [W]
         self.FC_Pint = self.Pint / self.design_power
+
+        # if ST exists:
+        #     self.ST_system.calc_production(weather file)
 
     def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate Condensing Boiler power and losses following
