@@ -46,7 +46,6 @@ class ThermalStorageTank_TES01:
             self,
             Volume:float, #m3
             Area:float, #m2
-            Weather: WeatherFile,
             Overal_Heat_Transfer_coefficient:float, #In W/m2K
             specific_heat_capacity=4.218, #kJ/kgK
             density=1000, #kg/m3
@@ -77,7 +76,7 @@ class ThermalStorageTank_TES01:
             
         
         
-    def add_demand(self,mass_flow_rate,temperature,has_return,Temperature_uptake=10):
+    def add_demand(self,demand_name,mass_flow_rate,temperature,has_return,Temperature_uptake=10):
         if len(mass_flow_rate)==1:
             mass_flow_rate=np.full(self.Array_length,mass_flow_rate)
         elif (len(mass_flow_rate)!=self.Array_length):
@@ -94,9 +93,9 @@ class ThermalStorageTank_TES01:
         if has_return==1:
             self.add_demand_mass(self,-mass_flow_rate,temperature-Temperature_uptake,0)
             
-        self.Demand.append({"mass":mass_flow_rate,"temperature":temperature})
+        self.Demand.append({"name":demand_name,"mass":mass_flow_rate,"temperature":temperature})
         
-    def add_supply(self,mass_flow_rate,temperature,has_return):
+    def add_supply(self,supply_name,mass_flow_rate,temperature,has_return):
         if len(mass_flow_rate)==1:
             mass_flow_rate=np.full(self.Array_length,mass_flow_rate)
         elif (len(mass_flow_rate)!=self.Array_length):
@@ -109,42 +108,35 @@ class ThermalStorageTank_TES01:
             temperature=np.interp(np.linespace(0,1,self.Array_length),
                                   np.linspace(0,1,len(temperature)),
                                   temperature.flatten()).reshape(-1,1) 
-        if has_return==1:
-            self.Supply_append({"mass":mass_flow_rate,"temperature":temperature,
-                                "has_return":has_return})
-            
-            self.Supply_append({"mass":-mass_flow_rate,
-                                "temperature":temperature-self.Temperature_stratification,
-                                "has_return":has_return})
-        if has_return==0:
-            self.Supply.append({"max_mass":mass_flow_rate,"temperature":temperature,
-                                "has_return":has_return})
+        self.Supply.append({"name":supply_name,"max_mass":mass_flow_rate,"temperature":temperature,"has_return":has_return,"median_temperature":np.median(temperature)})
         
         
-    def mass_balance(self):
+    def _mass_balance(self):
         outtake_mass=np.sum([item['mass'] for item in self.Demand], axis=0)
         inlet_without_return=[item for item in self.Supply if item["has_return"]==0]
         self.Supply = {k: v for k, v in self.Supply.items() if ["has_return"]==0}
-        for dictionary in inlet_without_return:
-            dictionary['median_temperature'] = np.median(dictionary['temperature'])
         inlet_without_return = sorted(inlet_without_return, 
-                                      key=lambda x: dictionary['median_temperature'],
+                                      key="median_temperature",
                                       reverse=True)
         mass_not_taken_care=outtake_mass
         for count, inlet in inlet_without_return:
-            inlet["mass"]=np.clip(outtake_mass, a_min=None, a_max=inlet["max_mass"])
+            inlet["mass"]=np.clip(outtake_mass, a_min=0, a_max=inlet["max_mass"])
             mass_not_taken_care=mass_not_taken_care-inlet["mass"]
         self.Supply.append(inlet_without_return)
         
-    def energy_balance(self):
+    def _energy_balance(self):
         demand_energy=np.sum([self.specific_heat_capacity*item['mass']*item['temperature'] \
                               for item in self.Demand], axis=0)
         supply_energy=np.sum([self.specific_heat_capacity*item['mass']*item['temperature'] \
                               for item in self.Supply], axis=0)
+        supply_return_outtake_coefficient=np.sum([self.specific_heat_capacity*item['mass']\
+                                                         for item in self.Supply\
+                                                         if item["has_return"]==1], axis =0)
         fluid_heat_flow=supply_energy-demand_energy
         heat_flow_equivalent_temperature=fluid_heat_flow/self.Heat_transfer_coef
         timestep_seconds=3600/(CONFIG.ts_per_hour)
-        thermal_diffusivity=(self.Heat_transfer_coef)/self.Thermal_capacity
+        thermal_diffusivity=(self.Heat_transfer_coef+supply_return_outtake_coefficient)\
+                            /self.Thermal_capacity
         Equivalent_exchanging_temperature=self.Air_temperature+heat_flow_equivalent_temperature
         self.Temperature=np.full(self.Array_length,self.Initial_temperature)
         for i in range(self.Array_length):
@@ -155,7 +147,14 @@ class ThermalStorageTank_TES01:
                                 (Equivalent_exchanging_temperature[i-1]-self.Temperature[i-1])
                 self.Temperature[i]=min(max(Temperature,self.Minimum_temperature),
                                         self.Maximum_temperature)
-        
+    
+    def Solve_TES(self,iternum=10):
+        for iteration in range(iternum):
+            self._mass_balance()
+            self._energy_balance()
+            for demand_array in self.Demand:
+                demand_array["mass"][demand_array["temperature"] > self.Temperature]=0
+
     
         
         

@@ -6,6 +6,7 @@ import logging
 import warnings
 warnings.filterwarnings("ignore")
 import pandas as pd
+from eureca_building.thermal_storage_v01 import ThermalStorageTank_TES01 as TST
 
 
 # import matplotlib
@@ -20,7 +21,7 @@ from eureca_ubem.city import City
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 schedules_file = os.path.join(".","Schedules1.xlsx")
 materials_file = os.path.join(".","total envelope types.xlsx")
-city_model_file = os.path.join(".","Cag.geojson")
+city_model_file = os.path.join(".","Duo.geojson")
 
 city_geojson = City(
     city_model=city_model_file, 
@@ -34,6 +35,17 @@ city_geojson = City(
 city_geojson.loads_calculation(region="Veneto")
 city_geojson.simulate(print_single_building_results=True, output_type="csv")
 
+
+
+# Tank=TST(Volume=30,
+#             Overal_Heat_Transfer_coefficient=0.8,
+#             specific_heat_capacity=4.218, #kJ/kgK
+#             density=1000, #kg/m3
+#             stratification_temperature_difference=10, #C
+#             charge_temperature=25, #C
+#             min_temperature=5,
+#             max_temperature=95
+#             )
 # #
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
