@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -70,19 +70,23 @@
              
   <h1>Source code for eureca_ubem.city</h1><div class="highlight"><pre>
 <span></span><span class="sd">&#39;&#39;&#39;IMPORTING MODULES&#39;&#39;&#39;</span>
-
+<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">concurrent.futures</span>
+<span class="c1"># import psutil</span>
 
+<span class="kn">import</span> <span class="nn">pickle</span> <span class="k">as</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">shapely</span>
 <span class="kn">import</span> <span class="nn">geopandas</span> <span class="k">as</span> <span class="nn">gpd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">cjio</span> <span class="kn">import</span> <span class="n">cityjson</span>
-
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">cKDTree</span>
+<span class="kn">from</span> <span class="nn">shapely.validation</span> <span class="kn">import</span> <span class="n">make_valid</span>
 <span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
+<span class="kn">from</span> <span class="nn">eureca_building.PV_system</span> <span class="kn">import</span> <span class="n">PV_system</span>
 <span class="kn">from</span> <span class="nn">eureca_building.weather</span> <span class="kn">import</span> <span class="n">WeatherFile</span>
 <span class="kn">from</span> <span class="nn">eureca_building.thermal_zone</span> <span class="kn">import</span> <span class="n">ThermalZone</span>
 <span class="kn">from</span> <span class="nn">eureca_building.building</span> <span class="kn">import</span> <span class="n">Building</span>
@@ -91,6 +95,7 @@
 <span class="kn">from</span> <span class="nn">eureca_building.air_handling_unit</span> <span class="kn">import</span> <span class="n">AirHandlingUnit</span>
 <span class="kn">from</span> <span class="nn">eureca_ubem.end_uses</span> <span class="kn">import</span> <span class="n">load_schedules</span>
 <span class="kn">from</span> <span class="nn">eureca_ubem.envelope_types</span> <span class="kn">import</span> <span class="n">load_envelopes</span>
+<span class="kn">from</span> <span class="nn">eureca_ubem.electric_load_italian_distribution</span> <span class="kn">import</span> <span class="n">get_italian_random_el_loads</span>
 
 <span class="c1">#%% ---------------------------------------------------------------------------------------------------</span>
 <span class="c1">#%% City class</span>
@@ -107,7 +112,7 @@
     <span class="n">V_0_vent</span> <span class="o">=</span> <span class="mf">0.</span>        <span class="c1"># Starting average volumetric flow rate outgoing the Air Handling units [m3/s]</span>
     <span class="n">H_waste_0</span> <span class="o">=</span> <span class="mf">0.</span>       <span class="c1"># Starting waste heating rejected by external condensers [kW]</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="City.__init__"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">city_model</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
                  <span class="n">envelope_types_file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
                  <span class="n">end_uses_types_file</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
@@ -137,7 +142,6 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># List of all the external surfaces of a city</span>
-
         <span class="c1"># Loading weather file</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span> <span class="o">=</span> <span class="n">WeatherFile</span><span class="p">(</span>
             <span class="n">epw_weather_file</span><span class="p">,</span>
@@ -165,7 +169,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output_folder</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span> <span class="o">=</span> <span class="n">output_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span> <span class="o">=</span> <span class="n">output_folder</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">building_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -196,12 +200,26 @@
 
         <span class="c1"># Case of cityJSON file availability:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_Floors</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Function to fix invalid geometries</span>
+        <span class="k">def</span> <span class="nf">fix_geometry</span><span class="p">(</span><span class="n">geom</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">geom</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">geom</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Try to fix invalid geometry</span>
+                    <span class="n">fixed_geom</span> <span class="o">=</span> <span class="n">make_valid</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">fixed_geom</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="n">cityjson</span><span class="o">.</span><span class="n">CityJSON</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+                <span class="c1">#fix geometries</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">fix_geometry</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR Cityjson object not found: </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s1">. Give a proper path&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR Cityjson object not found: </span><span class="si">{</span><span class="n">json_path</span><span class="si">}</span><span class="s1">. Give a proper path&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;vertices&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;json file vertices are not a list&#39;</span><span class="p">)</span>
@@ -225,7 +243,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">bd_key</span><span class="p">,</span> <span class="n">bd_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-
             <span class="c1"># Setting the attributes of the building</span>
             <span class="n">vertices_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">j</span><span class="p">[</span><span class="s1">&#39;vertices&#39;</span><span class="p">]</span>
 
@@ -307,18 +324,18 @@
             <span class="p">)</span>
 
             <span class="c1"># Creation of thermal zone and building</span>
+            <span class="n">n_units</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">/</span> <span class="mf">77.</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">n_units</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">n_units</span> <span class="o">=</span> <span class="mi">1</span>
 
             <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">ThermalZone</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> thermal zone&quot;</span><span class="p">,</span>
                 <span class="n">surface_list</span><span class="o">=</span><span class="n">surfaces_list</span><span class="p">,</span>
                 <span class="n">net_floor_area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span><span class="p">,</span>
-                <span class="n">volume</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="n">floor_height</span>
+                <span class="n">volume</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="n">floor_height</span><span class="p">,</span>
+                <span class="n">number_of_units</span><span class="o">=</span><span class="n">n_units</span><span class="p">,</span> <span class="c1"># 77 average flor area of an appartment according to ISTAT</span>
             <span class="p">)</span>
 
-            <span class="p">{</span>
-            <span class="s2">&quot;1C&quot;</span><span class="p">:</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
-            <span class="s2">&quot;2C&quot;</span><span class="p">:</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
-            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span>
+
 
 
             <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="n">bd_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;attributes&#39;</span><span class="p">]</span>
@@ -341,6 +358,14 @@
 
 
         <span class="bp">self</span><span class="o">.</span><span class="n">geometric_preprocessing</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">bd_k</span><span class="p">,</span> <span class="n">bd</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">bd</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
+                <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
+            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span>
+
         <span class="c1"># with open(os.path.join(&quot;output_geojson.geojson&quot;), &#39;w&#39;) as outfile:</span>
         <span class="c1">#     json.dump(self.output_geojson, outfile)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">))</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">index_parts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
@@ -354,8 +379,31 @@
 <span class="sd">            Path to geojson file.</span>
 
 <span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># Function to fix invalid geometries</span>
+        <span class="k">def</span> <span class="nf">fix_geometry</span><span class="p">(</span><span class="n">geom</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">geom</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">geom</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Try to fix invalid geometry</span>
+                    <span class="n">fixed_geom</span> <span class="o">=</span> <span class="n">make_valid</span><span class="p">(</span><span class="n">geom</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">fixed_geom</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span>
         <span class="c1"># Case of GeoJSON file availability:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">index_parts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span><span class="c1"># .explode(index_parts=True)</span>
+        <span class="c1">#fix geometries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">fix_geometry</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="s2">&quot;Simulate&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;Simulate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="s2">&quot;ExtWallCoeff&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;ExtWallCoeff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">if</span> <span class="s2">&quot;VolCoeff&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;VolCoeff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">if</span> <span class="s2">&quot;Lower End Use&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;Lower End Use&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span> <span class="o">=</span> <span class="p">{}</span>
@@ -363,207 +411,326 @@
 
         <span class="c1"># Extrusion from the footprint operation</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-            <span class="nb">id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="nb">id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">])</span> <span class="c1">#  + &quot;_&quot; + str(i[1])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="s2">&quot;new_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">id</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
             <span class="n">bd_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_buildings</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
-            <span class="c1"># https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">]</span>  <span class="c1"># Heating plant of the building</span>
-            <span class="n">envelope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">envelopes_dict</span><span class="p">[</span><span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;Envelope&#39;</span><span class="p">]]</span>  <span class="c1"># Age-class of the building</span>
-            <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span>
-            <span class="n">counter_for_sub_parts</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="c1"># for g in building_parts:</span>
-            <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">coords</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-            <span class="n">build_surf</span><span class="o">=</span><span class="p">[]</span>
-            <span class="n">pavimento</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">soffitto</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">z_pav</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">z_soff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span>
-            <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">))]))</span>
-            <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
-                <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
-                <span class="n">coords</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
-                <span class="n">pavimento</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]))</span>
-                <span class="n">soffitto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]))</span>
-            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
-                <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
-                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
-                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
-                                    <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">])]))</span>\
-
-            <span class="n">list_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">int_rings</span> <span class="ow">in</span> <span class="n">g</span><span class="o">.</span><span class="n">interiors</span><span class="p">:</span>
-                <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">int_rings</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
-                <span class="n">coords_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">coords_int</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-                <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))]))</span>
-                <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
-                    <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
-                    <span class="n">coords_int</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-                <span class="n">list_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))</span>
-                <span class="n">area_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span><span class="n">int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">area</span><span class="p">)</span>
-
-                <span class="c1"># aggiunta delle superfici dei cortili interni nell&#39;edificio (muri verticali)</span>
-                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">)):</span>
-                    <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
-                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
-                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
-                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),]))</span>
-
-            <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pavimento</span><span class="p">))</span>
-            <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">soffitto</span><span class="p">))</span>
-
-            <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-
-            <span class="c1"># TODO: implement volume and external wall multiplication coefficients</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rh_net</span> <span class="o">=</span> <span class="mf">1.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">rh_gross</span> <span class="o">=</span> <span class="mf">1.</span>
-
-            <span class="c1"># Creation of surfaces</span>
-            <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">footprint_area</span> <span class="o">=</span> <span class="mf">0.</span>
-            <span class="n">surfaces_list</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">vertices</span> <span class="ow">in</span> <span class="n">build_surf</span><span class="p">:</span>
-                <span class="n">surface</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span>
-                        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                        <span class="n">vertices</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">,</span>
-                    <span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">!=</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span><span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
-                    <span class="n">surface</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span>
-
-                <span class="c1"># TODO: Update wwr calculation</span>
-
-                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span>
-                    <span class="n">surface</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="mf">0.125</span>
-
-                <span class="n">surface</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">external_wall</span><span class="p">,</span>
-                    <span class="s2">&quot;Roof&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">roof</span><span class="p">,</span>
-                    <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">ground_floor</span><span class="p">,</span>
-                <span class="p">}[</span><span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span><span class="p">]</span>
-
-                <span class="n">surface</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">envelope</span><span class="o">.</span><span class="n">window</span>
-
-                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
-                <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">1</span>
-
-                <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
-                    <span class="n">footprint_area</span> <span class="o">+=</span> <span class="n">surface</span><span class="o">.</span><span class="n">_area</span>
-
-            <span class="c1"># Add internal walls and ceilings 3.3 m height</span>
             <span class="n">n_floors</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Floors&#39;</span><span class="p">])</span>
             <span class="n">floor_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">n_floors</span>
+            <span class="c1"># https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">])</span><span class="c1">#  + &quot;_&quot; + str(i[1])</span>
+            <span class="n">building_parts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">geoms</span><span class="p">)</span>
             <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_floors</span><span class="p">):</span>
-                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span><span class="p">,</span>
-                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span>
-                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_ceiling</span>
-                <span class="p">))</span>
+            <span class="n">footprint_area</span> <span class="o">=</span> <span class="mf">0.</span>
 
-                <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span><span class="p">,</span>
-                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
-                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_floor</span>
-                <span class="p">))</span>
+            <span class="n">building_parts_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;single End Use&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;surfaces objs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                    <span class="s2">&quot;end use&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;surfaces counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;subpart counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;footprint area&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                <span class="p">},</span>
+                
+                <span class="s2">&quot;upper End Use&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;surfaces objs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                    <span class="s2">&quot;end use&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;surfaces counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;subpart counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;footprint area&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                <span class="p">},</span>
+                
+                <span class="s2">&quot;lower End Use&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;surfaces objs&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                    <span class="s2">&quot;end use&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="p">[</span><span class="s2">&quot;Lower End Use&quot;</span><span class="p">],</span>
+                    <span class="s2">&quot;surfaces counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;subpart counter&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                    <span class="s2">&quot;footprint area&quot;</span><span class="p">:</span> <span class="mf">0.</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
 
-                <span class="n">surf_counter</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">building_parts</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
+                <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">coords</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="n">build_surf</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">pavimento</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">soffitto</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">lower_build_surf</span><span class="o">=</span><span class="p">[]</span>
+                <span class="n">lower_pavimento</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">upper_build_surf</span><span class="o">=</span><span class="p">[]</span>
+                <span class="n">upper_soffitto</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">z_pav</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">z_soff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span>
+                <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">))]))</span>
+                <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                    <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
+                    <span class="n">coords</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
+                    <span class="n">pavimento</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]))</span>
+                    <span class="n">soffitto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]))</span>
+                    <span class="n">lower_pavimento</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]))</span>
+                    <span class="n">upper_soffitto</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]))</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)):</span>
+                    <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">])]))</span>
+                    <span class="n">lower_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">floor_height</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">floor_height</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">])]))</span>
+                    <span class="n">upper_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span> <span class="o">+</span> <span class="n">floor_height</span><span class="p">]),</span>\
+                                        <span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span> <span class="o">+</span> <span class="n">floor_height</span><span class="p">])]))</span>
 
-            <span class="n">surfaces_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">SurfaceInternalMass</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                    <span class="n">area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="mf">2.5</span><span class="p">,</span>
-                    <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntWall&quot;</span><span class="p">,</span>
-                    <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_wall</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
+                <span class="n">list_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">int_rings</span> <span class="ow">in</span> <span class="n">g</span><span class="o">.</span><span class="n">interiors</span><span class="p">:</span>
+                    <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="n">int_rings</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">xy</span>
+                    <span class="n">coords_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dstack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">coords_int</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                    <span class="n">normal</span> <span class="o">=</span> <span class="n">normal_versor_2</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">z_pav</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))]))</span>
+                    <span class="k">if</span> <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                        <span class="c1"># Just to adjust in case of anticlockwise perimeter</span>
+                        <span class="n">coords_int</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+                    <span class="n">list_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">))</span>
+                    <span class="n">area_of_int_rings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapely</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span><span class="n">int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">area</span><span class="p">)</span>
 
-            <span class="n">n_units</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">/</span> <span class="mf">77.</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">n_units</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">n_units</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="c1"># aggiunta delle superfici dei cortili interni nell&#39;edificio (muri verticali)</span>
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_int</span><span class="p">)):</span>
+                        <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),]))</span>
+                        <span class="n">lower_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">floor_height</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">floor_height</span><span class="p">]),]))</span>
+                        <span class="n">upper_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span> <span class="o">+</span> <span class="n">floor_height</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_pav</span> <span class="o">+</span> <span class="n">floor_height</span><span class="p">]),</span>\
+                                            <span class="nb">tuple</span><span class="p">(</span><span class="n">coords_int</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">z_soff</span><span class="p">]),]))</span>
 
-            <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">ThermalZone</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> thermal zone&quot;</span><span class="p">,</span>
-                <span class="n">surface_list</span><span class="o">=</span><span class="n">surfaces_list</span><span class="p">,</span>
-                <span class="n">net_floor_area</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span><span class="p">,</span>
-                <span class="n">volume</span><span class="o">=</span><span class="n">footprint_area</span> <span class="o">*</span> <span class="n">n_floors</span> <span class="o">*</span> <span class="n">floor_height</span><span class="p">,</span>
-                <span class="n">number_of_units</span><span class="o">=</span><span class="n">n_units</span><span class="p">,</span> <span class="c1"># 77 average flor area of an appartment according to ISTAT</span>
-            <span class="p">)</span>
+                <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pavimento</span><span class="p">))</span>
+                <span class="n">build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">soffitto</span><span class="p">))</span>
 
-            <span class="p">{</span>
-                    <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
-                    <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
-            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span>
+                <span class="n">lower_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">lower_pavimento</span><span class="p">))</span>
+                <span class="n">upper_build_surf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">upper_soffitto</span><span class="p">))</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_data</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Building</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">thermal_zones_list</span><span class="o">=</span><span class="p">[</span><span class="n">thermal_zone</span><span class="p">],</span>
-                                                          <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
+                <span class="n">area_of_int_rings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;single End Use&quot;</span><span class="p">][</span><span class="s2">&quot;surfaces coord&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_surf</span>
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;lower End Use&quot;</span><span class="p">][</span><span class="s2">&quot;surfaces coord&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lower_build_surf</span>
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;upper End Use&quot;</span><span class="p">][</span><span class="s2">&quot;surfaces coord&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">upper_build_surf</span>
+
+                <span class="c1"># Creation of surfaces</span>
+                <span class="k">if</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Simulate&quot;</span><span class="p">]:</span>
+                    <span class="n">envelope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">envelopes_dict</span><span class="p">[</span><span class="n">bd_data</span><span class="p">[</span><span class="s1">&#39;Envelope&#39;</span><span class="p">]]</span>  <span class="c1"># Age-class of the building</span>
+
+                <span class="k">for</span> <span class="n">part_k</span><span class="p">,</span> <span class="n">part_v</span> <span class="ow">in</span> <span class="n">building_parts_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">vertices</span> <span class="ow">in</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces coord&quot;</span><span class="p">]:</span>
+                        <span class="n">surface</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span>
+                                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: surface </span><span class="si">{</span><span class="n">surf_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                <span class="n">vertices</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">,</span>
+                            <span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">!=</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span><span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
+                            <span class="n">surface</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">area_of_int_rings</span><span class="p">)</span>
+
+                        <span class="c1"># TODO: Update wwr calculation</span>
+
+                        <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span>
+                            <span class="n">surface</span><span class="o">.</span><span class="n">_wwr</span> <span class="o">=</span> <span class="mf">0.125</span>
+
+                        <span class="k">if</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Simulate&quot;</span><span class="p">]:</span>
+                            <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;GroundFloor&quot;</span><span class="p">,</span><span class="s2">&quot;ExtWall&quot;</span><span class="p">,</span> <span class="s2">&quot;Roof&quot;</span><span class="p">]:</span>
+                                <span class="n">surface</span><span class="o">.</span><span class="n">apply_ext_surf_coeff</span><span class="p">(</span><span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;ExtWallCoeff&quot;</span><span class="p">])</span>
+                            <span class="n">surface</span><span class="o">.</span><span class="n">construction</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="s2">&quot;ExtWall&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">external_wall</span><span class="p">,</span>
+                                <span class="s2">&quot;Roof&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">roof</span><span class="p">,</span>
+                                <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span> <span class="n">envelope</span><span class="o">.</span><span class="n">ground_floor</span><span class="p">,</span>
+                            <span class="p">}[</span><span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span><span class="p">]</span>
+
+                            <span class="n">surface</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">envelope</span><span class="o">.</span><span class="n">window</span>
+
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces objs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">surface</span><span class="p">)</span>
+                        
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces counter&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                        <span class="k">if</span> <span class="n">surface</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;GroundFloor&quot;</span><span class="p">:</span>
+                            <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">surface</span><span class="o">.</span><span class="n">_area</span>
+                            
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;subpart counter&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+
+            <span class="k">if</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;Simulate&quot;</span><span class="p">]:</span>
+                <span class="c1"># Add internal walls and ceilings 3.3 m height</span>
+                <span class="n">floor_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Height&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">n_floors</span>
+                <span class="n">surf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;single End Use&quot;</span><span class="p">][</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_floors</span>
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;lower End Use&quot;</span><span class="p">][</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;upper End Use&quot;</span><span class="p">][</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_floors</span> <span class="o">-</span> <span class="mi">1</span>
+
+                <span class="k">for</span> <span class="n">part_k</span><span class="p">,</span> <span class="n">part_v</span> <span class="ow">in</span> <span class="n">building_parts_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]):</span>
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces objs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">part_v</span><span class="p">[</span><span class="s1">&#39;surfaces counter&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">area</span><span class="o">=</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">],</span>
+                            <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntCeiling&quot;</span><span class="p">,</span>
+                            <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_ceiling</span>
+                        <span class="p">))</span>
+
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces objs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">part_v</span><span class="p">[</span><span class="s1">&#39;surfaces counter&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">area</span><span class="o">=</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">],</span>
+                            <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntFloor&quot;</span><span class="p">,</span>
+                            <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_floor</span>
+                        <span class="p">))</span>
+
+                        <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces counter&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">2</span>
+
+                    <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces objs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">SurfaceInternalMass</span><span class="p">(</span>
+                            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: internal surface </span><span class="si">{</span><span class="n">part_v</span><span class="p">[</span><span class="s1">&#39;surfaces counter&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                            <span class="n">area</span><span class="o">=</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">2.5</span><span class="p">,</span>
+                            <span class="n">surface_type</span><span class="o">=</span><span class="s2">&quot;IntWall&quot;</span><span class="p">,</span>
+                            <span class="n">construction</span><span class="o">=</span><span class="n">envelope</span><span class="o">.</span><span class="n">interior_wall</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="n">n_units</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">77.</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">n_units</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="n">n_units</span> <span class="o">=</span> <span class="mi">1</span>
+
+                    <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;tz&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ThermalZone</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> thermal zone </span><span class="si">{</span><span class="n">part_k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">surface_list</span><span class="o">=</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;surfaces objs&quot;</span><span class="p">],</span>
+                        <span class="n">net_floor_area</span><span class="o">=</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;number of floors&quot;</span><span class="p">],</span>
+                        <span class="n">volume</span><span class="o">=</span><span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;footprint area&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">part_v</span><span class="p">[</span><span class="s2">&quot;number of floors&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">floor_height</span> <span class="o">*</span> <span class="n">bd_data</span><span class="p">[</span><span class="s2">&quot;VolCoeff&quot;</span><span class="p">],</span>
+                        <span class="n">number_of_units</span><span class="o">=</span><span class="n">n_units</span><span class="p">,</span> <span class="c1"># 77 average flor area of an appartment according to ISTAT</span>
+                    <span class="p">)</span>
+
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cityjson</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Lower End Use&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">tz_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;upper End Use&quot;</span><span class="p">][</span><span class="s2">&quot;tz&quot;</span><span class="p">],</span> <span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;lower End Use&quot;</span><span class="p">][</span><span class="s2">&quot;tz&quot;</span><span class="p">]]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">tz_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">building_parts_data</span><span class="p">[</span><span class="s2">&quot;single End Use&quot;</span><span class="p">][</span><span class="s2">&quot;tz&quot;</span><span class="p">]]</span>
+
+
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">bd_data</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Building</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Bd </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">thermal_zones_list</span><span class="o">=</span><span class="n">tz_list</span><span class="p">,</span>
+                                                              <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
 
         <span class="c1"># Geometric preprocessing</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">geometric_preprocessing</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometric_preprocessing</span><span class="p">()</span>
 
-<div class="viewcode-block" id="City.loads_calculation"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.loads_calculation">[docs]</a>    <span class="k">def</span> <span class="nf">loads_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">bd_k</span><span class="p">,</span> <span class="n">bd</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">thermal_zone</span> <span class="ow">in</span> <span class="n">bd</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">,</span>
+                    <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_VDI6007_params</span><span class="p">,</span>
+                <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">]()</span></div>
+
+<div class="viewcode-block" id="City.loads_calculation"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.loads_calculation">[docs]</a>    <span class="k">def</span> <span class="nf">loads_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">region</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">region</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">italian_el_loads</span> <span class="o">=</span> <span class="n">get_italian_random_el_loads</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span><span class="n">region</span><span class="p">)</span>
+            <span class="n">italian_el_loads</span><span class="p">[</span><span class="s2">&quot;Index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">italian_el_loads</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;Index&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># iiii=0</span>
+        <span class="c1"># jjjj=3608</span>
         <span class="k">for</span> <span class="n">bd_id</span><span class="p">,</span> <span class="n">building_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># iiii=iiii+1</span>
             <span class="n">building_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span>
-            <span class="n">use</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span><span class="p">[</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">]]</span>
-            <span class="n">tz</span> <span class="o">=</span> <span class="n">building_obj</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-            <span class="c1"># TODO: copy.deepcopy</span>
+            <span class="k">if</span> <span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Lower End Use&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">zones_objs</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">[</span><span class="n">building_obj</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span><span class="p">[</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">]]],</span>
+                    <span class="p">[</span><span class="n">building_obj</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span><span class="p">[</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Lower End Use&quot;</span><span class="p">]]],</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">zones_objs</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">[</span><span class="n">building_obj</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_uses_dict</span><span class="p">[</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;End Use&quot;</span><span class="p">]]],</span>
+                <span class="p">]</span>
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">add_internal_load</span><span class="p">(</span>
-                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">],</span>
-                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">],</span>
-                <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;lighting&#39;</span><span class="p">],</span>
-            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">tz</span><span class="p">,</span> <span class="n">use</span> <span class="ow">in</span> <span class="n">zones_objs</span><span class="p">:</span>
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">extract_convective_radiative_latent_electric_load</span><span class="p">()</span>
-            <span class="p">{</span>
-                <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_ISO13790</span><span class="p">,</span>
-                <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_VDI6007</span>
-            <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
+                <span class="c1"># TODO: copy.deepcopy</span>
+                <span class="k">if</span> <span class="n">use</span><span class="o">.</span><span class="n">scalar_data</span><span class="p">[</span><span class="s2">&quot;Appliances calculation&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Italian Residential Building Stock&quot;</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">italian_el_loads</span>
+                    <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;If Italian Residential Building Stock is used as Appliances calculation method, then a region must be passed in this function:</span>
+<span class="s2">For example: city.loads_calculation(region=&#39;Piemonte&#39;).</span>
+<span class="s2">Available regions:</span>
+<span class="s2">ValleDAosta, Piemonte, Liguria, Lombardia, Veneto, TrentinoAltoAdige,</span>
+<span class="s2">FriuliVeneziaGiulia, EmiliaRomagna, Umbria, Toscana, Marche, Abruzzo,</span>
+<span class="s2">Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+                    <span class="c1"># TODO: Update with real values.</span>
+                    <span class="n">app_nv</span> <span class="o">=</span> <span class="n">italian_el_loads</span><span class="p">[</span><span class="s2">&quot;Tot&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span> <span class="c1"># W/kW</span>
+                    <span class="n">app</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">])</span>
+                    <span class="n">app</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;W&quot;</span>
+                    <span class="n">app</span><span class="o">.</span><span class="n">nominal_value</span> <span class="o">=</span> <span class="n">app_nv</span> <span class="o">/</span> <span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span><span class="p">)</span> <span class="o">*</span> <span class="n">tz</span><span class="o">.</span><span class="n">number_of_units</span>
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">add_temperature_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;temperature_setpoint&#39;</span><span class="p">])</span>
-            <span class="n">tz</span><span class="o">.</span><span class="n">add_humidity_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;humidity_setpoint&#39;</span><span class="p">])</span>
+                    <span class="n">tz</span><span class="o">.</span><span class="n">add_internal_load</span><span class="p">(</span>
+                        <span class="n">app</span><span class="p">,</span>
+                        <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">tz</span><span class="o">.</span><span class="n">add_internal_load</span><span class="p">(</span>
+                        <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;appliances&#39;</span><span class="p">],</span>
+                        <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;people&#39;</span><span class="p">],</span>
+                        <span class="n">use</span><span class="o">.</span><span class="n">heat_gains</span><span class="p">[</span><span class="s1">&#39;lighting&#39;</span><span class="p">],</span>
+                    <span class="p">)</span>
+                
+                <span class="n">tz</span><span class="o">.</span><span class="n">extract_convective_radiative_latent_electric_load</span><span class="p">()</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;1C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_ISO13790</span><span class="p">,</span>
+                    <span class="s2">&quot;2C&quot;</span><span class="p">:</span> <span class="n">tz</span><span class="o">.</span><span class="n">calculate_zone_loads_VDI6007</span>
+                <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">add_infiltration</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">infiltration</span><span class="p">[</span><span class="s1">&#39;infiltration&#39;</span><span class="p">])</span>
-            <span class="n">tz</span><span class="o">.</span><span class="n">calc_infiltration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
+                <span class="n">tz</span><span class="o">.</span><span class="n">add_temperature_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;temperature_setpoint&#39;</span><span class="p">])</span>
+                <span class="n">tz</span><span class="o">.</span><span class="n">add_humidity_setpoint</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">zone_system</span><span class="p">[</span><span class="s1">&#39;humidity_setpoint&#39;</span><span class="p">])</span>
 
-            <span class="n">ahu</span> <span class="o">=</span> <span class="n">AirHandlingUnit</span><span class="p">(</span>
-                <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ahu Bd </span><span class="si">{</span><span class="n">building_info</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="n">mechanical_vent</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ventilation_flow_rate&#39;</span><span class="p">],</span>
-                <span class="n">supply_temperature</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature&#39;</span><span class="p">],</span>
-                <span class="n">supply_specific_humidity</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_humidity&#39;</span><span class="p">],</span>
-                <span class="n">ahu_operation</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_availability&#39;</span><span class="p">],</span>
-                <span class="n">humidity_control</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_humidity_control&#39;</span><span class="p">],</span>
-                <span class="n">sensible_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_sensible_heat_recovery&#39;</span><span class="p">],</span>
-                <span class="n">latent_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_latent_heat_recovery&#39;</span><span class="p">],</span>
-                <span class="n">outdoor_air_ratio</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;outdoor_air_ratio&#39;</span><span class="p">],</span>
-                <span class="n">weather</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span>
-                <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">tz</span><span class="p">,</span>
-            <span class="p">)</span>
+                <span class="n">tz</span><span class="o">.</span><span class="n">add_infiltration</span><span class="p">(</span><span class="n">use</span><span class="o">.</span><span class="n">infiltration</span><span class="p">[</span><span class="s1">&#39;infiltration&#39;</span><span class="p">])</span>
+                <span class="n">tz</span><span class="o">.</span><span class="n">calc_infiltration</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span>
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">design_sensible_cooling_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
-            <span class="n">tz</span><span class="o">.</span><span class="n">design_heating_load</span><span class="p">(</span><span class="o">-</span><span class="mf">5.</span><span class="p">)</span>
+                <span class="n">ahu</span> <span class="o">=</span> <span class="n">AirHandlingUnit</span><span class="p">(</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;ahu Bd </span><span class="si">{</span><span class="n">building_info</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">mechanical_vent</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ventilation_flow_rate&#39;</span><span class="p">],</span>
+                    <span class="n">supply_temperature</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_temperature&#39;</span><span class="p">],</span>
+                    <span class="n">supply_specific_humidity</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_supply_humidity&#39;</span><span class="p">],</span>
+                    <span class="n">ahu_operation</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_availability&#39;</span><span class="p">],</span>
+                    <span class="n">humidity_control</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_humidity_control&#39;</span><span class="p">],</span>
+                    <span class="n">sensible_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_sensible_heat_recovery&#39;</span><span class="p">],</span>
+                    <span class="n">latent_heat_recovery_eff</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;ahu_latent_heat_recovery&#39;</span><span class="p">],</span>
+                    <span class="n">outdoor_air_ratio</span> <span class="o">=</span> <span class="n">use</span><span class="o">.</span><span class="n">air_handling_unit_system</span><span class="p">[</span><span class="s1">&#39;outdoor_air_ratio&#39;</span><span class="p">],</span>
+                    <span class="n">weather</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span>
+                    <span class="n">thermal_zone</span> <span class="o">=</span> <span class="n">tz</span><span class="p">,</span>
+                <span class="p">)</span>
+                
 
-            <span class="n">tz</span><span class="o">.</span><span class="n">add_domestic_hot_water</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">use</span><span class="o">.</span><span class="n">domestic_hot_water</span><span class="p">[</span><span class="s1">&#39;domestic_hot_water&#39;</span><span class="p">])</span>
-
+                <span class="n">tz</span><span class="o">.</span><span class="n">design_sensible_cooling_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">building_model</span><span class="p">)</span>
+                
+                <span class="n">tz</span><span class="o">.</span><span class="n">design_heating_load</span><span class="p">(</span><span class="o">-</span><span class="mf">5.</span><span class="p">)</span>
+                
+                <span class="n">tz</span><span class="o">.</span><span class="n">add_domestic_hot_water</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">use</span><span class="o">.</span><span class="n">domestic_hot_water</span><span class="p">[</span><span class="s1">&#39;domestic_hot_water&#39;</span><span class="p">])</span>
+                
             <span class="n">building_obj</span><span class="o">.</span><span class="n">set_hvac_system</span><span class="p">(</span><span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Heating System&quot;</span><span class="p">],</span> <span class="n">building_info</span><span class="p">[</span><span class="s2">&quot;Cooling System&quot;</span><span class="p">])</span>
             <span class="n">building_obj</span><span class="o">.</span><span class="n">set_hvac_system_capacity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="City.simulate"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">print_single_building_results</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="c1"># print(f&quot;{int(100*iiii/jjjj)} %: load calc&quot;)</span>
+<div class="viewcode-block" id="City.simulate"><a class="viewcode-back" href="../../eureca_ubem.html#eureca_ubem.city.City.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">print_single_building_results</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">output_type</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulation of the whole city, and memorization and stamp of results.</span>
 
 <span class="sd">        Parameters</span>
@@ -571,7 +738,10 @@
 <span class="sd">        print_single_building_results : bool, default False</span>
 <span class="sd">            If True, the prints a file with time step results for each building.</span>
 <span class="sd">            USE CAREFULLY: It might fill a lot of disk space</span>
+<span class="sd">        output_type : str, default &#39;parquet&#39;</span>
+<span class="sd">            It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+       
         <span class="kn">import</span> <span class="nn">time</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="c1"># parallel simulation commented</span>
@@ -593,47 +763,91 @@
             <span class="s2">&quot;Electric consumption [Wh]&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Oil consumption [L]&quot;</span><span class="p">,</span>
             <span class="s2">&quot;Wood consumption [kg]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TZ sensible load [W]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TZ latent load [W]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TZ AHU pre heater load [W]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TZ AHU post heater load [W]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;TZ DHW demand [W]&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;PV production [Wh]&quot;</span>
         <span class="p">])</span>
         <span class="n">n_buildings</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">)</span>
         <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">bd_id</span><span class="p">,</span> <span class="n">building_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">counter</span><span class="o">%</span><span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2"> buildings simulated over </span><span class="si">{</span><span class="n">n_buildings</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2"> buildings simulated out of </span><span class="si">{</span><span class="n">n_buildings</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
 
-            <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_zone_info</span><span class="p">()</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">tz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">_thermal_zones_list</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;TZ </span><span class="si">{</span><span class="n">tz</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tz</span><span class="o">.</span><span class="n">get_zone_info</span><span class="p">()</span>
             <span class="n">info</span><span class="p">[</span><span class="s2">&quot;Name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
             <span class="k">if</span> <span class="n">print_single_building_results</span><span class="p">:</span>
-                <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">output_folder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">output_folder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">output_type</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildings_objects</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weather_file</span><span class="p">,</span> <span class="n">output_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
             <span class="n">results</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+
+            <span class="n">demand</span> <span class="o">=</span> <span class="n">results</span><span class="p">[[</span><span class="s2">&quot;TZ sensible load [W]&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;TZ latent load [W]&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;TZ AHU pre heater load [W]&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;TZ AHU post heater load [W]&quot;</span><span class="p">,</span>
+                              <span class="s2">&quot;TZ DHW demand [W]&quot;</span><span class="p">]]</span>
+
+            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">demand</span><span class="p">[</span><span class="n">demand</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+            <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Cooling Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">demand</span><span class="p">[</span><span class="n">demand</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
             <span class="n">monthly</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s2">&quot;M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="n">heat_demand</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[</span><span class="s2">&quot;Heating Demand [Wh]&quot;</span><span class="p">]</span>
+            <span class="n">cooling_demand</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[</span><span class="s2">&quot;Cooling Demand [Wh]&quot;</span><span class="p">]</span>
             <span class="n">gas_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;gas consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">el_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;electric consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">oil_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;oil consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">wood_consumption</span> <span class="o">=</span> <span class="n">monthly</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">monthly</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;wood consumption&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">heat_demand</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_demand</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">cooling_demand</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cooling_demand</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">gas_consumption</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">el_consumption</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el_consumption</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">oil_consumption</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">oil_consumption</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">wood_consumption</span><span class="p">[</span><span class="s2">&quot;Total&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wood_consumption</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
-                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">oil_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wood_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;Total&quot;</span><span class="p">:</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">oil_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wood_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Heating Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_demand</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> Cooling Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cooling_demand</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gas_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">el_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">oil_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wood_consumption</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> Heating Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">heat_demand</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">info</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">month_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> Cooling Demand [Wh]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cooling_demand</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
             <span class="n">final_results</span><span class="p">[</span><span class="n">bd_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
             <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Gas consumption [Nm3]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system gas consumption [Nm3]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Oil consumption [L]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system oil consumption [L]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Wood consumption [kg]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system wood consumption [kg]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;Electric consumption [Wh]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Heating system electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> \
                                                                     <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Cooling system electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> \
-                                                                    <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Appliances electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+                                                                    <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;Appliances electric consumption [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> \
+                                                                    <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;AHU electric consumption [Wh]&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;TZ sensible load [W]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;TZ sensible load [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;TZ latent load [W]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;TZ latent load [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;TZ AHU pre heater load [W]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;TZ AHU pre heater load [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;TZ AHU post heater load [W]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;TZ AHU post heater load [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;TZ DHW demand [W]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;TZ DHW demand [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">district_hourly_results</span><span class="p">[</span><span class="s2">&quot;PV production [Wh]&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;PV production [Wh]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
 
 
+        <span class="n">district_hourly_results</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;District_hourly_summary.csv&quot;</span><span class="p">),</span> <span class="n">sep</span> <span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
         <span class="n">bd_summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">final_results</span><span class="p">,</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;index&quot;</span><span class="p">)</span>
-        <span class="n">bd_summary</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;Buildings_summary.csv&quot;</span><span class="p">))</span>
+        <span class="c1"># bd_summary.to_csv(os.path.join(self.output_folder,&quot;Buildings_summary.csv&quot;), sep =&quot;;&quot;)</span>
         <span class="n">bd_summary</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;Name&quot;</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;new_id&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
         <span class="n">new_geojson</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">output_geojson</span><span class="p">,</span><span class="n">bd_summary</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">new_geojson</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;Buildings_summary.geojson&quot;</span><span class="p">),</span> <span class="n">driver</span> <span class="o">=</span> <span class="s2">&quot;GeoJSON&quot;</span><span class="p">)</span>
-        <span class="n">district_hourly_results</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span><span class="s2">&quot;District_hourly_summary.csv&quot;</span><span class="p">))</span>
+        <span class="n">new_geojson</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_folder</span><span class="p">,</span> <span class="s2">&quot;Buildings_summary.csv&quot;</span><span class="p">),</span> <span class="n">sep</span> <span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
 
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Standard simulation : </span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="o">/</span><span class="mi">60</span><span class="si">:</span><span class="s2">0.2f</span><span class="si">}</span><span class="s2"> min&quot;</span><span class="p">)</span></div>
 
@@ -650,19 +864,36 @@
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results</span>
 <span class="sd">        Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-
+        
         <span class="n">toll_az</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">toll_dist</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">toll_theta</span> <span class="o">=</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">urban_shading_tolerances</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
         <span class="c1"># Each surface is compared with all the others</span>
+        <span class="c1"># qqq=len(self.__city_surfaces)</span>
+        <span class="c1"># qqqq=qqq*(qqq-1)/2</span>
+        <span class="c1"># iiii=0</span>
+        <span class="c1"># jjjj=0</span>
+        <span class="n">list_of_centroids</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">_centroid</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">]</span>
+        <span class="n">plg_kdtree</span><span class="o">=</span><span class="n">cKDTree</span><span class="p">(</span><span class="n">list_of_centroids</span><span class="p">)</span>
+        <span class="n">max_number_of_neighborhoods</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">500</span> <span class="k">else</span> <span class="mi">500</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
-            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
+            <span class="c1"># jjjj=jjjj+1</span>
+            <span class="c1"># print(f&quot;{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry&quot;)</span>
+           
+            <span class="c1"># Function to filter using scipy the nearest points (centroids)</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">filtered_indices</span> <span class="o">=</span> <span class="n">plg_kdtree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">list_of_centroids</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="n">max_number_of_neighborhoods</span><span class="p">)</span>
+            
+            <span class="c1"># iiiii=0</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">filtered_indices</span><span class="p">:</span>
+                <span class="c1"># iiii=iiii+1</span>
+                <span class="c1"># iiiii=iiiii+1</span>
+                <span class="c1"># print(f&quot; {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}&quot;)</span>
 
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
-                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
                 <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
@@ -681,9 +912,15 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">intersectionArea</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">reduce_area</span><span class="p">(</span><span class="n">intersectionArea</span><span class="p">)</span>
 
+                <span class="c1"># print(f&quot; {int(iiii/jjjj)*100} percent: geometry&quot;)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">=</span> <span class="p">[]</span>
+
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shading_calculation</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">dist</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-                        <span class="k">pass</span>
+                        <span class="n">theta</span><span class="o">=</span><span class="mi">0</span>
                     <span class="k">else</span><span class="p">:</span>
 
                         <span class="c1"># Calculation of the vector direction between the centroids of the two surfaces under examination</span>
@@ -765,10 +1002,14 @@
             <span class="c1"># SECTION 2: Calculation of the shading effect</span>
             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">)):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coefficient</span> <span class="o">=</span> <span class="mf">1.</span>
+                <span class="c1"># iiiii=0</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span> <span class="o">!=</span> <span class="p">[]:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_calculation</span> <span class="o">=</span> <span class="s1">&#39;On&#39;</span>
                     <span class="n">shading</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">)):</span>
+                        <span class="c1"># iiii=iiii+1</span>
+                        <span class="c1"># iiiii=iiiii+1</span>
+                        <span class="c1"># print(f&quot; {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}&quot;)</span>
 
                         <span class="n">distance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                         <span class="n">surface_opposite_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__city_surfaces</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">.</span><span class="n">shading_coupled_surfaces</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>

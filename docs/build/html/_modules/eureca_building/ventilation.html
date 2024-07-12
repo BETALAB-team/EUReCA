@@ -189,7 +189,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Ventilation._get_absolute_value_nominal"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.Ventilation._get_absolute_value_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns ventilation nominal value in kg/s. This method might be overridden by a child class</span>
 
 <span class="sd">        Parameters</span>
@@ -215,7 +215,7 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Ventilation object  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, unit must be chosen from: </span><span class="si">{</span><span class="n">ventilation_prop</span><span class="p">[</span><span class="s1">&#39;infiltration&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Ventilation.get_air_flow_rate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.Ventilation.get_air_flow_rate">[docs]</a>    <span class="k">def</span> <span class="nf">get_air_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns ventilation air flow rate in kg/s. This method might be overridden by a child class</span>
@@ -293,6 +293,7 @@
         <span class="n">air</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_air_flow_rate</span><span class="p">(</span><span class="n">area</span><span class="o">=</span><span class="n">area</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="n">volume</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">air</span><span class="p">,</span> <span class="n">vapuor</span></div></div>
 
+
 <div class="viewcode-block" id="Infiltration"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.Infiltration">[docs]</a><span class="k">class</span> <span class="nc">Infiltration</span><span class="p">(</span><span class="n">Ventilation</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;This is just an inherited version of the Ventilation class, without any change</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -311,6 +312,7 @@
             <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">surfaces_with_opening</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">weather</span><span class="p">:</span> <span class="n">WeatherFile</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">vol_flow_limit</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Init method. Call the Ventilation super() init and then store few more input</span>
 
@@ -330,11 +332,24 @@
 <span class="sd">            list of eureca_building.surface.Surface objects (those considered for the natural ventilation purposes</span>
 <span class="sd">        weather : eureca_building.weather.WeatherFile</span>
 <span class="sd">            Weather object</span>
+<span class="sd">        vol_flow_limit : float</span>
+<span class="sd">            Limit to natural vent in m3/s</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">unit</span><span class="p">,</span><span class="n">nominal_value</span><span class="p">,</span><span class="n">schedule</span><span class="p">,</span><span class="n">tag</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_windows_opening</span><span class="p">()</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">weather</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">surfaces_with_opening</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">define_pressure_coef</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span> <span class="n">surfaces_with_opening</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">define_pressure_coef</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span> <span class="n">surfaces_with_opening</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">vol_flow_limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">vol_flow_limit</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vol_flow_limit</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ventilation object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, maximum air flow rate not number or numeric string: </span><span class="si">{</span><span class="n">vol_flow_limit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ventilation object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, maximum air flow rate not float: </span><span class="si">{</span><span class="n">vol_flow_limit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vol_flow_limit</span> <span class="o">=</span> <span class="n">vol_flow_limit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vol_flow_limit</span> <span class="o">=</span> <span class="mf">1e15</span></div>
                 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -374,7 +389,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NaturalVentilation._get_absolute_value_nominal"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation._get_absolute_value_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns natural ventilation nominal value in kg/s. Overrides the parent class method</span>
 
 <span class="sd">        Parameters</span>
@@ -395,7 +410,7 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Natural Ventilation object  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, unit must be chosen from: </span><span class="si">{</span><span class="n">ventilation_prop</span><span class="p">[</span><span class="s1">&#39;natural&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div>
 
 <div class="viewcode-block" id="NaturalVentilation.get_air_flow_rate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation.get_air_flow_rate">[docs]</a>    <span class="k">def</span> <span class="nf">get_air_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Not implemented for Natural Ventilation</span>
@@ -412,7 +427,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Class Natural Ventilation: get_flow_rate method not implmented&quot;</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_windows_opening</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<div class="viewcode-block" id="NaturalVentilation._get_windows_opening"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation._get_windows_opening">[docs]</a>    <span class="k">def</span> <span class="nf">_get_windows_opening</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calc the windows opening from the input schedule in 0-1 range</span>
 
 <span class="sd">        Returns</span>
@@ -425,7 +440,7 @@
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_get_absolute_value_nominal</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">windows_opening</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value_absolute</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">schedule</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">windows_opening</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">windows_opening</span></div>
 
 <div class="viewcode-block" id="NaturalVentilation.define_pressure_coef"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.NaturalVentilation.define_pressure_coef">[docs]</a>    <span class="k">def</span> <span class="nf">define_pressure_coef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">surfaces_with_opening</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;TODO : Per Giacomo compila la documentazione</span>
@@ -491,23 +506,35 @@
 <span class="sd">            zone temperature [°C]</span>
 <span class="sd">        weather : eureca_building.weather.WeatherFile</span>
 <span class="sd">            WeatherFile object</span>
+<span class="sd">        vol_flow_limit : float</span>
+<span class="sd">            Upper limit for the NV flow rate [m3/s]</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        float</span>
+<span class="sd">            NV air flow rate [m3/s]</span>
+<span class="sd">            </span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># To be completed and commented</span>
         
         <span class="n">opening_percentage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">windows_opening</span><span class="p">[</span><span class="n">ts</span><span class="p">]</span>
-        
+        <span class="c1"># Avoid singularity in neutral plane calc</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">ts</span><span class="p">]</span> <span class="o">-</span> <span class="n">t_zone</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">0.2</span><span class="p">:</span>
+            <span class="n">__t_zone__</span> <span class="o">=</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">ts</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">__t_zone__</span> <span class="o">=</span> <span class="n">t_zone</span>
         <span class="n">a_coeff</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">*</span> <span class="n">opening_percentage</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">]</span>
-        <span class="n">b_coeff</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">t_zone</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">ts</span><span class="p">])</span><span class="o">*</span><span class="n">gravitational_acceleration</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">t_zone</span> <span class="o">+</span><span class="mf">273.15</span><span class="p">)</span>   <span class="c1"># Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate</span>
+        <span class="n">b_coeff</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">__t_zone__</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">ts</span><span class="p">])</span><span class="o">*</span><span class="n">gravitational_acceleration</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">__t_zone__</span> <span class="o">+</span><span class="mf">273.15</span><span class="p">)</span>   <span class="c1"># Coeff b = 2*(t_zona - t_esterna)*g/t_zona for calculation of natural ventilation flow rate</span>
         <span class="n">c_coeff</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">_c_coeff</span><span class="p">[</span><span class="n">ts</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">]</span>
         
         <span class="n">z_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">))</span>
         <span class="n">vol_flow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">)])</span>
         <span class="n">vol_flow_sopra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">))</span>
+        <span class="n">vol_inflow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">))</span>
+        <span class="n">vol_outflow</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">floor</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">)):</span>
             <span class="n">h_top</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">_h_top_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">]</span>
             <span class="n">h_bottom</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">]</span>
-            
-            <span class="c1">#if abs(weather.hourly_data[&quot;out_air_db_temperature&quot;][ts] - t_zone) &gt;= 0.1:</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">fsolve</span><span class="p">(</span><span class="n">calc_neutral_plane_nat_vent</span><span class="p">,</span> <span class="mf">5.</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">a_coeff</span><span class="p">,</span> <span class="n">b_coeff</span><span class="p">,</span> <span class="n">c_coeff</span><span class="p">,</span> <span class="n">h_top</span><span class="p">,</span> <span class="n">h_bottom</span><span class="p">))</span>
             <span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="c1"># else:</span>
@@ -515,14 +542,33 @@
             <span class="c1"># z_n[floor] = np.nan</span>
             
 
+            <span class="c1"># i = 0</span>
+            <span class="c1"># for s in self.surfaces_with_opening:</span>
+            <span class="c1">#     #if s._h_bottom_windows[floor] &lt; z_n[floor]:</span>
+
+            <span class="c1">#     vol_flow[floor][i] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)</span>
+            <span class="c1">#     #if s._h_top_windows[floor] &lt; z_n[floor]:</span>
+            <span class="c1">#     vol_flow[floor][i] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)</span>
+            <span class="c1">#     i+=1</span>
+            
             <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces_with_opening</span><span class="p">:</span>
-                <span class="c1">#if s._h_bottom_windows[floor] &lt; z_n[floor]:</span>
-
                 <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">s</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">*</span> <span class="n">opening_percentage</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b_coeff</span><span class="o">*</span><span class="p">(</span><span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">])</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="n">_c_coeff</span><span class="p">[</span><span class="n">ts</span><span class="p">]))</span><span class="o">**</span><span class="p">(</span><span class="mi">3</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">b_coeff</span><span class="p">)</span>
-                <span class="c1">#if s._h_top_windows[floor] &lt; z_n[floor]:</span>
                 <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">s</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">*</span> <span class="n">opening_percentage</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b_coeff</span><span class="o">*</span><span class="p">(</span><span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_top_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">])</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="n">_c_coeff</span><span class="p">[</span><span class="n">ts</span><span class="p">]))</span><span class="o">**</span><span class="p">(</span><span class="mi">3</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">b_coeff</span><span class="p">)</span>
-                <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+                <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_top_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">]:</span>
+                    <span class="n">vol_inflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="mi">2</span><span class="o">*</span><span class="n">s</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">*</span> <span class="n">opening_percentage</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b_coeff</span><span class="o">*</span><span class="p">(</span><span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">])</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="n">_c_coeff</span><span class="p">[</span><span class="n">ts</span><span class="p">]))</span><span class="o">**</span><span class="p">(</span><span class="mi">3</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">b_coeff</span><span class="p">))</span>
+                    <span class="n">vol_outflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">s</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">*</span> <span class="n">opening_percentage</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b_coeff</span><span class="o">*</span><span class="p">(</span><span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">-</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_top_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">])</span> <span class="o">+</span> <span class="n">s</span><span class="o">.</span><span class="n">_c_coeff</span><span class="p">[</span><span class="n">ts</span><span class="p">]))</span><span class="o">**</span><span class="p">(</span><span class="mi">3</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">b_coeff</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">z_n</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">s</span><span class="o">.</span><span class="n">_h_bottom_windows</span><span class="p">[</span><span class="n">floor</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">vol_inflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">vol_outflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">vol_inflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">vol_outflow</span><span class="p">[</span><span class="n">floor</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vol_flow</span><span class="p">[</span><span class="n">floor</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
             <span class="c1"># vol_flow_sopra[floor] = 0</span>
             <span class="c1"># for s in self.surfaces_with_opening:</span>
@@ -530,11 +576,15 @@
             <span class="c1">#         vol_flow_sopra[floor] -= (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_bottom_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)</span>
             <span class="c1">#     if s._h_top_windows[floor] &gt; z_n[floor]:</span>
             <span class="c1">#         vol_flow_sopra[floor] += (2*s._a_coeff * opening_percentage*(np.abs(b_coeff*(z_n[floor] - s._h_top_windows[floor]) + s._c_coeff[ts]))**(3/2)) / (3*b_coeff)</span>
-                
-            
-        <span class="k">return</span> <span class="n">z_n</span><span class="p">,</span> <span class="n">vol_flow</span><span class="p">,</span> <span class="n">vol_flow_sopra</span></div></div>
-
-
+        <span class="c1"># vol_flow_tot = vol_flow.sum()</span>
+        <span class="n">vol_inflow_tot</span> <span class="o">=</span> <span class="n">vol_inflow</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vol_inflow_tot</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_flow_limit</span><span class="p">:</span>
+            <span class="n">vol_inflow_tot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol_flow_limit</span>
+        <span class="c1"># vol_outflow_tot = vol_outflow.sum()</span>
+        <span class="c1"># mass_flow_tot = vol_flow_tot * air_properties[&quot;density&quot;] # kg/s</span>
+        <span class="c1"># vapour_flow_tot = mass_flow_tot * weather.hourly_data[&quot;out_air_specific_humidity&quot;][ts] # kg_vap/s</span>
+        <span class="c1"># return mass_flow_tot, z_n, vol_inflow_tot, vol_outflow_tot, vol_flow #, vapour_flow_tot</span>
+        <span class="k">return</span> <span class="n">vol_inflow_tot</span></div></div>
 
 <div class="viewcode-block" id="MechanicalVentilation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.MechanicalVentilation">[docs]</a><span class="k">class</span> <span class="nc">MechanicalVentilation</span><span class="p">(</span><span class="n">Ventilation</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The same as Natural/Ventilation object but different check on units</span>
@@ -554,7 +604,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MechanicalVentilation._get_absolute_value_nominal"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.ventilation.MechanicalVentilation._get_absolute_value_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">volume</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calcs ventilation nominal value in kg/s. This method overrides the parent class method</span>
 
 <span class="sd">        Parameters</span>
@@ -580,7 +630,7 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Ventilation object  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, unit must be chosen from: </span><span class="si">{</span><span class="n">ventilation_prop</span><span class="p">[</span><span class="s1">&#39;mechanical&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span></div>
+            <span class="p">)</span></div></div>
 </pre></div>
 
            </div>

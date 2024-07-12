@@ -106,6 +106,23 @@
 
 
 <span class="c1"># %% Surface class</span>
+<div class="viewcode-block" id="delete_duplicates"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.delete_duplicates">[docs]</a><span class="k">def</span> <span class="nf">delete_duplicates</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+
+    <span class="c1"># initialize a null list</span>
+    <span class="n">unique_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># traverse for all elements</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+        <span class="c1"># check if exists in unique_list or not</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">unique_list</span><span class="p">:</span>
+            <span class="n">unique_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="c1"># seen = set()</span>
+    <span class="c1"># for item in lst:</span>
+    <span class="c1">#     # Convert the inner list to a tuple before checking for uniqueness</span>
+    <span class="c1">#     item_tuple = tuple(item)</span>
+    <span class="c1">#     seen.add(item_tuple)</span>
+    <span class="k">return</span> <span class="n">unique_list</span></div>
+
 
 
 <div class="viewcode-block" id="Surface"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface">[docs]</a><span class="k">class</span> <span class="nc">Surface</span><span class="p">:</span>
@@ -125,6 +142,49 @@
     
     <span class="n">_discharge_coefficient_nat_vent</span> <span class="o">=</span> <span class="mf">0.6</span>
 
+<div class="viewcode-block" id="Surface.from_area_azimuth_height"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.from_area_azimuth_height">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_area_azimuth_height</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">area</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+            <span class="n">height</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+            <span class="n">azimuth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+            <span class="n">wwr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">subdivisions_solar_calc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">surface_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">construction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="p">):</span>
+        <span class="n">phi_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">phi_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="o">-</span><span class="n">azimuth</span><span class="p">)</span>
+
+        <span class="n">R_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_x</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_x</span><span class="p">)],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_x</span><span class="p">)]])</span>
+        <span class="n">R_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_z</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_z</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_z</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_z</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+        <span class="n">resize_factor</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">square_l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">area</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">resize_factor</span> <span class="o">*</span> <span class="n">square_l</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">resize_factor</span> <span class="o">*</span> <span class="n">square_l</span><span class="p">,</span> <span class="n">square_l</span> <span class="o">/</span> <span class="n">resize_factor</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">square_l</span> <span class="o">/</span> <span class="n">resize_factor</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="p">])</span>
+
+        <span class="n">v_</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">R_z</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">R_x</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">vertices</span><span class="o">=</span><span class="n">v_</span><span class="p">,</span>
+            <span class="n">wwr</span> <span class="o">=</span> <span class="n">wwr</span><span class="p">,</span>
+            <span class="n">subdivisions_solar_calc</span><span class="o">=</span><span class="n">subdivisions_solar_calc</span><span class="p">,</span>
+            <span class="n">surface_type</span><span class="o">=</span><span class="n">surface_type</span><span class="p">,</span>
+            <span class="n">construction</span><span class="o">=</span><span class="n">construction</span><span class="p">,</span>
+            <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+            <span class="n">n_window_layers</span> <span class="o">=</span> <span class="n">n_window_layers</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">s</span></div>
+
 <div class="viewcode-block" id="Surface.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -134,7 +194,9 @@
             <span class="n">surface_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">construction</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">h_window</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+            <span class="n">h_bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates the surface object. Checks all the inputs using properties setter methods</span>
 
@@ -163,6 +225,8 @@
 <span class="sd">            the construction object with the materials</span>
 <span class="sd">        window : eureca_building.window.SimpleWindow</span>
 <span class="sd">            the Window object with the materials</span>
+<span class="sd">       </span>
+<span class="sd">        TODO: Inserire gli ultimi 3 input</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -209,7 +273,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">window</span>
             
         <span class="c1"># Window layout for natural ventilation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_define_windows_layout</span><span class="p">(</span><span class="n">n_window_layers</span><span class="o">=</span><span class="n">n_window_layers</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_define_windows_layout</span><span class="p">(</span><span class="n">n_window_layers</span><span class="o">=</span><span class="n">n_window_layers</span><span class="p">,</span> <span class="n">h_window</span><span class="o">=</span><span class="n">h_window</span><span class="p">,</span> <span class="n">h_bottom</span><span class="o">=</span><span class="n">h_bottom</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
@@ -217,6 +281,7 @@
 
     <span class="nd">@_vertices</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">_vertices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">delete_duplicates</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
@@ -242,10 +307,10 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. One vertex contains non float values: </span><span class="si">{</span><span class="n">vtx</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
-            <span class="c1"># Check coplanarity</span>
+        <span class="c1"># Check coplanarity</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">check_complanarity</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">NonPlanarSurface</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Non planar points&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">check_complanarity</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">NonPlanarSurface</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. Non planar points&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__vertices</span> <span class="o">=</span> <span class="n">value</span>
 
     <span class="nd">@property</span>
@@ -391,7 +456,7 @@
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, window must be a SimpleWindow object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_window</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surface._set_azimuth_and_zenith"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface._set_azimuth_and_zenith">[docs]</a>    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate azimuth and zenith</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -430,9 +495,9 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">=</span> <span class="o">-</span><span class="mi">180</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
                             <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                        <span class="p">)</span>
+                        <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wwr</span><span class="p">):</span>
+<div class="viewcode-block" id="Surface._calc_glazed_and_opaque_areas"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface._calc_glazed_and_opaque_areas">[docs]</a>    <span class="k">def</span> <span class="nf">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wwr</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate glazed and opaque ares</span>
 
 <span class="sd">        Parameters</span>
@@ -442,9 +507,9 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_opaque_area</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">wwr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span> <span class="o">=</span> <span class="n">wwr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span> <span class="o">=</span> <span class="n">wwr</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span></div>
         
-    <span class="k">def</span> <span class="nf">_define_windows_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="Surface._define_windows_layout"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface._define_windows_layout">[docs]</a>    <span class="k">def</span> <span class="nf">_define_windows_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_window_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h_window</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">h_bottom</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;USED FOR NATURAL VENTILATION</span>
 <span class="sd">        Defines the windows layout (sill height, width, number, ...)</span>
 
@@ -452,18 +517,21 @@
 <span class="sd">        ----------</span>
 <span class="sd">        n_window_layers : int, default 1</span>
 <span class="sd">            Number of rows to consider</span>
+<span class="sd">            </span>
+<span class="sd">        TODO: Inserire i parametri mancanti della function</span>
+<span class="sd">            </span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">_h_window_default</span> <span class="o">=</span> <span class="mf">1.5</span>
+        <span class="n">_h_window_default</span> <span class="o">=</span> <span class="n">h_window</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_window_layers</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: number of window layers is not an integer: n_window_layers </span><span class="si">{</span><span class="n">n_window_layers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">area_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_glazed_area</span><span class="o">/</span><span class="n">n_window_layers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_w_window</span> <span class="o">=</span> <span class="n">area_layer</span><span class="o">/</span><span class="n">_h_window_default</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_h_window</span> <span class="o">=</span> <span class="n">_h_window_default</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_h_bottom_windows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.2</span> <span class="o">+</span> <span class="n">n</span><span class="o">*</span><span class="mf">3.3</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_window_layers</span><span class="p">)])</span>       
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h_bottom_windows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">h_bottom</span> <span class="o">+</span> <span class="n">n</span><span class="o">*</span><span class="mf">3.3</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_window_layers</span><span class="p">)])</span>       
         <span class="bp">self</span><span class="o">.</span><span class="n">_h_top_windows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h_bottom_windows</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h_window</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discharge_coefficient_nat_vent</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_w_window</span>   <span class="c1"># Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_a_coeff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discharge_coefficient_nat_vent</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_w_window</span>   <span class="c1"># Coeff a = discharge coeff * width window for calculation of natural ventilation flow rate</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith_solar_radiation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surface._set_azimuth_and_zenith_solar_radiation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface._set_azimuth_and_zenith_solar_radiation">[docs]</a>    <span class="k">def</span> <span class="nf">_set_azimuth_and_zenith_solar_radiation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to calculate rounded azimuth and zenith</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Azimuth and tilt approximation</span>
@@ -481,6 +549,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_sky_view_factor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">2</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Only to avoid errors</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_sky_view_factor</span><span class="o">=</span><span class="mi">1</span> <span class="c1"># Also to avoid errors                </span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">180</span> <span class="o">-</span> <span class="n">delta_a</span><span class="p">,</span> <span class="mi">180</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_a</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_a</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&gt;=</span> <span class="n">y</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span> <span class="o">&lt;</span> <span class="n">y</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
@@ -488,9 +557,9 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">==</span> <span class="mi">180</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="o">-</span><span class="mi">180</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height_round</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_azimuth_round</span> <span class="o">=</span> <span class="mi">0</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_auto_surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surface._set_auto_surface_type"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface._set_auto_surface_type">[docs]</a>    <span class="k">def</span> <span class="nf">_set_auto_surface_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Uses tilt to autoset surface type.</span>
 <span class="sd">        tilt &gt; 150 --&gt; GroundFloor</span>
 <span class="sd">        tilt &lt; 40 --&gt; Roof</span>
@@ -503,7 +572,7 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_height</span> <span class="o">&gt;</span> <span class="mi">150</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;GroundFloor&quot;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;ExtWall&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">=</span> <span class="s2">&quot;ExtWall&quot;</span></div>
 
 <div class="viewcode-block" id="Surface.max_height"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.max_height">[docs]</a>    <span class="k">def</span> <span class="nf">max_height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates max height from the most high vertex</span>
@@ -659,7 +728,43 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">-</span> <span class="n">area_to_reduce</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="mf">0.0000001</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span><span class="p">)</span> <span class="c1"># This runs again the glazed and opaque calculation</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span><span class="p">)</span> <span class="c1"># This runs again the glazed and opaque calculation</span></div>
+
+<div class="viewcode-block" id="Surface.apply_ext_surf_coeff"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.apply_ext_surf_coeff">[docs]</a>    <span class="k">def</span> <span class="nf">apply_ext_surf_coeff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ext_wall_correction_coef</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Reduces the area of the surface by an input correction coeffienct</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ext_wall_correction_coef : float</span>
+<span class="sd">            the factor to multiply [-] to the total area</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check Input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ext_wall_correction_coef</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ext_wall_correction_coef</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ext_wall_correction_coef</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ext_wall_correction_coef</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;ERROR Surface class, surface </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, apply_ext_surf_coeff. The factor is not a positive float: factor </span><span class="si">{</span><span class="n">ext_wall_correction_coef</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Area reduction</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">*</span> <span class="n">ext_wall_correction_coef</span> <span class="o">&gt;</span> <span class="mf">0.0000001</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">*</span> <span class="n">ext_wall_correction_coef</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_area</span> <span class="o">=</span> <span class="mf">0.0000001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calc_glazed_and_opaque_areas</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span><span class="p">)</span> <span class="c1"># This runs again the glazed and opaque calculation</span></div>
+
+<div class="viewcode-block" id="Surface.__str__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.surface.Surface.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Name: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span>
+<span class="s2">    Type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">surface_type</span><span class="si">}</span>
+<span class="s2">    Azimuth: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_azimuth</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span>
+<span class="s2">    Height: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_height</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span>
+<span class="s2">    U value: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">construction</span><span class="o">.</span><span class="n">_u_value</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span>
+<span class="s2">    Area: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_area</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_wwr</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2"> glazed)</span>
+<span class="s2">&quot;&quot;&quot;</span></div></div>
 
 <span class="c1"># %%---------------------------------------------------------------------------------------------------</span>
 <span class="c1"># %% SurfaceInternalMass class</span>

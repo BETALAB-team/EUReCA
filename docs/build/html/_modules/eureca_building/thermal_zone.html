@@ -80,9 +80,11 @@
 <span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
 <span class="c1">#import matplotlib.pyplot as plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="c1"># import pandas as pd</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">interpolate</span>
 
@@ -92,9 +94,10 @@
 <span class="kn">from</span> <span class="nn">eureca_building._VDI6007_auxiliary_functions</span> <span class="kn">import</span> <span class="n">impedence_parallel</span><span class="p">,</span> <span class="n">tri2star</span><span class="p">,</span> <span class="n">long_wave_radiation</span><span class="p">,</span> <span class="n">loadHK</span>
 <span class="kn">from</span> <span class="nn">eureca_building.internal_load</span> <span class="kn">import</span> <span class="n">Lights</span><span class="p">,</span> <span class="n">ElectricLoad</span><span class="p">,</span> <span class="n">People</span><span class="p">,</span> <span class="n">InternalLoad</span>
 <span class="kn">from</span> <span class="nn">eureca_building.ventilation</span> <span class="kn">import</span> <span class="n">NaturalVentilation</span><span class="p">,</span> <span class="n">Infiltration</span>
-<span class="kn">from</span> <span class="nn">eureca_building.air_handling_unit</span> <span class="kn">import</span> <span class="n">AirHandlingUnit</span>
+<span class="kn">from</span> <span class="nn">eureca_building.air_handling_unit</span> <span class="kn">import</span> <span class="n">AirHandlingUnit</span><span class="p">,</span> <span class="n">HeatRecoveryUnit</span>
 <span class="kn">from</span> <span class="nn">eureca_building.domestic_hot_water</span> <span class="kn">import</span> <span class="n">DomesticHotWater</span>
 <span class="kn">from</span> <span class="nn">eureca_building.weather</span> <span class="kn">import</span> <span class="n">WeatherFile</span>
+<span class="kn">from</span> <span class="nn">eureca_building._auxiliary_function_for_monthly_calc</span> <span class="kn">import</span> <span class="n">get_monthly_value_from_annual_vector</span>
 <span class="kn">from</span> <span class="nn">eureca_building.setpoints</span> <span class="kn">import</span> <span class="n">Setpoint</span>
 <span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Non3ComponentsVertex</span><span class="p">,</span>
@@ -127,7 +130,10 @@
 <span class="sd">            footprint area of the zone in m2. If None searches for a GroundFloor surface</span>
 <span class="sd">        volume : float, default None</span>
 <span class="sd">            volume of the zone in m3. If None sets 0 m3.</span>
-
+<span class="sd">        number_of_units : int, default 1</span>
+<span class="sd">            number of units/dwellings in the thermal zone (for DHW)</span>
+<span class="sd">        NV_ACH_limit : float, default None</span>
+<span class="sd">            maximum accepted ACH for the thermal zone in Vol/h. If None, leave None.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_surface_list</span> <span class="o">=</span> <span class="n">surface_list</span>
@@ -152,10 +158,11 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">internal_loads_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">domestic_hot_water_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">design_heating_system_power</span> <span class="o">=</span> <span class="mf">1e20</span>  <span class="c1"># W</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">design_cooling_system_power</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e20</span>  <span class="c1"># W</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">design_sensible_cooling_system_power</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e20</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;1C&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
             <span class="s1">&#39;2C&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span>
@@ -455,8 +462,40 @@
             <span class="n">infiltration_vapour_flow_rate</span> <span class="o">+=</span> <span class="n">vapour_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_air_flow_rate</span> <span class="o">=</span> <span class="n">infiltration_air_flow_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_vapour_flow_rate</span> <span class="o">=</span> <span class="n">infiltration_vapour_flow_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_air_flow_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;airflow_rate&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;kg/s&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                              <span class="s1">&#39;m3/s&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                              <span class="s1">&#39;L/s&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                              <span class="s1">&#39;m3/h&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                              <span class="s1">&#39;vol/h&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                              <span class="p">},</span>
+            <span class="s1">&#39;windows_opening&#39;</span> <span class="p">:</span> <span class="p">{</span><span class="s1">&#39;open_fraction&#39;</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps</span><span class="p">]),</span>
+                                 <span class="p">},</span>
+            <span class="p">}</span>
         <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;infiltration_air_flow_rate [kg/s]&#39;</span><span class="p">:</span> <span class="n">infiltration_air_flow_rate</span><span class="p">,</span>
                 <span class="s1">&#39;infiltration_vapour_flow_rate [kg/s]&#39;</span><span class="p">:</span> <span class="n">infiltration_vapour_flow_rate</span><span class="p">,</span> <span class="p">}</span></div>
+    
+<div class="viewcode-block" id="ThermalZone.add_natural_ventilation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.add_natural_ventilation">[docs]</a>    <span class="k">def</span> <span class="nf">add_natural_ventilation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">natural_ventilation</span><span class="p">,</span> <span class="n">weather</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to associate a natural ventilation object to the thermal zone</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        natural_ventilation : eureca_building.ventilation.NaturalVentilation</span>
+<span class="sd">            As many eureca_building.ventilation.NaturalVentilation can be provided</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">natural_ventilation</span><span class="p">,</span> <span class="n">NaturalVentilation</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ThermalZone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, add_infiltration() method: infiltrion not of Infiltration type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">natural_ventilation</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation</span> <span class="o">=</span> <span class="n">natural_ventilation</span>
+        <span class="n">ext_wall_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_surface_list</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">surface_type</span> <span class="o">==</span> <span class="s2">&quot;ExtWall&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation</span><span class="o">.</span><span class="n">define_pressure_coef</span><span class="p">(</span>
+            <span class="n">weather</span> <span class="o">=</span> <span class="n">weather</span><span class="p">,</span>
+            <span class="n">surfaces_with_opening</span> <span class="o">=</span> <span class="n">ext_wall_list</span><span class="p">,</span>
+        <span class="p">)</span></div>
+        
 
 <div class="viewcode-block" id="ThermalZone.add_air_handling_unit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.add_air_handling_unit">[docs]</a>    <span class="k">def</span> <span class="nf">add_air_handling_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ahu</span><span class="p">,</span> <span class="n">weather</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to associate an air_handling_unit object to the thermal zone</span>
@@ -468,7 +507,7 @@
 <span class="sd">        weather : eureca_building.weather.WeatherFile</span>
 <span class="sd">            WeatherFile object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span> <span class="o">=</span> <span class="p">(</span><span class="n">ahu</span><span class="p">,</span> <span class="n">weather</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span> <span class="o">=</span> <span class="n">ahu</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">air_handling_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AirHandlingUnit</span><span class="p">:</span>
@@ -476,13 +515,11 @@
 
     <span class="nd">@air_handling_unit</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">air_handling_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">AirHandlingUnit</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">AirHandlingUnit</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">AirHandlingUnit</span><span class="p">,</span> <span class="n">HeatRecoveryUnit</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Thermal zone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, air_handling_unit must be a AirHandlingUnit object&quot;</span>
             <span class="p">)</span>
-        <span class="n">ahu</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">weather</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_air_handling_unit</span> <span class="o">=</span> <span class="n">ahu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_air_handling_unit</span> <span class="o">=</span> <span class="n">value</span>
 
         <span class="c1"># mechanical_ventilation_air_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)</span>
         <span class="c1"># mechanical_ventilation_vapour_flow_rate = np.zeros(CONFIG.number_of_time_steps_year)</span>
@@ -530,7 +567,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">domestic_hot_water_volume_flow_rate</span> <span class="o">+=</span> <span class="n">volume</span>  <span class="c1"># m3/s</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">domestic_hot_water_demand</span> <span class="o">+=</span> <span class="n">demand</span>  <span class="c1"># W</span></div>
 
-    <span class="k">def</span> <span class="nf">_ISO13790_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ThermalZone._ISO13790_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone._ISO13790_params">[docs]</a>    <span class="k">def</span> <span class="nf">_ISO13790_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;Calculates the thermal zone parameters of the ISO 13790</span>
 <span class="sd">        it does not require input</span>
 
@@ -582,7 +619,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">Htr_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Am</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">htr_ms</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Htr_em</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_op</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_ms</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Htr_is</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_is</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Atot</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_op</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_op</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span></div>
 
 <div class="viewcode-block" id="ThermalZone.print_ISO13790_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.print_ISO13790_params">[docs]</a>    <span class="k">def</span> <span class="nf">print_ISO13790_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Just a beuty print of ISO 13790 parameters</span>
@@ -602,7 +639,7 @@
 <span class="s2">        Htr_op: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">Htr_op</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span>
 <span class="s2">        &quot;&quot;&quot;</span></div>
 
-    <span class="k">def</span> <span class="nf">_VDI6007_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ThermalZone._VDI6007_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone._VDI6007_params">[docs]</a>    <span class="k">def</span> <span class="nf">_VDI6007_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;Calculates the thermal zone parameters of the VDI 6007</span>
 <span class="sd">        it does not require input</span>
 
@@ -734,7 +771,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">RalphaStarIL</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RalphaStarAW</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">RalphaStarIW</span> <span class="o">=</span> <span class="n">tri2star</span><span class="p">(</span><span class="n">RalphaStrAWIW</span><span class="p">,</span> <span class="n">RalphaKonIW</span><span class="p">,</span> <span class="n">RalphaKonAW</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">HAW_v</span><span class="p">)</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">HAF_v</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Htr_op</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">HAW_v</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">HAF_v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">HAF_v</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ThermalZone.print_VDI6007_params"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.print_VDI6007_params">[docs]</a>    <span class="k">def</span> <span class="nf">print_VDI6007_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Just a beuty print of VDI6007 parameters</span>
@@ -792,6 +829,8 @@
                     <span class="n">h_r</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">get_surface_external_radiative_coefficient</span><span class="p">()</span>
 
                     <span class="n">irradiance</span> <span class="o">=</span> <span class="n">irradiances</span><span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">surface</span><span class="o">.</span><span class="n">_azimuth_round</span><span class="p">)][</span><span class="nb">float</span><span class="p">(</span><span class="n">surface</span><span class="o">.</span><span class="n">_height_round</span><span class="p">)]</span>
+                    
+                    
                     <span class="n">BRV</span> <span class="o">=</span> <span class="n">irradiance</span><span class="p">[</span><span class="s1">&#39;direct&#39;</span><span class="p">]</span>
                     <span class="n">TRV</span> <span class="o">=</span> <span class="n">irradiance</span><span class="p">[</span><span class="s1">&#39;global&#39;</span><span class="p">]</span>
                     <span class="n">DRV</span> <span class="o">=</span> <span class="n">TRV</span> <span class="o">-</span> <span class="n">BRV</span>
@@ -835,7 +874,12 @@
         <span class="c1"># Distribute heat gains to temperature nodes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">phi_ia</span> <span class="o">=</span> <span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;convective [W]&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">phi_st</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Am</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Atot</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span> <span class="o">/</span> <span class="p">(</span><span class="mf">9.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Atot</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;radiative [W]&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">phi_sol</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">phi_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Am</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Atot</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;radiative [W]&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">phi_sol</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Am</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Atot</span> <span class="o">*</span> <span class="p">(</span><span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;radiative [W]&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">phi_sol</span><span class="p">)</span>
+
+        <span class="c1"># For quasi-steadystate</span>
+        <span class="n">int_gain</span> <span class="o">=</span> <span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;convective [W]&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">phi_int</span><span class="p">[</span><span class="s1">&#39;radiative [W]&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_int_gain</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">int_gain</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_sol_gain</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">phi_sol</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span></div>
 
 <div class="viewcode-block" id="ThermalZone.calculate_zone_loads_VDI6007"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.calculate_zone_loads_VDI6007">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_zone_loads_VDI6007</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;Calculates zone loads for the vdi 6007 standard</span>
@@ -1034,10 +1078,10 @@
         <span class="k">if</span> <span class="n">flag</span> <span class="o">!=</span> <span class="s1">&#39;Tset&#39;</span> <span class="ow">and</span> <span class="n">flag</span> <span class="o">!=</span> <span class="s1">&#39;phiset&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;ERROR Thermal zone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, Sensible1C flag input is not a &#39;Tset&#39; or &#39;phiset&#39;: flag </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-3</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Thermal Zone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, Sensible1C: sigma total must be 1. Sigma = </span><span class="si">{</span><span class="n">sigma</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+        <span class="c1"># if np.abs((np.array(sigma).sum() - 1)) &gt; 1e-3:</span>
+        <span class="c1">#     raise ValueError(</span>
+        <span class="c1">#         f&quot;Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}&quot;</span>
+        <span class="c1">#     )</span>
         <span class="c1"># Set some data and build up the system</span>
 
         <span class="n">phi_ia</span> <span class="o">=</span> <span class="n">phi_load</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1049,7 +1093,7 @@
         <span class="n">rad_factor</span> <span class="o">=</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">conv_factor</span> <span class="o">=</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">flag</span> <span class="o">==</span> <span class="s1">&#39;Tset&#39;</span><span class="p">:</span>
             <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">conv_factor</span>
@@ -1065,7 +1109,8 @@
             <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Htr_is</span> <span class="o">*</span> <span class="n">T_set</span> <span class="o">-</span> <span class="n">phi_st</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span> <span class="o">*</span> <span class="n">T_e</span>
             <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Htr_em</span> <span class="o">*</span> <span class="n">T_e</span> <span class="o">-</span> <span class="n">phi_m</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Cm</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">tau</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">T_set</span><span class="p">)</span>
+            <span class="c1"># Seems to be more computationally efficient then np.insert</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">num</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[:</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">T_set</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">num</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span> <span class="c1"># np.insert(x, 1, T_set)</span>
 
         <span class="k">elif</span> <span class="n">flag</span> <span class="o">==</span> <span class="s1">&#39;phiset&#39;</span><span class="p">:</span>
             <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Htr_is</span> <span class="o">+</span> <span class="n">Hve_inf</span> <span class="o">+</span> <span class="n">Hve_vent</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_air_thermal_capacity</span> <span class="o">/</span> <span class="n">tau</span>
@@ -1081,7 +1126,8 @@
             <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">phi_st</span> <span class="o">*</span> <span class="n">rad_factor</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span> <span class="o">*</span> <span class="n">T_e</span>
             <span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">Htr_em</span> <span class="o">*</span> <span class="n">T_e</span> <span class="o">-</span> <span class="n">phi_m</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Cm</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">tau</span>
             <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">phi_HC_set</span><span class="p">)</span>
+            <span class="c1"># Seems to be more computationally efficient then np.insert</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">phi_HC_set</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">num</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">y</span><span class="p">])</span> <span class="c1"># np.insert(y, 0, phi_HC_set)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Energy system zone solution: flag must be &quot;phiset&quot; or &quot;Tset&quot;, flag: </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
@@ -1148,10 +1194,10 @@
         <span class="k">if</span> <span class="n">flag</span> <span class="o">!=</span> <span class="s1">&#39;Tset&#39;</span> <span class="ow">and</span> <span class="n">flag</span> <span class="o">!=</span> <span class="s1">&#39;phiset&#39;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;ERROR Thermal zone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, Sensible2C flag input is not a &#39;Tset&#39; or &#39;phiset&#39;: flag </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-3</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Thermal Zone </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">, Sensible1C: sigma total must be 1. Sigma = </span><span class="si">{</span><span class="n">sigma</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+        <span class="c1"># if np.abs((np.array(sigma).sum() - 1)) &gt; 1e-3:</span>
+        <span class="c1">#     raise ValueError(</span>
+        <span class="c1">#         f&quot;Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}&quot;</span>
+        <span class="c1">#     )</span>
         <span class="c1"># % Resistances and capacitances of the 7R2C model</span>
         <span class="n">R_lue_ve</span> <span class="o">=</span> <span class="mf">1e20</span> <span class="k">if</span> <span class="n">Hve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">Hve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">R_lue_inf</span> <span class="o">=</span> <span class="mf">1e20</span> <span class="k">if</span> <span class="n">Hve</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">Hve</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1198,7 +1244,7 @@
 
             <span class="c1"># VECTOR OF KNOWN VALUES</span>
 
-            <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
 
             <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">theta_A_eq</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">RrestAW</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">C1AW</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">tau</span>
             <span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">Q_il_str_aw</span>
@@ -1213,7 +1259,8 @@
             <span class="c1"># OUTPUT (UNKNOWN) VARIABLES OF THE LINEAR SYSTEM</span>
 
             <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">T_set</span><span class="p">)</span>
+            <span class="c1"># Seems to be more computationally efficient then np.insert</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">y</span><span class="p">[:</span><span class="mi">3</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">T_set</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">y</span><span class="p">[</span><span class="mi">3</span><span class="p">:]])</span> <span class="c1"># np.insert(y, 3, T_set)</span>
 
         <span class="k">elif</span> <span class="n">flag</span> <span class="o">==</span> <span class="s1">&#39;phiset&#39;</span><span class="p">:</span>
             <span class="c1"># Note: the heat load in input is already distributed on the 3 nodes</span>
@@ -1262,7 +1309,8 @@
             <span class="c1"># OUTPUT LINEAR SYSTEM</span>
 
             <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">phi_HC_set</span><span class="p">)</span>
+            <span class="c1"># Seems to be more computationally efficient then np.insert</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">num</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">y</span><span class="p">[:</span><span class="mi">4</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">phi_HC_set</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">num</span> <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">y</span><span class="p">[</span><span class="mi">4</span><span class="p">:]])</span> <span class="c1"># np.insert(y, 4, phi_HC_set)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Energy system zone solution: flag must be &quot;phiset&quot; or &quot;Tset&quot;, flag: </span><span class="si">{</span><span class="n">flag</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
@@ -1350,7 +1398,9 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">Ta0</span> <span class="o">=</span> <span class="n">T</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="n">X</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_temperature</span> <span class="o">=</span> <span class="n">T</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_spec_humidity</span> <span class="o">=</span> <span class="n">X</span></div>
 
 <div class="viewcode-block" id="ThermalZone.reset_init_values_VDI"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.reset_init_values_VDI">[docs]</a>    <span class="k">def</span> <span class="nf">reset_init_values_VDI</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;This method allows to reset temperatures starting values, according to VDI tests</span>
@@ -1358,9 +1408,11 @@
 <span class="sd">        Starting x 0.0105 kg_v/kg_as</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">Ta0</span> <span class="o">=</span> <span class="mi">22</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">22</span><span class="p">,</span> <span class="mi">22</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="mf">0.0105</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ta0</span> <span class="o">=</span> <span class="mf">22.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">22.</span><span class="p">,</span> <span class="mf">22.</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="mf">0.0105</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_temperature</span> <span class="o">=</span> <span class="mf">22.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_spec_humidity</span> <span class="o">=</span> <span class="mf">0.0105</span></div>
 
 <div class="viewcode-block" id="ThermalZone.solve_timestep"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.solve_timestep">[docs]</a>    <span class="k">def</span> <span class="nf">solve_timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s1">&#39;2C&#39;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;Solves the thermal zone t - time step</span>
@@ -1398,14 +1450,37 @@
             <span class="n">phi_load</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Q_il_kon_I</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_il_str_aw</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q_il_str_iw</span><span class="p">[</span><span class="n">t</span><span class="p">]]</span>
 
         <span class="c1"># Natural Ventilation</span>
+        <span class="c1"># nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)</span>
+        <span class="c1"># nv_outcomes = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)</span>
+        <span class="c1"># nat_vent_vol_flow = nv_outcomes[2]  #m3/s</span>
+        <span class="n">nat_vent_vol_flow</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">natural_ventilation</span><span class="o">.</span><span class="n">get_timestep_ventilation_mass_flow</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_temperature</span><span class="p">,</span> <span class="n">weather</span><span class="p">)</span>
+        <span class="n">nat_vent_mass_flow</span> <span class="o">=</span> <span class="n">nat_vent_vol_flow</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;density&#39;</span><span class="p">]</span>  <span class="c1"># [kg/s]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_air_flow_rate</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_mass_flow</span>  <span class="c1"># [kg/s]</span>
+        <span class="c1"># self.nat_vent_info = {</span>
+        <span class="c1">#     &quot;airflow_rate&quot; : {&#39;kg/s&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                       &#39;m3/s&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                       &#39;L/s&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                       &#39;vol/h&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                       },</span>
+        <span class="c1">#     &quot;windows_opening&quot; : {&#39;open_fraction&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                          &#39;open_area&#39; : np.zeros([CONFIG.number_of_time_steps]),</span>
+        <span class="c1">#                          },</span>
+        <span class="c1">#     }</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span><span class="p">[</span><span class="s1">&#39;airflow_rate&#39;</span><span class="p">][</span><span class="s1">&#39;kg/s&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_mass_flow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span><span class="p">[</span><span class="s1">&#39;airflow_rate&#39;</span><span class="p">][</span><span class="s1">&#39;m3/s&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_vol_flow</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span><span class="p">[</span><span class="s1">&#39;airflow_rate&#39;</span><span class="p">][</span><span class="s1">&#39;L/s&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_vol_flow</span><span class="o">/</span><span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span><span class="p">[</span><span class="s1">&#39;airflow_rate&#39;</span><span class="p">][</span><span class="s1">&#39;m3/h&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_vol_flow</span><span class="o">*</span><span class="mi">3600</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nat_vent_info</span><span class="p">[</span><span class="s1">&#39;airflow_rate&#39;</span><span class="p">][</span><span class="s1">&#39;vol/h&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">nat_vent_vol_flow</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">_volume</span><span class="o">*</span><span class="mi">3600</span>
 
-        <span class="n">G_OA_nat_vent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_air_flow_rate</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>  <span class="c1"># kg/s outdoor air</span>
+        <span class="n">G_OA_nat_vent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_air_flow_rate</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">nat_vent_mass_flow</span> <span class="c1"># kg/s outdoor air</span>
         <span class="n">H_ve_nat_vent</span> <span class="o">=</span> <span class="n">G_OA_nat_vent</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;specific_heat&#39;</span><span class="p">]</span>  <span class="c1"># W/K</span>
 
         <span class="c1"># Ventilation</span>
         <span class="c1"># TODO: Air handler to more zone?</span>
-        <span class="n">T_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
-        <span class="n">x_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+        <span class="c1"># Air Handling Unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_handling_unit_calc</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_temperature</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_spec_humidity</span><span class="p">)</span>
+        <span class="n">T_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">T_sup</span>
+        <span class="n">x_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">x_sup</span>
         <span class="c1"># for now the whole ahu flow rate to zone</span>
         <span class="n">G_OA_mec_vent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="c1"># kg/s supply air</span>
         <span class="n">H_ve_mec_vent</span> <span class="o">=</span> <span class="n">G_OA_mec_vent</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;specific_heat&#39;</span><span class="p">]</span>  <span class="c1"># W/K</span>
@@ -1428,192 +1503,193 @@
 
         <span class="c1"># Start the zone system solution.. The logic depends on the heating cooling and latent sensible</span>
 
-        <span class="k">while</span> <span class="n">flag_AHU</span><span class="p">:</span>
+        <span class="c1"># while flag_AHU:</span>
 
-            <span class="c1"># SENSIBLE HEAT LOAD CALCULATION</span>
+        <span class="c1"># SENSIBLE HEAT LOAD CALCULATION</span>
 
-            <span class="c1"># First calc without plant (phi_HC_set = 0)</span>
+        <span class="c1"># First calc without plant (phi_HC_set = 0)</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
+            <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
+                <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+                <span class="n">H_ve</span><span class="p">,</span>
+                <span class="n">T_ext</span><span class="p">,</span>
+                <span class="n">T_sup</span><span class="p">,</span>
+                <span class="n">phi_load</span><span class="p">,</span>
+                <span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span>
+                <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
+            <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
+                <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+                <span class="n">H_ve</span><span class="p">,</span>
+                <span class="n">T_ext</span><span class="p">,</span>
+                <span class="n">T_ext_eq</span><span class="p">,</span>
+                <span class="n">T_sup</span><span class="p">,</span>
+                <span class="n">phi_load</span><span class="p">,</span>
+                <span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span>
+                <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+
+        <span class="c1"># Check if heating mode and heating calc</span>
+        <span class="k">if</span> <span class="n">Ta</span> <span class="o">&lt;</span> <span class="n">T_set_heat</span> <span class="ow">and</span> <span class="n">zone_equipment_heating_mode</span><span class="p">:</span>
+            <span class="c1"># This means that we are under setpoint and hetaing is active</span>
             <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
                 <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
-                    <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
                     <span class="n">H_ve</span><span class="p">,</span>
                     <span class="n">T_ext</span><span class="p">,</span>
                     <span class="n">T_sup</span><span class="p">,</span>
                     <span class="n">phi_load</span><span class="p">,</span>
-                    <span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span>
-                    <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+                    <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
+                    <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_heat</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
                 <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
-                    <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
                     <span class="n">H_ve</span><span class="p">,</span>
                     <span class="n">T_ext</span><span class="p">,</span>
                     <span class="n">T_ext_eq</span><span class="p">,</span>
                     <span class="n">T_sup</span><span class="p">,</span>
                     <span class="n">phi_load</span><span class="p">,</span>
-                    <span class="n">sigma</span><span class="o">=</span><span class="p">[</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span>
-                    <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
-
-            <span class="c1"># Check if heating mode and heating calc</span>
-            <span class="k">if</span> <span class="n">Ta</span> <span class="o">&lt;</span> <span class="n">T_set_heat</span> <span class="ow">and</span> <span class="n">zone_equipment_heating_mode</span><span class="p">:</span>
-                <span class="c1"># This means that we are under setpoint and hetaing is active</span>
+                    <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
+                    <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_heat</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pot</span> <span class="o">&gt;</span> <span class="n">P_max</span><span class="p">:</span>
+                <span class="c1"># If the system reaches the maximum power</span>
                 <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
                     <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
-                        <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
                         <span class="n">H_ve</span><span class="p">,</span>
                         <span class="n">T_ext</span><span class="p">,</span>
                         <span class="n">T_sup</span><span class="p">,</span>
                         <span class="n">phi_load</span><span class="p">,</span>
                         <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                        <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_heat</span><span class="p">)</span>
+                        <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_max</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
                     <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
-                        <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
                         <span class="n">H_ve</span><span class="p">,</span>
                         <span class="n">T_ext</span><span class="p">,</span>
                         <span class="n">T_ext_eq</span><span class="p">,</span>
                         <span class="n">T_sup</span><span class="p">,</span>
                         <span class="n">phi_load</span><span class="p">,</span>
                         <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                        <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_heat</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">pot</span> <span class="o">&gt;</span> <span class="n">P_max</span><span class="p">:</span>
-                    <span class="c1"># If the system reaches the maximum power</span>
-                    <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
-                        <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
-                            <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
-                            <span class="n">H_ve</span><span class="p">,</span>
-                            <span class="n">T_ext</span><span class="p">,</span>
-                            <span class="n">T_sup</span><span class="p">,</span>
-                            <span class="n">phi_load</span><span class="p">,</span>
-                            <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                            <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_max</span><span class="p">)</span>
-                    <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
-                        <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
-                            <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
-                            <span class="n">H_ve</span><span class="p">,</span>
-                            <span class="n">T_ext</span><span class="p">,</span>
-                            <span class="n">T_ext_eq</span><span class="p">,</span>
-                            <span class="n">T_sup</span><span class="p">,</span>
-                            <span class="n">phi_load</span><span class="p">,</span>
-                            <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">heating_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                            <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_max</span><span class="p">)</span>
+                        <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_max</span><span class="p">)</span>
 
-            <span class="c1"># Check if cooling mode and cooling calc</span>
-            <span class="k">if</span> <span class="n">Ta</span> <span class="o">&gt;</span> <span class="n">T_set_cool</span> <span class="ow">and</span> <span class="n">zone_equipment_cooling_mode</span><span class="p">:</span>
-                <span class="c1"># This means that we are over cooling setpoint and cooling is active</span>
+        <span class="c1"># Check if cooling mode and cooling calc</span>
+        <span class="k">if</span> <span class="n">Ta</span> <span class="o">&gt;</span> <span class="n">T_set_cool</span> <span class="ow">and</span> <span class="n">zone_equipment_cooling_mode</span><span class="p">:</span>
+            <span class="c1"># This means that we are over cooling setpoint and cooling is active</span>
+            <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
+                <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
+                    <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                    <span class="n">H_ve</span><span class="p">,</span>
+                    <span class="n">T_ext</span><span class="p">,</span>
+                    <span class="n">T_sup</span><span class="p">,</span>
+                    <span class="n">phi_load</span><span class="p">,</span>
+                    <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
+                    <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_cool</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
+                <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
+                    <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                    <span class="n">H_ve</span><span class="p">,</span>
+                    <span class="n">T_ext</span><span class="p">,</span>
+                    <span class="n">T_ext_eq</span><span class="p">,</span>
+                    <span class="n">T_sup</span><span class="p">,</span>
+                    <span class="n">phi_load</span><span class="p">,</span>
+                    <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
+                    <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_cool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pot</span> <span class="o">&lt;</span> <span class="n">P_min</span><span class="p">:</span>
+                <span class="c1"># If the system reaches the maximum cooling power</span>
                 <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
                     <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
-                        <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
                         <span class="n">H_ve</span><span class="p">,</span>
                         <span class="n">T_ext</span><span class="p">,</span>
                         <span class="n">T_sup</span><span class="p">,</span>
                         <span class="n">phi_load</span><span class="p">,</span>
                         <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                        <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_cool</span><span class="p">)</span>
+                        <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_min</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
                     <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
-                        <span class="s1">&#39;Tset&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
                         <span class="n">H_ve</span><span class="p">,</span>
                         <span class="n">T_ext</span><span class="p">,</span>
                         <span class="n">T_ext_eq</span><span class="p">,</span>
                         <span class="n">T_sup</span><span class="p">,</span>
                         <span class="n">phi_load</span><span class="p">,</span>
                         <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                        <span class="n">T_set</span><span class="o">=</span><span class="n">T_set_cool</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">pot</span> <span class="o">&lt;</span> <span class="n">P_min</span><span class="p">:</span>
-                    <span class="c1"># If the system reaches the maximum cooling power</span>
-                    <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
-                        <span class="n">pot</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">Ts</span><span class="p">,</span> <span class="n">Tm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_1C</span><span class="p">(</span>
-                            <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
-                            <span class="n">H_ve</span><span class="p">,</span>
-                            <span class="n">T_ext</span><span class="p">,</span>
-                            <span class="n">T_sup</span><span class="p">,</span>
-                            <span class="n">phi_load</span><span class="p">,</span>
-                            <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                            <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_min</span><span class="p">)</span>
-                    <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
-                        <span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Ts_aw</span><span class="p">,</span> <span class="n">T_lu_star</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">Ts_iw</span><span class="p">,</span> <span class="n">Tm_iw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_balance_2C</span><span class="p">(</span>
-                            <span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
-                            <span class="n">H_ve</span><span class="p">,</span>
-                            <span class="n">T_ext</span><span class="p">,</span>
-                            <span class="n">T_ext_eq</span><span class="p">,</span>
-                            <span class="n">T_sup</span><span class="p">,</span>
-                            <span class="n">phi_load</span><span class="p">,</span>
-                            <span class="n">sigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cooling_sigma</span><span class="p">[</span><span class="n">model</span><span class="p">],</span>
-                            <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_min</span><span class="p">)</span>
+                        <span class="n">phi_HC_set</span><span class="o">=</span><span class="n">P_min</span><span class="p">)</span>
 
-            <span class="c1"># LATENT HEAT LOAD CALCULATION</span>
+        <span class="c1"># LATENT HEAT LOAD CALCULATION</span>
 
-            <span class="c1"># First calc without plant (phi_HC_set = 0)</span>
-            <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+        <span class="c1"># First calc without plant (phi_HC_set = 0)</span>
+        <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;phiset&#39;</span><span class="p">,</span>
+                                                     <span class="p">[</span><span class="n">G_OA_mec_vent</span><span class="p">,</span> <span class="n">G_OA_nat_vent</span><span class="p">],</span>
+                                                     <span class="n">x_ext</span><span class="p">,</span>
+                                                     <span class="n">x_sup</span><span class="p">,</span>
+                                                     <span class="n">G_IHG_vapour</span><span class="p">,</span>
+                                                     <span class="n">Ta</span><span class="p">,</span>
+                                                     <span class="n">p_atm</span><span class="p">,</span>
+                                                     <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+
+        <span class="c1"># Humidifying</span>
+        <span class="k">if</span> <span class="n">rh_int</span> <span class="o">&lt;</span> <span class="n">RH_set_int_H</span> <span class="ow">and</span> <span class="n">zone_humidity_equipment_heating_mode</span><span class="p">:</span>
+            <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;rhset&#39;</span><span class="p">,</span>
                                                          <span class="p">[</span><span class="n">G_OA_mec_vent</span><span class="p">,</span> <span class="n">G_OA_nat_vent</span><span class="p">],</span>
                                                          <span class="n">x_ext</span><span class="p">,</span>
                                                          <span class="n">x_sup</span><span class="p">,</span>
                                                          <span class="n">G_IHG_vapour</span><span class="p">,</span>
                                                          <span class="n">Ta</span><span class="p">,</span>
                                                          <span class="n">p_atm</span><span class="p">,</span>
-                                                         <span class="n">phi_HC_set</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+                                                         <span class="n">rh_int_set</span><span class="o">=</span><span class="n">RH_set_int_H</span><span class="p">,</span>
+                                                         <span class="p">)</span>
+            <span class="c1"># TODO: Check if a maximum value is reached</span>
+        <span class="c1"># Dehumidifying</span>
+        <span class="k">elif</span> <span class="n">rh_int</span> <span class="o">&gt;</span> <span class="n">RH_set_int_C</span> <span class="ow">and</span> <span class="n">zone_humidity_equipment_cooling_mode</span><span class="p">:</span>
+            <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;rhset&#39;</span><span class="p">,</span>
+                                                         <span class="p">[</span><span class="n">G_OA_mec_vent</span><span class="p">,</span> <span class="n">G_OA_nat_vent</span><span class="p">],</span>
+                                                         <span class="n">x_ext</span><span class="p">,</span>
+                                                         <span class="n">x_sup</span><span class="p">,</span>
+                                                         <span class="n">G_IHG_vapour</span><span class="p">,</span>
+                                                         <span class="n">Ta</span><span class="p">,</span>
+                                                         <span class="n">p_atm</span><span class="p">,</span>
+                                                         <span class="n">rh_int_set</span><span class="o">=</span><span class="n">RH_set_int_C</span><span class="p">,</span>
+                                                         <span class="p">)</span>
+            <span class="c1"># TODO: Check if a maximum value is reached</span>
 
-            <span class="c1"># Humidifying</span>
-            <span class="k">if</span> <span class="n">rh_int</span> <span class="o">&lt;</span> <span class="n">RH_set_int_H</span> <span class="ow">and</span> <span class="n">zone_humidity_equipment_heating_mode</span><span class="p">:</span>
-                <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;rhset&#39;</span><span class="p">,</span>
-                                                             <span class="p">[</span><span class="n">G_OA_mec_vent</span><span class="p">,</span> <span class="n">G_OA_nat_vent</span><span class="p">],</span>
-                                                             <span class="n">x_ext</span><span class="p">,</span>
-                                                             <span class="n">x_sup</span><span class="p">,</span>
-                                                             <span class="n">G_IHG_vapour</span><span class="p">,</span>
-                                                             <span class="n">Ta</span><span class="p">,</span>
-                                                             <span class="n">p_atm</span><span class="p">,</span>
-                                                             <span class="n">rh_int_set</span><span class="o">=</span><span class="n">RH_set_int_H</span><span class="p">,</span>
-                                                             <span class="p">)</span>
-                <span class="c1"># TODO: Check if a maximum value is reached</span>
-            <span class="c1"># Dehumidifying</span>
-            <span class="k">elif</span> <span class="n">rh_int</span> <span class="o">&gt;</span> <span class="n">RH_set_int_C</span> <span class="ow">and</span> <span class="n">zone_humidity_equipment_cooling_mode</span><span class="p">:</span>
-                <span class="n">x_int</span><span class="p">,</span> <span class="n">rh_int</span><span class="p">,</span> <span class="n">lat_pot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_balance</span><span class="p">(</span><span class="s1">&#39;rhset&#39;</span><span class="p">,</span>
-                                                             <span class="p">[</span><span class="n">G_OA_mec_vent</span><span class="p">,</span> <span class="n">G_OA_nat_vent</span><span class="p">],</span>
-                                                             <span class="n">x_ext</span><span class="p">,</span>
-                                                             <span class="n">x_sup</span><span class="p">,</span>
-                                                             <span class="n">G_IHG_vapour</span><span class="p">,</span>
-                                                             <span class="n">Ta</span><span class="p">,</span>
-                                                             <span class="n">p_atm</span><span class="p">,</span>
-                                                             <span class="n">rh_int_set</span><span class="o">=</span><span class="n">RH_set_int_C</span><span class="p">,</span>
-                                                             <span class="p">)</span>
-                <span class="c1"># TODO: Check if a maximum value is reached</span>
+        <span class="c1"># err_T_sup = abs(T_sup - self.air_handling_unit.T_sup)</span>
+        <span class="c1"># err_x_sup = abs(x_sup - self.air_handling_unit.x_sup)</span>
+        <span class="c1">#</span>
+        <span class="c1"># if err_T_sup &gt; 0.1 or err_x_sup &gt; 0.0001:</span>
+        <span class="c1">#     #case of t_sup or x_sup changed</span>
+        <span class="c1">#     T_sup = self.air_handling_unit.T_sup</span>
+        <span class="c1">#     x_sup = self.air_handling_unit.x_sup</span>
+        <span class="c1"># else:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="p">,</span> <span class="n">AirHandlingUnit</span><span class="p">):</span>
+            <span class="c1"># UPDATE of dynamic variables</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">T_sup</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_sup</span>
 
-            <span class="c1"># Air Handling Unit</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_handling_unit_calc</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">Ta</span><span class="p">,</span> <span class="n">x_int</span><span class="p">)</span>
-            <span class="n">err_T_sup</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_sup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">T_sup</span><span class="p">)</span>
-            <span class="n">err_x_sup</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x_sup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">x_sup</span><span class="p">)</span>
+        <span class="n">heat_flow</span> <span class="o">=</span> <span class="n">pot</span>
+        <span class="n">air_temp</span> <span class="o">=</span> <span class="n">Ta</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tm</span><span class="p">,</span> <span class="n">Tm</span><span class="p">]</span>  <span class="c1"># For 1C only 1 Tm</span>
+            <span class="n">operative_temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ts</span> <span class="o">+</span> <span class="n">Ta</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">mean_radiant_temp</span> <span class="o">=</span> <span class="n">Ts</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Tm_iw</span><span class="p">]</span>
+            <span class="n">operative_temp</span> <span class="o">=</span> <span class="p">((</span><span class="n">Ts_aw</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span> <span class="o">+</span> <span class="n">Ts_iw</span> <span class="o">*</span> <span class="p">(</span> <span class="mi">1</span><span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span><span class="p">))</span> <span class="o">+</span> <span class="n">Ta</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+            <span class="n">mean_radiant_temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ts_aw</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span> <span class="o">+</span> <span class="n">Ts_iw</span> <span class="o">*</span> <span class="p">(</span> <span class="mi">1</span><span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ta0</span> <span class="o">=</span> <span class="n">Ta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="n">x_int</span>
 
-            <span class="k">if</span> <span class="n">err_T_sup</span> <span class="o">&gt;</span> <span class="mf">0.1</span> <span class="ow">or</span> <span class="n">err_x_sup</span> <span class="o">&gt;</span> <span class="mf">0.0001</span><span class="p">:</span>
-                <span class="c1">#case of t_sup or x_sup changed</span>
-                <span class="n">T_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">T_sup</span>
-                <span class="n">x_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">x_sup</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># UPDATE of dynamic variables</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">T_sup</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_sup</span>
-                <span class="n">heat_flow</span> <span class="o">=</span> <span class="n">pot</span>
-                <span class="n">air_temp</span> <span class="o">=</span> <span class="n">Ta</span>
-                <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;1C&#39;</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tm</span><span class="p">,</span> <span class="n">Tm</span><span class="p">]</span>  <span class="c1"># For 1C only 1 Tm</span>
-                    <span class="n">operative_temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ts</span> <span class="o">+</span> <span class="n">Ta</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
-                    <span class="n">mean_radiant_temp</span> <span class="o">=</span> <span class="n">Ts</span>
-                <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;2C&#39;</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span> <span class="o">=</span> <span class="p">[</span><span class="n">Tm_aw</span><span class="p">,</span> <span class="n">Tm_iw</span><span class="p">]</span>
-                    <span class="n">operative_temp</span> <span class="o">=</span> <span class="p">((</span><span class="n">Ts_aw</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span> <span class="o">+</span> <span class="n">Ts_iw</span> <span class="o">*</span> <span class="p">(</span> <span class="mi">1</span><span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span><span class="p">))</span> <span class="o">+</span> <span class="n">Ta</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
-                    <span class="n">mean_radiant_temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">Ts_aw</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span> <span class="o">+</span> <span class="n">Ts_iw</span> <span class="o">*</span> <span class="p">(</span> <span class="mi">1</span><span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">Aaw_tot</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">Araum_tot</span><span class="p">))</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">Ta0</span> <span class="o">=</span> <span class="n">Ta</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">xm0</span> <span class="o">=</span> <span class="n">x_int</span>
-
-                <span class="n">lat_heat_flow</span> <span class="o">=</span> <span class="n">lat_pot</span>
-                <span class="n">air_spec_humidity</span> <span class="o">=</span> <span class="n">x_int</span>
-                <span class="n">air_rel_humidity</span> <span class="o">=</span> <span class="n">rh_int</span>
-                <span class="n">flag_AHU</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">lat_heat_flow</span> <span class="o">=</span> <span class="n">lat_pot</span>
+        <span class="n">air_spec_humidity</span> <span class="o">=</span> <span class="n">x_int</span>
+        <span class="n">air_rel_humidity</span> <span class="o">=</span> <span class="n">rh_int</span>
+        <span class="n">flag_AHU</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">sensible_zone_load</span> <span class="o">=</span> <span class="n">pot</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">latent_zone_load</span> <span class="o">=</span> <span class="n">lat_heat_flow</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">sensible_AHU_load</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">AHU_demand_sens</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">latent_AHU_load</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">AHU_demand_lat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AHU_electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">electric_consumption_W</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_temperature</span> <span class="o">=</span> <span class="n">air_temp</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zone_operative_temperature</span> <span class="o">=</span> <span class="n">operative_temp</span>
@@ -1622,6 +1698,112 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">zone_air_spec_humidity</span> <span class="o">=</span> <span class="n">x_int</span>
 
         <span class="k">return</span> <span class="p">[</span><span class="n">air_temp</span><span class="p">,</span><span class="n">operative_temp</span><span class="p">,</span><span class="n">mean_radiant_temp</span><span class="p">],</span> <span class="n">air_rel_humidity</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Tm0</span><span class="p">,</span> <span class="n">pot</span><span class="p">,</span> <span class="n">lat_heat_flow</span></div>
+
+<div class="viewcode-block" id="ThermalZone.solve_quasisteadystate_method"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.solve_quasisteadystate_method">[docs]</a>    <span class="k">def</span> <span class="nf">solve_quasisteadystate_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather</span><span class="p">):</span>
+        <span class="c1"># TODO: Docstring</span>
+
+        <span class="c1"># This runs the ISO13790 methods to calculates envelope params and monthly int and sol heat gains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ISO13790_params</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_zone_loads_ISO13790</span><span class="p">(</span><span class="n">weather</span><span class="p">)</span>
+
+        <span class="c1"># Calculation of the hours of heating cooling for each month</span>
+        <span class="n">heating_timesteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_lower</span><span class="o">.</span><span class="n">schedule</span> <span class="o">&gt;</span> <span class="mf">17.</span>
+        <span class="n">monthly_heating_timesteps</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">heating_timesteps</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;sum&#39;</span><span class="p">)</span>
+        <span class="n">cooling_timesteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_upper</span><span class="o">.</span><span class="n">schedule</span> <span class="o">&lt;</span> <span class="mf">27.</span>
+        <span class="n">monthly_cooling_timesteps</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">cooling_timesteps</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;sum&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Calculation of average setpoints</span>
+        <span class="n">h_av_sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_lower</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">heating_timesteps</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="n">c_av_sp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_upper</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">cooling_timesteps</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># [J] = [W/K] * ([°C] - [°C]) * [-] * [s]</span>
+        <span class="n">Q_h_tr_monthly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_av_sp</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">monthly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">monthly_heating_timesteps</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span>
+        <span class="c1"># Q_h_tr_monthly[Q_h_tr_monthly &lt; 0.] = 0.</span>
+        <span class="n">Q_c_tr_monthly</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_av_sp</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">monthly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">monthly_cooling_timesteps</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span>
+        <span class="c1"># Q_c_tr_monthly[Q_c_tr_monthly &gt; 0.] = 0. # For cooling negative values</span>
+
+        <span class="c1"># Infiltration</span>
+        <span class="c1"># [W/K] = [kg/s] * [J/kgK]</span>
+        <span class="n">H_ve_inf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_air_flow_rate</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;specific_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_h_inf</span> <span class="o">=</span> <span class="n">H_ve_inf</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_av_sp</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span> <span class="c1"># [W]</span>
+        <span class="n">Q_c_inf</span> <span class="o">=</span> <span class="n">H_ve_inf</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_av_sp</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span> <span class="c1"># [W]</span>
+        <span class="n">Q_h_inf_monthly</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_h_inf</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+        <span class="n">Q_c_inf_monthly</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_c_inf</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+
+        <span class="c1"># Effect of Mech Ventilation in zone</span>
+        <span class="c1"># [W/K] = [kg/s] * [J/kgK]</span>
+        <span class="n">H_ve_mec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;specific_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_h_ve</span> <span class="o">=</span> <span class="n">H_ve_mec</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_av_sp</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">)</span> <span class="c1"># [W]</span>
+        <span class="n">Q_c_ve</span> <span class="o">=</span> <span class="n">H_ve_mec</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_av_sp</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">)</span> <span class="c1"># [W]</span>
+        <span class="n">Q_h_ve_monthly</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_h_ve</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+        <span class="n">Q_c_ve_monthly</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_c_ve</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+
+        <span class="n">Q_h_ht</span> <span class="o">=</span> <span class="n">Q_h_tr_monthly</span> <span class="o">+</span> <span class="n">Q_h_inf_monthly</span> <span class="o">+</span> <span class="n">Q_h_ve_monthly</span>
+        <span class="n">Q_c_ht</span> <span class="o">=</span> <span class="n">Q_c_tr_monthly</span> <span class="o">+</span> <span class="n">Q_c_inf_monthly</span> <span class="o">+</span> <span class="n">Q_c_ve_monthly</span>
+
+        <span class="n">Q_h_gn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monthly_int_gain</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">monthly_sol_gain</span>
+        <span class="n">Q_c_gn</span> <span class="o">=</span> <span class="n">Q_h_gn</span>
+
+        <span class="c1"># Eta calculation</span>
+        <span class="c1"># Heating</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Cm</span><span class="o">/</span><span class="mi">3600</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">UA_tot</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">H_ve_inf</span><span class="p">))</span>
+        <span class="n">a_0</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">tau_0</span> <span class="o">=</span> <span class="mf">15.</span>
+        <span class="n">a_h</span> <span class="o">=</span> <span class="n">a_0</span> <span class="o">+</span> <span class="n">tau</span><span class="o">/</span><span class="n">tau_0</span>
+        <span class="n">gamma_h</span> <span class="o">=</span> <span class="n">Q_h_gn</span><span class="o">/</span><span class="n">Q_h_ht</span>
+        <span class="n">eta_h_gn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">eta_h_gn</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">gamma_h</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">**</span> <span class="n">a_h</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">gamma_h</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">**</span> <span class="p">(</span><span class="n">a_h</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">eta_h_gn</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">a_h</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">a_h</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">eta_h_gn</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">gamma_h</span><span class="p">[</span><span class="n">gamma_h</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">]</span>
+        <span class="c1"># Cooling</span>
+        <span class="n">a_c</span> <span class="o">=</span> <span class="n">a_0</span> <span class="o">+</span> <span class="n">tau</span><span class="o">/</span><span class="n">tau_0</span>
+        <span class="n">gamma_c</span> <span class="o">=</span> <span class="n">Q_c_gn</span> <span class="o">/</span> <span class="n">Q_c_ht</span>
+        <span class="n">eta_c_is</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+        <span class="n">eta_c_is</span><span class="p">[</span><span class="n">gamma_c</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">gamma_c</span><span class="p">[</span><span class="n">gamma_c</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">a_c</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">gamma_c</span><span class="p">[</span><span class="n">gamma_c</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">a_c</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">eta_c_is</span><span class="p">[</span><span class="n">gamma_c</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">a_c</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">a_c</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">eta_c_is</span><span class="p">[</span><span class="n">gamma_c</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># Final monthly calc</span>
+        <span class="n">Q_h_sens</span> <span class="o">=</span> <span class="n">Q_h_ht</span> <span class="o">-</span> <span class="n">eta_h_gn</span> <span class="o">*</span> <span class="n">Q_h_gn</span>
+        <span class="n">Q_c_sens</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="p">(</span><span class="n">Q_c_gn</span> <span class="o">-</span> <span class="n">eta_c_is</span> <span class="o">*</span> <span class="n">Q_c_ht</span><span class="p">)</span>
+        <span class="n">Q_h_sens</span><span class="p">[</span><span class="n">Q_h_sens</span><span class="o">&lt;</span><span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">Q_c_sens</span><span class="p">[</span><span class="n">Q_c_sens</span><span class="o">&gt;</span><span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+
+        <span class="c1"># Latent</span>
+        <span class="n">humidifying_timesteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_humidity_setpoint</span><span class="o">.</span><span class="n">schedule_lower</span><span class="o">.</span><span class="n">schedule</span> <span class="o">&gt;</span> <span class="mf">0.00725</span>
+        <span class="n">lat_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_convective_radiative_latent_electric_load</span><span class="p">()[</span><span class="s1">&#39;latent [kg_vap/s]&#39;</span><span class="p">]</span>
+        <span class="n">net_vapuor_in_zone_h</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infiltration_vapour_flow_rate</span> <span class="o">+</span> <span class="n">lat_int</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">)</span> \
+                             <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_vapour_flow_rate</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.00725</span>
+        <span class="n">Q_hum_demand</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">net_vapuor_in_zone_h</span> <span class="o">*</span> <span class="n">vapour_properties</span><span class="p">[</span><span class="s1">&#39;latent_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_hum_demand</span><span class="p">[</span><span class="o">~</span><span class="n">humidifying_timesteps</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">Q_hum_demand</span><span class="p">[</span><span class="n">Q_hum_demand</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="n">dehumidifying_timesteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_humidity_setpoint</span><span class="o">.</span><span class="n">schedule_upper</span><span class="o">.</span><span class="n">schedule</span> <span class="o">&lt;</span> <span class="mf">0.0105</span>
+        <span class="n">lat_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_convective_radiative_latent_electric_load</span><span class="p">()[</span><span class="s1">&#39;latent [kg_vap/s]&#39;</span><span class="p">]</span>
+        <span class="n">net_vapuor_in_zone_c</span> <span class="o">=</span> <span class="p">(</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_vapour_flow_rate</span> <span class="o">+</span> <span class="n">lat_int</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">)</span> \
+                               <span class="o">-</span> <span class="p">(</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_vapour_flow_rate</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0105</span>
+        <span class="n">Q_dehum_demand</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">net_vapuor_in_zone_c</span> <span class="o">*</span> <span class="n">vapour_properties</span><span class="p">[</span><span class="s1">&#39;latent_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_dehum_demand</span><span class="p">[</span><span class="o">~</span><span class="n">dehumidifying_timesteps</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">Q_dehum_demand</span><span class="p">[</span><span class="n">Q_dehum_demand</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="n">Q_h_lat</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_hum_demand</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+        <span class="n">Q_c_lat</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_dehum_demand</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+
+        <span class="c1"># Mechanical ventilation</span>
+        <span class="n">H_ve_mec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">*</span> <span class="n">air_properties</span><span class="p">[</span><span class="s1">&#39;specific_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_h_mec_sens</span> <span class="o">=</span> <span class="n">H_ve_mec</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s1">&#39;out_air_db_temperature&#39;</span><span class="p">])</span> <span class="c1"># [W]</span>
+        <span class="n">Q_h_mec_sens</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_h_mec_sens</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+        <span class="n">H_ve_mec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span> <span class="o">*</span> <span class="n">vapour_properties</span><span class="p">[</span><span class="s1">&#39;latent_heat&#39;</span><span class="p">]</span>
+        <span class="n">Q_h_mec_lat</span> <span class="o">=</span> <span class="n">H_ve_mec</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s1">&#39;out_air_specific_humidity&#39;</span><span class="p">])</span> <span class="c1"># [W]</span>
+        <span class="n">Q_h_mec_lat</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="n">Q_h_mec_lat</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;integral&#39;</span><span class="p">)</span> <span class="c1"># [J]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensible_zone_demand_qss_method</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_h_sens</span> <span class="o">+</span> <span class="n">Q_c_sens</span><span class="p">)</span><span class="o">/</span><span class="mi">3600000</span> <span class="c1"># [kWh]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_zone_demand_qss_method</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_h_lat</span> <span class="o">+</span> <span class="n">Q_c_lat</span><span class="p">)</span><span class="o">/</span><span class="mi">3600000</span> <span class="c1"># [kWh]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensible_AHU_demand_qss_method</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_h_mec_sens</span><span class="p">)</span><span class="o">/</span><span class="mi">3600000</span> <span class="c1"># [kWh]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_AHU_demand_qss_method</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_h_mec_lat</span><span class="p">)</span><span class="o">/</span><span class="mi">3600000</span> <span class="c1"># [kWh]</span></div>
 
 <div class="viewcode-block" id="ThermalZone.design_heating_load"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.design_heating_load">[docs]</a>    <span class="k">def</span> <span class="nf">design_heating_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_ext_design</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Preliminary calculation to calculate the heating design temperature.</span>
@@ -1699,9 +1881,63 @@
             <span class="s2">&quot;Zone glazed heat transfer loss [W/K]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Htr_w</span><span class="p">,</span>
             <span class="s2">&quot;Zone design heating load [kW]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">design_heating_system_power</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span>
             <span class="s2">&quot;Zone design cooling load [kW]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">design_sensible_cooling_system_power</span><span class="o">/</span><span class="mi">1000</span><span class="p">,</span>
-        <span class="p">}</span></div></div>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="ThermalZone.print_modelica_class_with_output_csv"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.thermal_zone.ThermalZone.print_modelica_class_with_output_csv">[docs]</a>    <span class="k">def</span> <span class="nf">print_modelica_class_with_output_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">output_folder</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modelica_schedules</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s2">&quot;time index&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span>
+                                    <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span> <span class="o">*</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="p">),</span>
+
+            <span class="s2">&quot;IHG Latent mass flow rate [kg_vap/s]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_load</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;IHG 1C air node load [W]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_ia</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;IHG 1C surface node load [W]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_st</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;IHG 1C mass node load [W]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">phi_m</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+
+            <span class="s2">&quot;Infiltration mass flow rate [kg/s]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">infiltration_air_flow_rate</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+
+            <span class="s2">&quot;Ventilation mass flow rate [kg/s]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;Ventilation supply temperature [degC]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_temperature</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;Ventilation supply humidity [kg_vap/kg]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_handling_unit</span><span class="o">.</span><span class="n">supply_specific_humidity</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+
+            <span class="s2">&quot;Zone temperature heating setpoint [K]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_lower</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span>
+            <span class="s2">&quot;Zone temperature cooling setpoint [K]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature_setpoint</span><span class="o">.</span><span class="n">schedule_upper</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">]</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span>
+            <span class="s2">&quot;Zone humidification setpoint [-]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_humidity_setpoint</span><span class="o">.</span><span class="n">schedule_lower</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+            <span class="s2">&quot;Zone dehumidification setpoint [-]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_humidity_setpoint</span><span class="o">.</span><span class="n">schedule_upper</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">start_time_step</span><span class="p">:</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">final_time_step</span><span class="p">],</span>
+
+            <span class="s2">&quot;DHW demand [W]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">domestic_hot_water_demand</span><span class="p">,</span>
+        <span class="p">})</span>
 
 
+        <span class="n">intestazione</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;#1</span><span class="se">\n</span><span class="s2">double tab1(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modelica_schedules</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="si">}</span><span class="s2">,</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modelica_schedules</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">)    # &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modelica_schedules</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+        <span class="c1"># with open(os.path.join(output_folder, f&#39;data_{self.name.replace(&quot; &quot;, &quot;_&quot;)}.txt&#39;), &quot;w&quot;) as file:</span>
+        <span class="c1">#     file.write(intestazione)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;data_</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="si">}</span><span class="s1">.txt&#39;</span><span class="p">),</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">modelica_schedules</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                   <span class="n">delimiter</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span>
+                   <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+                   <span class="n">fmt</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%.0f</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span>
+                          <span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span>
+                          <span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">%.2E</span><span class="s2">&quot;</span><span class="p">],</span>
+                   <span class="n">header</span> <span class="o">=</span> <span class="n">intestazione</span><span class="p">,</span>
+                   <span class="n">comments</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,)</span></div></div>
+
+<span class="c1">#         name_class = f&#39;Classe_{self.name.replace(&quot; &quot;, &quot;_&quot;)}&#39;</span>
+<span class="c1">#         with open(os.path.join(output_folder, f&#39;modello_{self.name.replace(&quot; &quot;, &quot;_&quot;)}.mo&#39;), &quot;w&quot;) as file:</span>
+<span class="c1">#             file.write(</span>
+<span class="c1">#                 f&quot;&quot;&quot;</span>
+<span class="c1"># model {name_class}</span>
+<span class="c1"># Modelica.Blocks.Sources.CombiTimeTable combiTimeTable(</span>
+<span class="c1"># tableOnFile = true,</span>
+<span class="c1"># smoothness = Modelica.Blocks.Types.Smoothness.ConstantSegments,</span>
+<span class="c1"># tableName = &quot;tab1&quot;, fileName = &quot;{output_folder.replace(os.sep,&quot;/&quot;) + &quot;/data_Zone_1.txt&quot;}&quot;, timeScale = 1, columns = {{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}}) annotation(</span>
+<span class="c1">#     Placement(transformation(origin = {{-74, 78}}, extent = {{{{-10, -10}}, {{10, 10}}}})));</span>
+<span class="c1"># equation</span>
+<span class="c1">#</span>
+<span class="c1"># annotation(</span>
+<span class="c1">#     experiment(StartTime = {CONFIG.start_time_step*CONFIG.time_step}, StopTime = {CONFIG.final_time_step*CONFIG.time_step}, Interval = {CONFIG.time_step}, Tolerance = 1e-6));</span>
+<span class="c1"># end {name_class};</span>
+<span class="c1"># &quot;&quot;&quot;</span>
+<span class="c1">#             )</span>
 </pre></div>
 
            </div>

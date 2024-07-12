@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -79,13 +79,15 @@
 <span class="n">__maintainer__</span> <span class="o">=</span> <span class="s2">&quot;Enrico Prataviera&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">io</span>
 
 <span class="kn">import</span> <span class="nn">pvlib</span>
+<span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
-
+<span class="kn">from</span> <span class="nn">eureca_building._auxiliary_function_for_monthly_calc</span> <span class="kn">import</span> <span class="n">get_monthly_value_from_annual_vector</span>
 
 <span class="c1"># %% ---------------------------------------------------------------------------------------------------</span>
 <span class="c1"># Weather class</span>
@@ -94,7 +96,7 @@
 <span class="sd">    It processes the epw file to extract arrays of temperature, wind, humidity etc......</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="WeatherFile.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather.WeatherFile.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">epw</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                  <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">time_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -122,10 +124,12 @@
 <span class="sd">        urban_shading_tol: list, default [80.,100.,80.]</span>
 <span class="sd">            list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">weatherepw</span><span class="o">=</span><span class="n">epw</span>
         <span class="c1"># Importing and processing weather data from .epw</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">epw</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">iotools</span><span class="o">.</span><span class="n">read_epw</span><span class="p">(</span><span class="n">epw</span><span class="p">,</span> <span class="n">coerce_year</span><span class="o">=</span><span class="n">year</span><span class="p">)</span>  <span class="c1"># Reading the epw via pvlib</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">epw</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">iotools</span><span class="o">.</span><span class="n">parse_epw</span><span class="p">(</span><span class="n">epw</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">FileNotFoundError</span> \
                 <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR Weather epw file not found in the Input folder.&quot;</span><span class="p">)</span>
@@ -153,7 +157,7 @@
 
         <span class="k">if</span> <span class="n">time_steps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">m</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">time_steps</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;min&#39;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span> <span class="o">=</span> <span class="n">epw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span> <span class="o">=</span> <span class="n">epw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">bfill</span><span class="p">()</span>
 
         <span class="c1"># Weather Data and Average temperature difference between Text and Tsky</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span> <span class="o">=</span> <span class="p">{}</span>
@@ -220,6 +224,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_out_air_db_temperature_cooling_season&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">][</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_start_time_step</span><span class="p">:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">cooling_season_end_time_step</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;average_out_air_db_temperature&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">])</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_data</span><span class="p">[</span><span class="s2">&quot;out_air_specific_humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_specific_humidity&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_relative_humidity&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monthly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_monthly_value_from_annual_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;out_air_db_temperature&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="WeatherFile.irradiances_calculation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather.WeatherFile.irradiances_calculation">[docs]</a>    <span class="k">def</span> <span class="nf">irradiances_calculation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal method to tun the irrandiances calculation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -227,8 +236,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_site</span><span class="o">.</span><span class="n">get_solarposition</span><span class="p">(</span><span class="n">times</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_epw_hourly_data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;time_steps_per_hour&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">m</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s1">&#39;time_steps_per_hour&#39;</span><span class="p">]))</span> <span class="o">+</span> <span class="s1">&#39;min&#39;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
-                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span>  <span class="c1"># Bfill for azimuth that is not continuous</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span>  <span class="c1"># Bfill for azimuth that is not continuous</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;apparent_zenith&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_zenith&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;zenith&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_elevation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solar_position</span><span class="p">[</span><span class="s1">&#39;apparent_elevation&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -253,10 +261,47 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;global&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;POA_B&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hourly_data_irradiances</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">POA</span><span class="p">[</span><span class="s1">&#39;AOI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span></div>
+
+<div class="viewcode-block" id="WeatherFile.from_pvgis"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather.WeatherFile.from_pvgis">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_pvgis</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                   <span class="n">lat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                   <span class="n">long</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                   <span class="n">country</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">city</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">time_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                   <span class="n">irradiances_calculation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                   <span class="n">azimuth_subdivisions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+                   <span class="n">height_subdivisions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+                   <span class="n">urban_shading_tol</span><span class="o">=</span><span class="p">[</span><span class="mf">80.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">,</span> <span class="mf">80.</span><span class="p">]</span>
+        <span class="p">):</span>
+
+        <span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;https://re.jrc.ec.europa.eu/api/v5_2/tmy?lat=</span><span class="si">{</span><span class="n">lat</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&amp;lon=</span><span class="si">{</span><span class="n">long</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&amp;outputformat=epw&#39;</span>
+
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span> <span class="k">if</span> <span class="n">city</span> <span class="o">==</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">city</span>
+        <span class="n">ctr</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span> <span class="k">if</span> <span class="n">country</span> <span class="o">==</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">country</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;LOCATION,unknown,-,unknown&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;LOCATION,</span><span class="si">{</span><span class="n">loc</span><span class="si">}</span><span class="s2">,-,</span><span class="si">{</span><span class="n">ctr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># with open(&quot;test_epw.epw&quot;, &#39;w&#39;) as f:</span>
+        <span class="c1">#     f.write(&quot;\n&quot;.join(response.splitlines()))</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">response</span><span class="p">),</span>
+            <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">time_steps</span><span class="o">=</span> <span class="n">time_steps</span><span class="p">,</span>
+            <span class="n">irradiances_calculation</span> <span class="o">=</span> <span class="n">irradiances_calculation</span><span class="p">,</span>
+            <span class="n">azimuth_subdivisions</span> <span class="o">=</span> <span class="n">azimuth_subdivisions</span><span class="p">,</span>
+            <span class="n">height_subdivisions</span> <span class="o">=</span> <span class="n">height_subdivisions</span><span class="p">,</span>
+            <span class="n">urban_shading_tol</span> <span class="o">=</span> <span class="n">urban_shading_tol</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">w</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_TskyCalc</span><span class="p">(</span><span class="n">T_ext</span><span class="p">,</span> <span class="n">T_dp</span><span class="p">,</span> <span class="n">P_</span><span class="p">,</span> <span class="n">n_opaque</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
+
+
+<div class="viewcode-block" id="_TskyCalc"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather._TskyCalc">[docs]</a><span class="k">def</span> <span class="nf">_TskyCalc</span><span class="p">(</span><span class="n">T_ext</span><span class="p">,</span> <span class="n">T_dp</span><span class="p">,</span> <span class="n">P_</span><span class="p">,</span> <span class="n">n_opaque</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Apparent sky temperature calculation procedure</span>
 <span class="sd">    Martin Berdhal model used by TRNSYS</span>
 
@@ -306,10 +351,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">dT_er</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">T_ext</span> <span class="o">-</span> <span class="n">Tsky</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">dT_er</span>
+    <span class="k">return</span> <span class="n">dT_er</span></div>
 
 
-<span class="k">def</span> <span class="nf">_get_irradiance</span><span class="p">(</span><span class="n">weather_obj</span><span class="p">,</span> <span class="n">surf_tilt</span><span class="p">,</span> <span class="n">surf_az</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_irradiance"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.weather._get_irradiance">[docs]</a><span class="k">def</span> <span class="nf">_get_irradiance</span><span class="p">(</span><span class="n">weather_obj</span><span class="p">,</span> <span class="n">surf_tilt</span><span class="p">,</span> <span class="n">surf_az</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;function from pvlib to calculate irradiance on a specific surface</span>
 <span class="sd">    https://pvlib-python.readthedocs.io/en/stable/auto_examples/plot_ghi_transposition.html#sphx-glr-auto-examples-plot-ghi-transposition-py</span>
 
@@ -334,7 +379,7 @@
 
     <span class="c1"># Use pvlib function to calculate the irradiance on the surface</span>
 
-    <span class="n">surf_az</span> <span class="o">=</span> <span class="n">surf_az</span> <span class="o">+</span> <span class="mi">180</span>
+    <span class="n">surf_az</span> <span class="o">=</span> <span class="n">surf_az</span>
     <span class="n">POA_irradiance</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_total_irradiance</span><span class="p">(</span>
         <span class="n">surface_tilt</span><span class="o">=</span><span class="n">surf_tilt</span><span class="p">,</span>
         <span class="n">surface_azimuth</span><span class="o">=</span><span class="n">surf_az</span><span class="p">,</span>
@@ -365,7 +410,35 @@
                          <span class="s1">&#39;POA_B&#39;</span><span class="p">:</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_direct&#39;</span><span class="p">],</span>
                          <span class="s1">&#39;POA_D&#39;</span><span class="p">:</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_global&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">POA_irradiance</span><span class="p">[</span><span class="s1">&#39;poa_direct&#39;</span><span class="p">],</span>
                          <span class="s1">&#39;AOI&#39;</span><span class="p">:</span> <span class="n">AOI</span><span class="p">,</span>
-                         <span class="s1">&#39;solar zenith&#39;</span><span class="p">:</span> <span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">]})</span>
+                         <span class="s1">&#39;solar zenith&#39;</span><span class="p">:</span> <span class="n">weather_obj</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s2">&quot;solar_position_apparent_zenith&quot;</span><span class="p">]})</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">lat</span> <span class="o">=</span> <span class="mf">45.234</span>
+    <span class="n">long</span> <span class="o">=</span> <span class="mf">11.154</span>
+    <span class="n">country</span> <span class="o">=</span> <span class="s2">&quot;Italia&quot;</span>
+    <span class="n">city</span> <span class="o">=</span> <span class="s2">&quot;Venezia&quot;</span>
+    <span class="n">api_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;https://re.jrc.ec.europa.eu/api/v5_2/tmy?lat=</span><span class="si">{</span><span class="n">lat</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&amp;lon=</span><span class="si">{</span><span class="n">long</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&amp;outputformat=epw&#39;</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">api_url</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span> <span class="k">if</span> <span class="n">city</span> <span class="o">==</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">city</span>
+    <span class="n">ctr</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span> <span class="k">if</span> <span class="n">country</span> <span class="o">==</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">country</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;LOCATION,unknown,-,unknown&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;LOCATION,</span><span class="si">{</span><span class="n">loc</span><span class="si">}</span><span class="s2">,-,</span><span class="si">{</span><span class="n">ctr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># with open(&quot;test_epw.epw&quot;, &#39;w&#39;)as f:</span>
+    <span class="c1">#     f.write(&quot;\n&quot;.join(response.splitlines()))</span>
+
+    <span class="n">epw</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">iotools</span><span class="o">.</span><span class="n">parse_epw</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">response</span><span class="p">))</span>  <span class="c1"># Reading the epw via pvlib</span>
+
+    <span class="n">w</span> <span class="o">=</span> <span class="n">WeatherFile</span><span class="o">.</span><span class="n">from_pvgis</span><span class="p">(</span>
+                   <span class="n">lat</span><span class="o">=</span> <span class="mf">45.124</span><span class="p">,</span>
+                   <span class="n">long</span><span class="o">=</span> <span class="mf">11.124</span><span class="p">,</span>
+                   <span class="n">country</span> <span class="o">=</span> <span class="s2">&quot;Italy&quot;</span><span class="p">,</span>
+                   <span class="n">city</span> <span class="o">=</span> <span class="s2">&quot;Venice&quot;</span><span class="p">,</span>
+        <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">time_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">irradiances_calculation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">azimuth_subdivisions</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">height_subdivisions</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="p">)</span>
 </pre></div>
 
            </div>
