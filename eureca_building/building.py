@@ -17,7 +17,7 @@ import pandas as pd
 
 from eureca_building.config import CONFIG
 from eureca_building.thermal_zone import ThermalZone
-from eureca_building.PV_system import PV_system
+from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -39,7 +39,7 @@ class Building:
         model : str, default 2C
             model to be used: 1C or 2C
         """
-        self.PV_systems=[]
+        # self.PV_systems=[]
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
@@ -149,10 +149,12 @@ class Building:
 
         """
         heating_capacity, cooling_capacity = 0. ,0.
+        dhw_flow_rate = 0.
         try:
             for tz in self._thermal_zones_list:
                 cooling_capacity += tz.design_sensible_cooling_system_power
                 heating_capacity += tz.design_heating_system_power
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate
         except AttributeError:
             raise SimulationError(f"""
 Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
@@ -160,6 +162,21 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 """)
         self.heating_system.set_system_capacity(heating_capacity, weather_object)
         self.cooling_system.set_system_capacity(cooling_capacity, weather_object)
+        self.heating_system.set_dhw_design_capacity_tank(dhw_flow_rate, weather_object)
+
+    def add_pv_system(self, weather_obj):
+
+        '''
+        PV production
+        '''
+        building_surface_list=[]
+        for tz in self._thermal_zones_list:
+            for s in tz._surface_list:
+                building_surface_list.append(s)
+
+        self.pv_system = PV_system(name=f"Bd {self.name} PV system",
+                               weatherobject=weather_obj,
+                               surface_list=building_surface_list)
 
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
@@ -171,7 +188,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
-        heat_load, cool_load, air_t, air_rh = 0., 0., 0., 0.
+        heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
             tz.solve_timestep(t, weather, model = self._model)
             air_t += tz.zone_air_temperature
@@ -188,23 +205,23 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             heat_load += tz.air_handling_unit.posth_Dem
 
             # For the moment not latent
-            # if tz.latent_zone_load > 0.:
-            #     heat_load += tz.latent_zone_load
-            # else:
-            #     cool_load += tz.latent_zone_load
+            if tz.latent_zone_load > 0.:
+                heat_load += tz.latent_zone_load
+            else:
+                cool_load += tz.latent_zone_load
 
-            # if tz.latent_zone_load > 0.:
-            #     heat_load += tz.latent_zone_load
-            # else:
-            #     cool_load += tz.latent_zone_load
+            if tz.latent_zone_load > 0.:
+                heat_load += tz.latent_zone_load
+            else:
+                cool_load += tz.latent_zone_load
 
             # DHW
-            heat_load += tz.domestic_hot_water_demand[t]
+            dhw_load += tz.domestic_hot_water_demand[t]
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
 
-        self.heating_system.solve_system(heat_load, weather, t, air_t, air_rh)
+        self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
     def simulate(self,
@@ -253,6 +270,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
+            'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -260,7 +281,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            # 'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
@@ -288,6 +309,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
             results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
                                                                       self._thermal_zones_list]
+
+            results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
+            results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
+            results['DHW tank charging rate [W]'][t - t_start, 0] = self.heating_system.dhw_capacity_to_tank
+
+
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
@@ -319,38 +346,28 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 + total["Cooling system electric consumption [Wh]"] \
                 + total["Appliances electric consumption [Wh]"] \
                 + total['AHU electric consumption [Wh]']
-        '''
-        PV production
-        '''
-        building_surface_list=[]
-        for tz in self._thermal_zones_list:
-            for s in tz._surface_list:
-                building_surface_list.append(s)
 
-        name=tz.name
-        Photovoltaic=PV_system(name=f"TZ {name} PV system",
-                               weatherobject=weather_object,
-                               surface_list=building_surface_list)
-        #Associate PV to the building
-        self.PV_systems.append(Photovoltaic)
-        pv_production=Photovoltaic.pv_production()
-        pv_production.index=pd.to_datetime(pv_production.index.strftime(f'{CONFIG.simulation_reference_year}-%m-%d %H:%M:%S'))
-        common_index = pv_production.index.union( total.index)
-        pv_production= pv_production.reindex(common_index)
-        pv_production=pv_production.interpolate(method='time')
-        
-        [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=Photovoltaic.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0],pv_prod=pv_production)
-        total["PV production [Wh]"]=pv_production
-        total["Battery State [%]"]=BatteryState
-        total["Given to Batteries [Wh]"]=tobattery
-        
-        total["Taken from the Batteries [Wh]"]=frombattery
-        total["Given to Grid [Wh]"]=togrid
-        total["Taken from the Gird [Wh]"]=fromgrid
-        total["directly from the PV [Wh]"]=directsolar
-        total["PV System self consumption"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
+        # Associate PV to the building
+        if hasattr(self, 'pv_system'):
+            pv_production=self.pv_system.pv_production()
+            [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
+        else:
+            pv_production = 0.
+            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.nan]*6
+            fromgrid = total['Electric consumption [Wh]'].iloc[:, 0].values
+            togrid = 0.
 
+        total["PV production [Wh]",f"Bd {self.name}"]=pv_production
+        total["Battery State [%]",f"Bd {self.name}"]=BatteryState
+        total["Given to Batteries [Wh]",f"Bd {self.name}"]=tobattery
         
+        total["Taken from the Batteries [Wh]",f"Bd {self.name}"]=frombattery
+        total["Given to Grid [Wh]",f"Bd {self.name}"]=togrid
+        total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
+        total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
+        total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
+
+         
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
