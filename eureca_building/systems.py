@@ -118,12 +118,14 @@ class System(metaclass=abc.ABCMeta):
 
         max_daily_flow_cons = (dhw_flow_rate[:364*24*CONFIG.ts_per_hour].reshape(364, 24*CONFIG.ts_per_hour)*CONFIG.time_step).sum(axis=1).max() # [m3]
         max_flow_rate = dhw_flow_rate.max() * 3600 # m3/h
+        max_flow_rate = 1e-10 if max_flow_rate < 1e-10 else max_flow_rate
         request_time = max_daily_flow_cons/max_flow_rate
 
         # from UNI 9182 [m3]
         self.dhw_tank_volume = 1.5*max_flow_rate * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * pre_heating_time / (T_tank - T_ground) # [m3]
         self.dhw_tank_volume = np.round(self.dhw_tank_volume,decimals = 1)
+        self.dhw_tank_volume  = 1e-10 if self.dhw_tank_volume  < 1e-10 else self.dhw_tank_volume
 
         self.dhw_design_load = 1.5*max_flow_rate * 1000 * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * 1.163 # [W]
@@ -134,6 +136,7 @@ class System(metaclass=abc.ABCMeta):
                                water_properties["density"] * \
                                water_properties["specific_heat"] * \
                                self.dhw_tank_design_delta_T / 3600    # [Wh]
+        self.dhw_tank_design_charge  = 1e-10 if self.dhw_tank_design_charge  < 1e-10 else self.dhw_tank_design_charge
 
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
         self.charging_mode = 0.
