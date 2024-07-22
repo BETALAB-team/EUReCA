@@ -6,7 +6,6 @@ import logging
 import warnings
 warnings.filterwarnings("ignore")
 import pandas as pd
-from eureca_building.thermal_storage_v01 import ThermalStorageTank_TES01 as TST
 
 
 # import matplotlib
@@ -19,13 +18,10 @@ load_config("config.json")
 from eureca_ubem.city import City
 
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
-schedules_file = os.path.join(".","Schedules_total.xlsx")
-materials_file = os.path.join(".","total envelope types.xlsx")
-<<<<<<< HEAD
-city_model_file = os.path.join(".","Duo.geojson")
-=======
-city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef.geojson")
->>>>>>> cba4d7d14d5b7d637041d678e585017ace9b3426
+schedules_file = os.path.join(".","Schedules1.xlsx")
+materials_file = os.path.join(".","materials_and_construction_test.xlsx")
+city_model_file = os.path.join(".","napo.geojson")
+
 
 city_geojson = City(
     city_model=city_model_file, 
