@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -83,6 +83,7 @@
 <span class="kn">import</span> <span class="nn">math</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">eureca_building.config</span> <span class="kn">import</span> <span class="n">CONFIG</span>
 <span class="kn">from</span> <span class="nn">eureca_building.schedule_properties</span> <span class="kn">import</span> <span class="n">domestic_hot_water_prop</span>
@@ -90,29 +91,26 @@
 <span class="kn">from</span> <span class="nn">eureca_building.schedule</span> <span class="kn">import</span> <span class="n">Schedule</span>
 <span class="kn">from</span> <span class="nn">eureca_building.exceptions</span> <span class="kn">import</span> <span class="n">InvalidScheduleType</span>
 
-<div class="viewcode-block" id="distrEventi"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.distrEventi">[docs]</a><span class="k">def</span> <span class="nf">distrEventi</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">pdf</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;DEPRECATED: Not working</span>
-
+<div class="viewcode-block" id="_event_distribution"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water._event_distribution">[docs]</a><span class="k">def</span> <span class="nf">_event_distribution</span><span class="p">(</span><span class="n">number_of_daily_events</span><span class="p">,</span><span class="n">daily_vector_distibution</span><span class="p">,</span> <span class="n">number_of_days</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    n</span>
 <span class="sd">    x</span>
-<span class="sd">    pdf</span>
+<span class="sd">    pdf vettore distribuzione</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">y_guess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
-    <span class="n">cdf</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">pdf</span><span class="p">)</span>
-    <span class="p">[</span><span class="n">cdf</span><span class="p">,</span><span class="n">index</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cdf</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">y_guess</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">number_of_days</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">number_of_daily_events</span><span class="p">))</span>
+    <span class="n">cdf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">daily_vector_distibution</span><span class="p">)</span>
+    <span class="n">x_event</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">y_guess</span><span class="p">,</span><span class="n">cdf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cdf</span><span class="p">)))</span>
+    <span class="c1"># get randomly som time events from the cdf and y_guess selected randomly</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">x_event</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span></div>
 
-    <span class="n">x_event</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">y_guess</span><span class="p">,</span><span class="n">cdf</span><span class="p">,</span><span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
-    <span class="n">time_event</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">x_event</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">time_event</span></div>
-
-<div class="viewcode-block" id="dhw_calc_calculation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.dhw_calc_calculation">[docs]</a><span class="k">def</span> <span class="nf">dhw_calc_calculation</span><span class="p">(</span><span class="n">volume_unit</span><span class="p">,</span> <span class="n">numunits</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;DEPRECATED: not working</span>
+<div class="viewcode-block" id="dhw_calc_calculation"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.dhw_calc_calculation">[docs]</a><span class="k">def</span> <span class="nf">dhw_calc_calculation</span><span class="p">(</span><span class="n">volume_unit</span><span class="p">,</span> <span class="n">numunits</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -124,134 +122,79 @@
 <span class="sd">    -------</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The DHW calc is always run with a 5 min time step. At the end it is resapled to the CONFIG time step</span>
+    <span class="n">volume_unit</span> <span class="o">=</span> <span class="n">volume_unit</span> <span class="o">*</span> <span class="mi">1000</span> <span class="c1"># m3 to l</span>
+    <span class="n">time_step</span> <span class="o">=</span> <span class="mi">5</span> <span class="c1"># min</span>
+    <span class="n">time_steps_hour</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="n">time_step</span><span class="p">)</span>
+    <span class="n">time_steps_day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="n">time_steps_hour</span><span class="p">)</span>
 
-    <span class="n">total_days</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;total_days&quot;</span><span class="p">]</span>
-    <span class="n">nuses</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;nuses&quot;</span><span class="p">]</span>
-    <span class="n">vol_aver_drawoff</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;vol_aver_drawoff&quot;</span><span class="p">]</span>
-    <span class="n">vol_desv_drawoff</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;vol_desv_drawoff&quot;</span><span class="p">]</span>
-    <span class="n">time_aver_drawoff</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;time_aver_drawoff&quot;</span><span class="p">]</span>
-    <span class="n">proportion_event</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;proportion_event&quot;</span><span class="p">]</span>
-    <span class="n">dist</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;dist&quot;</span><span class="p">]</span>
+    <span class="n">total_consumed_volume_dw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">365</span><span class="o">*</span><span class="mi">24</span><span class="o">*</span><span class="n">time_steps_hour</span><span class="p">,</span> <span class="n">numunits</span><span class="p">])</span>
 
-    <span class="n">vol_total_drawoff</span> <span class="o">=</span> <span class="n">vol_aver_drawoff</span> <span class="o">*</span> <span class="n">time_aver_drawoff</span>
+    <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numunits</span><span class="p">):</span>
 
-    <span class="n">vol_total_drawoff_use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nuses</span><span class="p">))</span>
 
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nuses</span><span class="p">):</span>
-        <span class="n">vol_total_drawoff_use</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">volume_unit</span> <span class="o">*</span> <span class="n">proportion_event</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">total_days</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;total_days&quot;</span><span class="p">]</span>
 
-    <span class="n">draw_offs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nuses</span><span class="p">))</span>
-    <span class="n">draw_offs_dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nuses</span><span class="p">))</span>
+        <span class="n">consumed_volume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">total_days</span><span class="p">,</span> <span class="n">time_steps_day</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;DHWcalc_uses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())])</span>
 
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nuses</span><span class="p">):</span>
-        <span class="n">draw_offs_dec</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vol_total_drawoff_use</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">vol_aver_drawoff</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="n">vol_total_drawoff_use</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">vol_aver_drawoff</span><span class="p">[</span><span class="n">j</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">draw_offs_dec</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
-            <span class="n">draw_offs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">vol_total_drawoff_use</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">vol_aver_drawoff</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">draw_offs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">vol_total_drawoff_use</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">vol_aver_drawoff</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="n">use_number</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">use</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;DHWcalc_uses&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 
-    <span class="n">time_steps_hour</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">/</span> <span class="n">time_step</span>
-    <span class="n">time_steps_day</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="n">time_steps_hour</span>
+            <span class="n">average_time_drawoff</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;average_time&quot;</span><span class="p">]</span>
+            <span class="c1"># l/d split by drawoff type</span>
+            <span class="n">daily_vol_total_drawoff_use</span> <span class="o">=</span> <span class="n">volume_unit</span> <span class="o">*</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;percentage_to_total_consumption&quot;</span><span class="p">]</span>
+            <span class="n">daily_drawoff_on_event</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">daily_vol_total_drawoff_use</span> <span class="o">/</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="c1"># Maximum number of on events in a timestep for each drawoff</span>
+            <span class="c1"># n_max_time_step_on_events = np.ceil(time_step / average_time_drawoff)</span>
 
-    <span class="n">array_time_step</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
-        <span class="n">array_time_step</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_step</span>
+            <span class="c1"># This does a resampling with a linear interpolation method  to keep 1 as sum of each column</span>
+            <span class="n">temporal_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">time_steps_hour</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
+                                      <span class="n">values</span><span class="p">[</span><span class="s2">&quot;temporal_distribution&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="n">time_steps_hour</span>
 
-    <span class="n">n_max</span> <span class="o">=</span> <span class="n">array_time_step</span> <span class="o">/</span> <span class="n">time_aver_drawoff</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_max</span><span class="p">)):</span>
-        <span class="n">n_max</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_max</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="c1"># array with the time steps when the use is on [number of daily on events, number of days]</span>
+            <span class="n">temporal_dist_year</span> <span class="o">=</span> <span class="n">_event_distribution</span><span class="p">(</span><span class="n">daily_drawoff_on_event</span><span class="p">,</span> <span class="n">temporal_dist</span><span class="p">,</span> <span class="n">total_days</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;volume_pdf&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;lognormal&quot;</span><span class="p">:</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">]</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">]</span>
+                <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span> <span class="o">+</span> <span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="p">[</span><span class="n">total_days</span><span class="p">,</span> <span class="n">daily_drawoff_on_event</span><span class="p">])</span>  <span class="c1"># l/min</span>
+            <span class="k">elif</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;volume_pdf&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;normal&quot;</span><span class="p">:</span>
+                <span class="n">flow_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="s2">&quot;std&quot;</span><span class="p">],</span> <span class="p">[</span><span class="n">total_days</span><span class="p">,</span> <span class="n">daily_drawoff_on_event</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;DHW calculation. The volume flow rate probabilty distribution function is not allowed. PDF: </span><span class="si">{</span><span class="n">values</span><span class="p">[</span><span class="s2">&quot;volume_pdf&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">. Aloowed PDFs: [lognormal, normal]&#39;</span><span class="p">)</span>
+            <span class="n">volume_use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">flow_rate</span><span class="p">)</span>  <span class="c1"># l ad accensione</span>
+            <span class="c1"># To avoid negative consumptions (possible with normal dist)</span>
+            <span class="n">volume_use</span><span class="p">[</span><span class="n">volume_use</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
 
-    <span class="n">Volume_use_daily_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">total_days</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">time_steps_day</span><span class="p">)))</span>
-    <span class="n">Volume_use_arrayb0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">total_days</span> <span class="o">*</span> <span class="n">time_steps_day</span><span class="p">)))</span>
-    <span class="n">dist_use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">24</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
-    <span class="n">Volume_use_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">time_steps_day</span> <span class="o">*</span> <span class="n">total_days</span><span class="p">),</span> <span class="n">nuses</span><span class="p">))</span>
-    <span class="n">Volume_use_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">nuses</span><span class="p">))</span>
-    <span class="n">Volume_aver_drawoff_final</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nuses</span><span class="p">)</span>
-    <span class="n">Volume_desv_drawoff_final</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">nuses</span><span class="p">))</span>
-    <span class="n">Volume_use_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">time_steps_day</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">daily_drawoff_on_event</span><span class="p">):</span>
+                <span class="n">consumed_volume</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">total_days</span><span class="p">),</span> <span class="n">temporal_dist_year</span><span class="p">[:,</span> <span class="n">ts</span><span class="p">],</span> <span class="n">use_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">volume_use</span><span class="p">[:,</span> <span class="n">ts</span><span class="p">]</span>
 
-    <span class="n">Volume_use_unit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">total_days</span> <span class="o">*</span> <span class="n">time_steps_day</span><span class="p">),</span> <span class="n">numunits</span><span class="p">))</span>
+            <span class="c1"># The rescale needed because otherwise the rounding process provoke an underestimation</span>
+            <span class="n">consumed_volume</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">use_number</span><span class="p">]</span> <span class="o">=</span> <span class="n">consumed_volume</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">use_number</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="n">consumed_volume</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">use_number</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="mi">365</span><span class="p">)</span> <span class="o">*</span> <span class="n">daily_vol_total_drawoff_use</span>
 
-    <span class="k">for</span> <span class="n">units0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">numunits</span><span class="p">):</span>
+            <span class="n">use_number</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="k">for</span> <span class="n">use</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nuses</span><span class="p">):</span>
+        <span class="n">total_consumed_volume_dw</span><span class="p">[:,</span><span class="n">unit</span><span class="p">]</span> <span class="o">=</span> <span class="n">consumed_volume</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">365</span><span class="o">*</span><span class="mi">24</span><span class="o">*</span><span class="n">time_steps_hour</span><span class="p">)</span>
 
-            <span class="n">dist_use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">dist</span><span class="p">[:,</span> <span class="n">use</span><span class="p">],</span> <span class="mi">12</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">dist_use_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dist_use</span><span class="p">,</span> <span class="p">(</span><span class="mi">288</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">time_steps_hour</span>
+    <span class="n">total_consumed_volume</span> <span class="o">=</span> <span class="n">total_consumed_volume_dw</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">total_consumed_volume_rs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">total_consumed_volume</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s1">&#39;1/1/2018 00:00&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">8760</span><span class="o">*</span><span class="n">time_steps_hour</span><span class="p">,</span> <span class="n">freq</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time_step</span><span class="si">}</span><span class="s2">min&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="si">}</span><span class="s2">S&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
 
-            <span class="n">vol_aver_drawoff_use</span> <span class="o">=</span> <span class="n">vol_aver_drawoff</span><span class="p">[</span><span class="n">use</span><span class="p">]</span>
-            <span class="n">vol_desv_drawoff_use</span> <span class="o">=</span> <span class="n">vol_desv_drawoff</span><span class="p">[</span><span class="n">use</span><span class="p">]</span>
-            <span class="n">time_aver_drawoff_use</span> <span class="o">=</span> <span class="n">time_aver_drawoff</span><span class="p">[</span><span class="n">use</span><span class="p">]</span>
-            <span class="n">draw_offs_use</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">draw_offs</span><span class="p">[</span><span class="n">use</span><span class="p">])</span>
-            <span class="n">n_max1</span> <span class="o">=</span> <span class="n">n_max</span><span class="p">[</span><span class="n">use</span><span class="p">]</span>
-
-            <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">total_days</span><span class="p">):</span>
-
-                <span class="n">time_event</span> <span class="o">=</span> <span class="n">distrEventi</span><span class="p">(</span><span class="n">draw_offs_use</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">time_steps_day</span><span class="p">),</span> <span class="n">dist_use_t</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">use</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">m</span> <span class="o">=</span> <span class="n">vol_aver_drawoff_use</span>
-                    <span class="n">v</span> <span class="o">=</span> <span class="n">vol_desv_drawoff_use</span>
-                    <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span> <span class="o">+</span> <span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
-                    <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="p">(</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-                    <span class="n">Flow_rated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">draw_offs_use</span><span class="p">))</span>
-
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">Flow_rated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">vol_aver_drawoff_use</span><span class="p">,</span> <span class="n">vol_desv_drawoff_use</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">draw_offs_use</span><span class="p">))</span>
-
-                <span class="n">Volume_use</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Flow_rated</span> <span class="o">*</span> <span class="n">time_aver_drawoff_use</span><span class="p">)))</span>
-
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time_steps_day</span><span class="p">)):</span>
-
-                    <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">time_event</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
-
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">n_max1</span><span class="p">:</span>
-                        <span class="n">index1</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_max1</span><span class="p">)]</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">index1</span> <span class="o">=</span> <span class="n">index</span>
-
-                    <span class="k">if</span> <span class="n">draw_offs_use</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">index1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                            <span class="n">Volume_use_time</span> <span class="o">=</span> <span class="n">Volume_use</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">Volume_use_time</span> <span class="o">=</span> <span class="n">Volume_use</span><span class="p">[</span><span class="n">index1</span><span class="p">]</span>
-
-                    <span class="n">Volume_use_daily_array</span><span class="p">[(</span><span class="n">day</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Volume_use_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">time_aver_drawoff_use</span>
-
-            <span class="n">Volume_use_resh1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Volume_use_daily_array</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_days</span> <span class="o">*</span> <span class="n">time_steps_day</span><span class="p">)))</span>
-            <span class="n">Volume_use_array</span><span class="p">[:,</span> <span class="n">use</span><span class="p">]</span> <span class="o">=</span> <span class="n">Volume_use_resh1</span>
-
-            <span class="n">Volume_use_sum</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">use</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Volume_use_array</span><span class="p">[:,</span> <span class="n">use</span><span class="p">])</span>
-
-        <span class="n">Volume_use_unit</span><span class="p">[:,</span> <span class="n">units0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Volume_use_array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># if numunits&gt;1:</span>
-        <span class="n">Volume_use_arrayb0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Volume_use_unit</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     Volume_use_arrayb0=Volume_use_unit[:,0]</span>
-
-    <span class="n">Volume_totalb1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">Volume_use_arrayb0</span><span class="p">)</span>
-
-    <span class="n">number_units</span> <span class="o">=</span> <span class="n">numunits</span>
-
-    <span class="n">volume_profile</span> <span class="o">=</span> <span class="n">Volume_use_arrayb0</span>
-    <span class="n">total_volume</span> <span class="o">=</span> <span class="n">Volume_totalb1</span>
-
-    <span class="n">Volume_meanb1</span> <span class="o">=</span> <span class="p">((</span><span class="n">Volume_totalb1</span><span class="p">)</span> <span class="o">/</span> <span class="n">numunits</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_days</span>
-    <span class="k">return</span> <span class="n">volume_profile</span></div>
+    <span class="k">return</span> <span class="n">total_consumed_volume_rs</span> <span class="c1"># [CONFIG.start_time_step:CONFIG.final_time_step]</span></div>
 
 <div class="viewcode-block" id="DomesticHotWater"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.DomesticHotWater">[docs]</a><span class="k">class</span> <span class="nc">DomesticHotWater</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;DomesticHotWater object</span>
 <span class="sd">    Class to manage all the calculations involved in the Domestic Hot Water consumption</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="DomesticHotWater.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.DomesticHotWater.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">calculation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">schedule</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">n_of_occupants</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Constructor for DomesticHotWater. Memorizes the attributes anc checks them through properties setter</span>
 
@@ -272,6 +215,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">=</span> <span class="n">calculation_method</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span> <span class="o">=</span> <span class="n">schedule</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span> <span class="o">=</span> <span class="n">n_of_occupants</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">==</span> <span class="s2">&quot;Number of occupants&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;DHW object: If &#39;Number of occupants&#39; is selected as calculation method, a numeric n_of_occupants arg must be introduced&quot;</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">calculation_method</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -315,7 +261,7 @@
                 <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span> <span class="o">=</span> <span class="n">value</span>
 
-<div class="viewcode-block" id="DomesticHotWater.get_dhw_yearly_mass_flow_rate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.DomesticHotWater.get_dhw_yearly_mass_flow_rate">[docs]</a>    <span class="k">def</span> <span class="nf">get_dhw_yearly_mass_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">,</span> <span class="n">weather</span><span class="p">):</span>
+<div class="viewcode-block" id="DomesticHotWater.get_dhw_yearly_mass_flow_rate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.domestic_hot_water.DomesticHotWater.get_dhw_yearly_mass_flow_rate">[docs]</a>    <span class="k">def</span> <span class="nf">get_dhw_yearly_mass_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">,</span> <span class="n">weather</span><span class="p">,</span> <span class="n">n_of_people</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This function calculates the water and mass flow rate consumption, given the area of the building and the number of units (to be used when unit and/or method need them)</span>
 
 <span class="sd">        Parameters</span>
@@ -357,14 +303,24 @@
             <span class="c1"># Water Need [m3/day]</span>
             <span class="n">Vw_single</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">Af</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">==</span> <span class="s2">&quot;UNI-TS 11300-2&quot;</span><span class="p">:</span>
-                <span class="n">volume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span><span class="p">)</span> <span class="o">*</span> <span class="n">Vw_single</span> <span class="o">*</span> <span class="n">number_of_units</span> <span class="o">*</span> <span class="mi">365</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span> <span class="c1"># To convert from m3/ts to m3/s</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">==</span> <span class="s2">&quot;Number of occupants&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DHW object: number of people is not numeric : </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">Vw_single</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_of_people</span> <span class="o">*</span> <span class="mf">0.04</span> <span class="o">/</span> <span class="n">number_of_units</span> <span class="c1">#  Water Need [m3/day] considering 40 L/px</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">==</span> <span class="s2">&quot;DHW calc&quot;</span><span class="p">:</span>
-                <span class="c1"># Broken</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;UNI-TS 11300-2&quot;</span><span class="p">,</span><span class="s2">&quot;Number of occupants&quot;</span><span class="p">]:</span>
+                <span class="n">sched</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.500</span><span class="p">,</span> <span class="mf">0.502</span><span class="p">,</span> <span class="mf">0.504</span><span class="p">,</span> <span class="mf">0.957</span><span class="p">,</span> <span class="mf">0.984</span><span class="p">,</span> <span class="mf">1.042</span><span class="p">,</span> <span class="mf">1.102</span><span class="p">,</span> <span class="mf">1.120</span><span class="p">,</span> <span class="mf">1.126</span><span class="p">,</span> <span class="mf">1.131</span><span class="p">,</span> <span class="mf">1.133</span><span class="p">,</span> <span class="mf">1.132</span><span class="p">,</span>
+                         <span class="mf">1.133</span><span class="p">,</span> <span class="mf">1.136</span><span class="p">,</span> <span class="mf">1.133</span><span class="p">,</span> <span class="mf">1.135</span><span class="p">,</span> <span class="mf">1.134</span><span class="p">,</span> <span class="mf">1.134</span><span class="p">,</span> <span class="mf">1.135</span><span class="p">,</span> <span class="mf">1.133</span><span class="p">,</span> <span class="mf">1.122</span><span class="p">,</span> <span class="mf">1.102</span><span class="p">,</span> <span class="mf">0.972</span><span class="p">,</span> <span class="mf">0.498</span><span class="p">]</span><span class="o">*</span><span class="mi">365</span><span class="p">,</span>
+                                  <span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s2">&quot;00:00 01/01/2023&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;1h&#39;</span><span class="p">,</span> <span class="n">periods</span> <span class="o">=</span> <span class="mi">365</span><span class="o">*</span><span class="mi">24</span><span class="p">))</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span><span class="o">/</span><span class="mi">60</span><span class="p">)</span><span class="si">}</span><span class="s2">min&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ffill</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+                <span class="c1"># sched = np.ones(CONFIG.number_of_time_steps_year)</span>
+
+                <span class="n">volume</span> <span class="o">=</span> <span class="n">sched</span> <span class="o">*</span> <span class="n">Vw_single</span> <span class="o">*</span> <span class="n">number_of_units</span> <span class="o">*</span> <span class="mi">365</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span> <span class="c1"># To convert from m3/ts to m3/s</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_method</span> <span class="o">==</span> <span class="s2">&quot;DHW calc&quot;</span><span class="p">:</span>
                 <span class="c1"># TODO: fix stochastic calculation</span>
-                <span class="n">volume</span> <span class="o">=</span> <span class="n">dhw_calc_calculation</span><span class="p">(</span><span class="n">Vw_single</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">,</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)[:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span> <span class="c1"># to m3/ts to m3/s</span>
-                <span class="c1"># L or m3?</span>
+                <span class="n">volume</span> <span class="o">=</span> <span class="n">dhw_calc_calculation</span><span class="p">(</span><span class="n">Vw_single</span><span class="p">,</span> <span class="n">number_of_units</span><span class="p">)[:</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">number_of_time_steps_year</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">time_step</span> <span class="c1"># to m3/ts to m3/s</span>
 
         <span class="n">Cw</span> <span class="o">=</span> <span class="n">water_properties</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">]</span>      <span class="c1"># [J/(kg K)]</span>
         <span class="n">DTw</span> <span class="o">=</span> <span class="n">domestic_hot_water_prop</span><span class="p">[</span><span class="s2">&quot;target temperature [°C]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">weather</span><span class="o">.</span><span class="n">general_data</span><span class="p">[</span><span class="s2">&quot;average_out_air_db_temperature&quot;</span><span class="p">]</span>       <span class="c1"># [°C]</span>

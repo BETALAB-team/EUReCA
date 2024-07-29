@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -103,7 +103,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Internal Gain Class: parent class to set some common things</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="InternalLoad.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.InternalLoad.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">nominal_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -128,7 +128,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span> <span class="o">=</span> <span class="n">nominal_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span> <span class="o">=</span> <span class="n">schedule</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nominal_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -289,7 +289,7 @@
 
 
 <div class="viewcode-block" id="People"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.People">[docs]</a><span class="k">class</span> <span class="nc">People</span><span class="p">(</span><span class="n">InternalLoad</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="People.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.People.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">nominal_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -330,7 +330,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_latent</span> <span class="o">=</span> <span class="n">fraction_latent</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_radiant</span> <span class="o">=</span> <span class="n">fraction_radiant</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_convective</span> <span class="o">=</span> <span class="n">fraction_convective</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">metabolic_rate</span> <span class="o">=</span> <span class="n">metabolic_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metabolic_rate</span> <span class="o">=</span> <span class="n">metabolic_rate</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -370,7 +370,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_metabolic_rate</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="People._get_absolute_value_nominal"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.People._get_absolute_value_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Memorizes the occupancy nominal value in W</span>
 
 <span class="sd">        Parameters</span>
@@ -393,7 +393,7 @@
             <span class="n">px_w_converter</span> <span class="o">=</span> <span class="mf">1.</span>
 
         <span class="c1"># This value is in W</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value_absolute</span> <span class="o">=</span> <span class="n">area</span> <span class="o">*</span> <span class="n">px_w_converter</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value_absolute</span> <span class="o">=</span> <span class="n">area</span> <span class="o">*</span> <span class="n">px_w_converter</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span></div>
 
 <div class="viewcode-block" id="People.get_convective_load"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.People.get_convective_load">[docs]</a>    <span class="k">def</span> <span class="nf">get_convective_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the convective load numpy.array</span>
@@ -485,7 +485,7 @@
 
 
 <div class="viewcode-block" id="ElectricLoad"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.ElectricLoad">[docs]</a><span class="k">class</span> <span class="nc">ElectricLoad</span><span class="p">(</span><span class="n">InternalLoad</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="ElectricLoad.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.ElectricLoad.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">nominal_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -527,7 +527,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_to_zone</span> <span class="o">=</span> <span class="n">fraction_to_zone</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_radiant</span> <span class="o">=</span> <span class="n">fraction_radiant</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fraction_convective</span> <span class="o">=</span> <span class="n">fraction_convective</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">number_of_people</span> <span class="o">=</span> <span class="n">number_of_people</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">number_of_people</span> <span class="o">=</span> <span class="n">number_of_people</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -566,7 +566,7 @@
                 <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_people</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ElectricLoad._get_absolute_value_nominal"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.ElectricLoad._get_absolute_value_nominal">[docs]</a>    <span class="k">def</span> <span class="nf">_get_absolute_value_nominal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Memorizes the electric load nominal value in W</span>
 
 <span class="sd">        Parameters</span>
@@ -595,7 +595,7 @@
         <span class="c1"># print(area)</span>
         <span class="c1"># print(number_of_people)</span>
         <span class="c1"># This value is in W</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value_absolute</span> <span class="o">=</span> <span class="n">number_of_people</span> <span class="o">*</span> <span class="n">area</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value_absolute</span> <span class="o">=</span> <span class="n">number_of_people</span> <span class="o">*</span> <span class="n">area</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nominal_value</span></div>
 
 <div class="viewcode-block" id="ElectricLoad.get_convective_load"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.ElectricLoad.get_convective_load">[docs]</a>    <span class="k">def</span> <span class="nf">get_convective_load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the convective load numpy.array</span>
@@ -681,7 +681,7 @@
 
 
 <div class="viewcode-block" id="Lights"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.Lights">[docs]</a><span class="k">class</span> <span class="nc">Lights</span><span class="p">(</span><span class="n">ElectricLoad</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="Lights.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.internal_load.Lights.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
             <span class="n">nominal_value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -727,7 +727,7 @@
             <span class="n">fraction_convective</span><span class="o">=</span><span class="n">fraction_convective</span><span class="p">,</span>
             <span class="n">number_of_people</span><span class="o">=</span><span class="n">number_of_people</span><span class="p">,</span>
             <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span></div></div>
 </pre></div>
 
            </div>
