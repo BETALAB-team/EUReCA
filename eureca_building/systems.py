@@ -139,6 +139,7 @@ class System(metaclass=abc.ABCMeta):
         self.dhw_tank_design_charge  = 1e-10 if self.dhw_tank_design_charge  < 1e-10 else self.dhw_tank_design_charge
 
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
+        self.dhw_tank_current_charge_perc = 0.5
         self.charging_mode = 0.
         self.dhw_capacity_to_tank = 0.
         self.losses_discharging_rate = 0.02 # %/h
