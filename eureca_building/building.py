@@ -172,7 +172,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         building_surface_list=[]
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
-                building_surface_list.append(s)
+                if s.surface_type=="Roof":
+                    building_surface_list.append(s)
 
         self.pv_system = PV_system(name=f"Bd {self.name} PV system",
                                weatherobject=weather_obj,
