@@ -74,7 +74,7 @@ ext_wall_from_U = Construction.from_U_value("ExtWall from U", 0.7, weight_class=
 # Definition of surfaces
 wall_south = Surface(
     "Wall 1",
-    vertices=((0, 0, 0), (21.36, 0, 0), (21.36, 0, 6), (0, 0, 6)),
+    vertices=((0, 0, 0), (8, 0, 0), (8, 0, 6), (0, 0, 6)),
     wwr=0.125,
     surface_type="ExtWall",
     construction=ext_wall_from_U,
@@ -82,7 +82,7 @@ wall_south = Surface(
 )
 wall_east = Surface(
     "Wall 2",
-    vertices=((21.36, 0, 0), (21.36, 20.42, 0), (21.36, 20.42, 6), (21.36, 0, 6)),
+    vertices=((8, 0, 0), (8, 20.42, 0), (8, 8, 6), (8, 0, 6)),
     wwr=0.125,
     surface_type="ExtWall",
     construction=ext_wall_cs,
@@ -90,7 +90,7 @@ wall_east = Surface(
 )
 wall_north = Surface(
     "Wall 2",
-    vertices=((21.36, 20.42, 0), (0, 20.42, 0), (0, 20.42, 6), (21.36, 20.42, 6)),
+    vertices=((8, 8, 0), (0, 8, 0), (0, 8, 6), (8, 8, 6)),
     wwr=0.125,
     surface_type="ExtWall",
     construction=ext_wall_cs,
@@ -98,7 +98,7 @@ wall_north = Surface(
 )
 wall_west = Surface(
     "Wall 2",
-    vertices=((0, 20.42, 0), (0, 0, 0), (0, 0, 6), (0, 20.42, 6)),
+    vertices=((0, 8, 0), (0, 0, 0), (0, 0, 6), (0, 8, 6)),
     wwr=0.125,
     surface_type="ExtWall",
     construction=ext_wall_cs,
@@ -106,14 +106,14 @@ wall_west = Surface(
 )
 floor = Surface(
     "Floor",
-    vertices=((0, 0, 0), (0, 20.42, 0), (21.36, 20.42, 0), (21.36, 0, 0)),
+    vertices=((0, 0, 0), (0, 8, 0), (8, 8, 0), (8, 0, 0)),
     wwr=0.0,
     surface_type="GroundFloor",
     construction=floor_cs,
 )
 roof = Surface(
     "Roof",
-    vertices=((0, 0, 6), (21.36, 0, 6), (21.36, 20.42, 6), (0, 20.42, 6)),
+    vertices=((0, 0, 6), (8, 0, 6), (8, 8, 6), (0, 8, 6)),
     wwr=0.0,
     surface_type="Roof",
     construction=roof_cs,
@@ -148,7 +148,7 @@ people_sched = Schedule(
 people = People(
     name='occupancy_tz',
     unit='px',
-    nominal_value=1.2,
+    nominal_value=5,
     schedule=people_sched,
     fraction_latent=0.45,
     fraction_radiant=0.3,
@@ -178,24 +178,12 @@ pc = ElectricLoad(
 heat_t = Schedule.from_daily_schedule(
     name="t_heat",
     schedule_type="temperature",
-    schedule_week_day=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
-    schedule_saturday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) - 5,
-    schedule_sunday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) - 10,
-    schedule_holiday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 0,
-    holidays=(10, 11, 12, 13, 14),
+    schedule_week_day=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h)-1,
+    schedule_saturday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
+    schedule_sunday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
+    schedule_holiday=np.array([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h),
+    holidays=(10, 11),
     starting_day=3,
-)
-
-heat_t = Schedule.from_constant_value(
-    name="t_heat",
-    schedule_type="temperature",
-    value=15.
-)
-
-heat_t = Schedule(
-    "t_heat",
-    "temperature",
-    np.array(([18] * 7 * ts_h + [21] * 2 * ts_h + [18] * 5 * ts_h + [21] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_t = Schedule(
@@ -207,7 +195,7 @@ cool_t = Schedule(
 heat_h = Schedule(
     "h_heat",
     "dimensionless",
-    np.array(([0.1] * 7 * ts_h + [0.3] * 2 * ts_h + [.1] * 5 * ts_h + [.3] * 10 * ts_h) * 365)[:delay_ts],
+    np.array(([0.0] * 7 * ts_h + [0.0] * 2 * ts_h + [.0] * 5 * ts_h + [.0] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 cool_h = Schedule(
@@ -249,7 +237,7 @@ inf_obj = Infiltration(
 vent_sched = Schedule(
     "vent_sched",
     "dimensionless",
-    np.array(([.0] * 8 * ts_h + [1] * 2 * ts_h + [0] * 4 * ts_h + [1] * 10 * ts_h) * 365)[:delay_ts],
+    np.array(([.0] * 8 * ts_h + [0] * 2 * ts_h + [0] * 4 * ts_h + [0] * 10 * ts_h) * 365)[:delay_ts],
 )
 
 vent_obj = MechanicalVentilation(
@@ -286,14 +274,6 @@ dhw_flow_rate = Schedule(
     "dhw_flow_rate",
     "mass_flow_rate",
     np.array(([.5] * 8 * ts_h + [.0] * 2 * ts_h + [.5] * 4 * ts_h + [.0] * 10 * ts_h) * 365)[:delay_ts] * 10,
-)
-
-dhw_1 = DomesticHotWater(
-    "dhw_1",
-    calculation_method="Schedule",
-    unit="L/(m2 h)",
-    schedule=dhw_flow_rate,
-
 )
 
 dhw_2 = DomesticHotWater(
@@ -353,7 +333,7 @@ for i in range(1):
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model="1C")
     heating_peak_load = tz1.design_heating_load(-5.)
 
-    tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+    tz1.add_domestic_hot_water(weather_file, dhw_2)
 
     bd = Building("Bd 1", thermal_zones_list=[tz1], model="1C")
     bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
@@ -406,7 +386,7 @@ for i in range(1):
     cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model="1C")
     heating_peak_load = tz2.design_heating_load(-5.)
 
-    tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
+    tz2.add_domestic_hot_water(weather_file, dhw_2)
 
     bd2 = Building("Bd 2", thermal_zones_list=[tz2], model="1C")
     bd2.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
