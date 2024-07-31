@@ -60,7 +60,7 @@ class PV_system():
                  weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
-                 coverage_factor=0.35): #Coverage factor for the area that is covered by the PV
+                 coverage_factor=0.9): #Coverage factor for the area that is covered by the PV
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
