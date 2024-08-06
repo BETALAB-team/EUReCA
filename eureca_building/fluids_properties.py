@@ -31,8 +31,11 @@ vapour_properties = {
 fuels_pci = {
     "Natural Gas": 9970,   # Wh/Nm3
     "Oil": 9908, # Wh/L
-    "Wood": 5000, # Wh/kg
+    "Wood": 5277, # Wh/kg
+    "Pellets": 4722, # Wh/kg
     "Coal": 7152, # Wh/kg
+    "Gasoline": 14206, # Wh/L
+    "LPG": 12791, # Wh/kg
 }
 
 gravitational_acceleration = 9.81  # m/s2
