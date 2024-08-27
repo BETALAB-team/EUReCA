@@ -140,26 +140,19 @@ class System(metaclass=abc.ABCMeta):
         self.dhw_capacity_to_tank = 0.
         self.losses_discharging_rate = 0.02 # %/h
 
-    def dhw_tank_solver(self, dhw_demand):
+    def dhw_tank_solver(self, dhw_demand, weather,solar):
 
-        # if ST exists:
-        #     ST_prodction = ST prod[t]
-        # else
-        #     ST_prodction = 0 # Wh
-
-        if self.dhw_tank_current_charge < 0:
+        if self.dhw_tank_current_charge < 0.8*self.dhw_tank_design_charge:
             self.charging_mode = 1 # Turn on  system
-            self.dhw_capacity_to_tank = self.dhw_design_load
+            self.dhw_capacity_to_tank = self.dhw_design_load + solar
         elif self.dhw_tank_current_charge > self.dhw_tank_design_charge:
             self.charging_mode = 0 # Turn off  system
-            self.dhw_capacity_to_tank = 0.
+            self.dhw_capacity_to_tank=0
 
-        self.dhw_tank_current_charge = self.dhw_tank_current_charge + \
-                                           (self.dhw_capacity_to_tank - \
-                                        dhw_demand - \
-                                        self.dhw_tank_design_charge * self.losses_discharging_rate) \
-                                       / CONFIG.ts_per_hour
+        self.dhw_capacity_from_tank =  dhw_demand+ self.dhw_tank_design_charge * self.losses_discharging_rate/CONFIG.ts_per_hour
+        self.dhw_tank_current_charge=min(1.1*self.dhw_tank_design_charge,self.dhw_tank_current_charge+self.dhw_capacity_to_tank-self.dhw_capacity_from_tank)
         self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge
+
 
 
 # %%---------------------------------------------------------------------------------------------------
@@ -329,7 +322,7 @@ class CondensingBoiler(System):
         # if ST exists:
         #     self.ST_system.calc_production(weather file)
 
-    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow,solar_gain, weather, t, T_int, RH_int):
         '''This method allows to calculate Condensing Boiler power and losses following
          the Standard UNI-TS 11300:2 - 2008
 
@@ -347,7 +340,12 @@ class CondensingBoiler(System):
              Zone relative humidity [%]
          '''
 
-        self.dhw_tank_solver(dhw_flow)
+        if len(solar_gain)>1:
+            solar=solar_gain[t]
+        else:
+            solar=solar_gain
+
+        self.dhw_tank_solver(dhw_flow, weather,solar)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -497,7 +495,7 @@ class TraditionalBoiler(System):
         self.W_aux_P0 = (15)   # [W]
         self.FC_Pint = self.Pint / self.design_power
 
-    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow,solar_gain, weather, t, T_int, RH_int):
         '''This method allows to calculate Traditional Boiler losses following
         the Standard UNI-TS 11300:2 - 2008
 
@@ -516,7 +514,12 @@ class TraditionalBoiler(System):
 
         '''
 
-        self.dhw_tank_solver(dhw_flow)
+        if len(solar_gain)>1:
+            solar=solar_gain[t]
+        else:
+            solar=solar_gain
+
+        self.dhw_tank_solver(dhw_flow, weather,solar)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -1200,7 +1203,7 @@ class Heating_EN15316(System):
 
         self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
 
-    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow,solar_gain, weather, t, T_int, RH_int):
         '''This method allows to calculate the system power for each time step
 
         Parameters
@@ -1216,9 +1219,13 @@ class Heating_EN15316(System):
         RH_int : float
             Zone relative humidity [%]
         '''
-        # Corrected efficiency and losses at nominal power
 
-        self.dhw_tank_solver(dhw_flow)
+        if len(solar_gain)>1:
+            solar=solar_gain[t]
+        else:
+            solar=solar_gain
+
+        self.dhw_tank_solver(dhw_flow, weather,solar)
         heat_flow += self.dhw_capacity_to_tank
 
         total_energy = heat_flow / self.total_efficiency
