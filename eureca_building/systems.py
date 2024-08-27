@@ -1332,7 +1332,6 @@ class Cooling_EN15316(System):
         total_energy = abs(heat_flow) / self.total_efficiency
         self.electric_consumption = total_energy / CONFIG.ts_per_hour
 
-
 hvac_heating_systems_classes = {
     "IdealLoad":IdealLoad,
     "CondensingBoiler":CondensingBoiler,
