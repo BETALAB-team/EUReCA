@@ -1368,7 +1368,6 @@ hvac_heating_systems_classes = {
     "A-W Heat Pump, Centralized, Radiant surface":Heating_EN15316,
     "A-W Heat Pump, Single, Radiant surface":Heating_EN15316,
     "Electric Heater":Heating_EN15316,
-    "GRINS HS":_Heating_GRINS,
 }
 hvac_cooling_systems_classes = {
     "IdealLoad":IdealLoad,
@@ -1380,5 +1379,4 @@ hvac_cooling_systems_classes = {
     "A-W chiller, Centralized, Radiant surface":Cooling_EN15316,
     "A-W chiller, Single, Fan coil":Cooling_EN15316,
     "A-W chiller, Single, Radiant surface":Cooling_EN15316,
-    "GRINS CS": _Cooling_GRINS,
 }
