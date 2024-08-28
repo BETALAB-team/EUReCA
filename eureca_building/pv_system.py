@@ -179,7 +179,6 @@ class PV_system():
         Autonomy_Calculation=Autonomy_Calculation[Autonomy_Calculation>0]
         if(len(Autonomy_Calculation)==0): Autonomy_Calculation=np.array([0])    
         Battery_Capacity=np.median(Autonomy_Calculation)
-        print(Battery_Capacity)
         maxcharge=self.battery_parameters['max_charge']*self.battery_parameters['voltage']*Battery_Capacity
         mincharge=self.battery_parameters['min_charge']*self.battery_parameters['voltage']*Battery_Capacity
         

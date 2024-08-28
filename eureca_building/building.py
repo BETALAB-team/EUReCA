@@ -292,6 +292,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
 
+            'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Thermal Production [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Production [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -336,9 +340,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
             results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
-            results['DHW tank charging rate [W]'][t - t_start, 0] = self.heating_system.dhw_capacity_to_tank
-
-            # results['Solar Production [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
+            results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_thermal_gain
+            results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
