@@ -9,6 +9,7 @@ __version__ = "0.1"
 __maintainer__ = "Enrico Prataviera"
 
 import logging
+import warnings
 
 #import matplotlib.pyplot as plt
 import numpy as np
@@ -1640,8 +1641,12 @@ Thermal zone {self.name} 2C params:
         monthly_cooling_timesteps = get_monthly_value_from_annual_vector(cooling_timesteps, method = 'sum')
 
         # Calculation of average setpoints
-        h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
-        c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
+
+        with warnings.catch_warnings():
+            # I expect to see RuntimeWarnings in this block
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
+            c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
 
         # [J] = [W/K] * ([°C] - [°C]) * [-] * [s]
         Q_h_tr_monthly = self.UA_tot * (h_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_heating_timesteps * CONFIG.time_step
