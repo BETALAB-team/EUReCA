@@ -723,8 +723,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             counter += 1
 
             info = {}
+            info["TZ info"] = {}
             for tz in self.buildings_objects[bd_id]._thermal_zones_list:
-                info[f"TZ {tz.name}"] = tz.get_zone_info()
+                info["TZ info"][f"TZ {tz.name}"] = tz.get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
