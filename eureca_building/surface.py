@@ -127,7 +127,7 @@ class Surface:
             h_window: float = 1.5,
             h_bottom: float = 1.2
     ):
-        """Creates the surface object. Checks all the inputs using properties setter methods
+        """Creates the surface object. Checks all the inputs using properties setter methods!
 
         Parameters
         ----------

@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -99,21 +99,191 @@
     <span class="n">PropertyOutsideBoundaries</span>
 <span class="p">)</span>
 
-<span class="c1">#%%---------------------------------------------------------------------------------------------------</span>
-<span class="c1"># AHU class</span>
-<div class="viewcode-block" id="AirHandlingUnit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit">[docs]</a><span class="k">class</span> <span class="nc">AirHandlingUnit</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class manages the air handling unit.</span>
-<span class="sd">    Some general variables are set as class variables while the __init__ memorizes the inputs</span>
+<div class="viewcode-block" id="_BaseAirHandlingUnit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit">[docs]</a><span class="k">class</span> <span class="nc">_BaseAirHandlingUnit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class is a class to be inherited by different Mechanical Ventilation Unit objects.</span>
+<span class="sd">    Some generic methods are stored</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    
     <span class="c1"># Class Variables</span>
     <span class="n">cp_air</span> <span class="o">=</span> <span class="n">air_properties</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">]</span>         <span class="c1"># [J/(kg K)]</span>
+    <span class="n">rho_air</span> <span class="o">=</span> <span class="n">air_properties</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">]</span>              <span class="c1"># [kg/m3]</span>
     <span class="n">p_atm</span> <span class="o">=</span> <span class="n">air_properties</span><span class="p">[</span><span class="s2">&quot;atmospheric_pressure&quot;</span><span class="p">]</span>   <span class="c1"># [Pa]</span>
     <span class="n">r_0</span> <span class="o">=</span> <span class="n">vapour_properties</span><span class="p">[</span><span class="s2">&quot;latent_heat&quot;</span><span class="p">]</span>           <span class="c1"># [J/kg]</span>
     <span class="n">cpv</span> <span class="o">=</span> <span class="n">vapour_properties</span><span class="p">[</span><span class="s2">&quot;specific_heat&quot;</span><span class="p">]</span>         <span class="c1"># [J/(kg K)]</span>
+
+<div class="viewcode-block" id="_BaseAirHandlingUnit.checkSatCond"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit.checkSatCond">[docs]</a>    <span class="k">def</span> <span class="nf">checkSatCond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Check Saturation Condition</span>
+
+<span class="sd">        This function takes as inputs temperature [°C] and humidity ratio</span>
+<span class="sd">        [kg_vap/kg_as] to check if a point is outside saturation conditions</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        temp : float</span>
+<span class="sd">            Temperature [°C]</span>
+<span class="sd">        x : float</span>
+<span class="sd">            Specific Humidity [kg_vap/kg_as].</span>
+<span class="sd">        p : float</span>
+<span class="sd">            Pressure [Pa].</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            boolean (wheter saturation is reached), and Saturation Pressure [Pa].</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="c1"># Check input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR input T is not an interger: T </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR input x is not an interger: x </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Control input data quality</span>
+        <span class="c1"># if temp &lt; -40 or temp &gt; 70:</span>
+        <span class="c1">#     logging.warning(</span>
+        <span class="c1">#         f&quot;WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T {temp}&quot;</span>
+        <span class="c1">#     )</span>
+        <span class="c1"># if x &lt; 0.0005 or x &gt; 0.040:</span>
+        <span class="c1">#     logging.warning(f&quot;WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x {x}&quot;)</span>
+
+        <span class="c1"># Is or not outside the saturation condition? True/False</span>
+        <span class="n">pp</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.622</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">temp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">psat</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="mf">21.875</span> <span class="o">*</span> <span class="n">temp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">265.5</span> <span class="o">+</span> <span class="n">temp</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">psat</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="mf">17.269</span> <span class="o">*</span> <span class="n">temp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">237.3</span> <span class="o">+</span> <span class="n">temp</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">pp</span> <span class="o">-</span> <span class="n">psat</span> <span class="o">&gt;</span> <span class="mf">0.01</span><span class="p">:</span>
+            <span class="n">sat_cond</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sat_cond</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">sat_cond</span><span class="p">,</span> <span class="n">psat</span></div>
+
+<div class="viewcode-block" id="_BaseAirHandlingUnit.electric_consumption_based_on_mass_flow_rate"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit.electric_consumption_based_on_mass_flow_rate">[docs]</a>    <span class="k">def</span> <span class="nf">electric_consumption_based_on_mass_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass_flow</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ######################## Warning #############################</span>
+<span class="sd">        Typical electric consumption from catalogue data.</span>
+<span class="sd">        This method calculates a very rough estimation</span>
+<span class="sd">        of the electric consumption based on the mass flow rate.</span>
+<span class="sd">        It does not account for real pressure drops or other phenomena</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mass_flow : numpy.array</span>
+<span class="sd">            ventialation mass flow rate [kg/s]</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            consumption [W].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">vol_flow_m3_h</span> <span class="o">=</span> <span class="n">mass_flow</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_air</span> <span class="o">*</span> <span class="mi">3600</span>
+        <span class="c1"># consumption_W = -3E-05 * vol_flow_m3_h ** 2 + 0.5251 * vol_flow_m3_h + 8.0258</span>
+        <span class="c1"># consumption_W = 0.4176*vol_flow_m3_h + 54.377</span>
+        <span class="n">consumption_W</span> <span class="o">=</span> <span class="mf">0.4434</span> <span class="o">*</span> <span class="n">vol_flow_m3_h</span>
+        <span class="k">return</span> <span class="n">consumption_W</span></div>
+
+<div class="viewcode-block" id="_BaseAirHandlingUnit.properties"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit.properties">[docs]</a>    <span class="k">def</span> <span class="nf">properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot; Just a function to print the memorized conditions</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    HR :</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_hr</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_hr</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+<span class="s2">    MIX:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_mix</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+<span class="s2">    PRE:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_preh_deu</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_preh_deu</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_ph</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+<span class="s2">    AS :</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_as</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_as</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_as</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+<span class="s2">    SUP:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_sup</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+
+<span class="s2">    AHU_SENS:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_sens</span><span class="si">}</span><span class="s2"> W</span>
+<span class="s2">    AHU_LAT:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_lat</span><span class="si">}</span><span class="s2"> W</span>
+<span class="s2">    AHU_TOT:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand</span><span class="si">}</span><span class="s2"> W</span>
+<span class="s2">            &quot;&quot;&quot;</span></div>
+
+        <span class="c1"># %%---------------------------------------------------------------------------------------------------</span>
+        <span class="c1"># %%</span>
+
+<div class="viewcode-block" id="_BaseAirHandlingUnit._psychro_plot"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit._psychro_plot">[docs]</a>    <span class="k">def</span> <span class="nf">_psychro_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Just a function to get a psychrometric chart (internal use only)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">&quot;To run the AirHandlingUnit._psychro_plot you need to install matplotlib package&quot;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Specific Humidity [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$g_</span><span class="si">{v}</span><span class="s2">/kg_</span><span class="si">{da}</span><span class="s2">$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Temperature [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$°C$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">45</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Psychrometric chart&quot;</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">46</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">p_sat</span> <span class="o">=</span> <span class="mf">6.1094</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">17.625</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mf">243.04</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">for</span> <span class="n">ur</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">):</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">p_sat</span> <span class="o">*</span> <span class="n">ur</span>
+            <span class="n">sh</span> <span class="o">=</span> <span class="mf">0.622</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="mi">101325</span> <span class="o">-</span> <span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1000</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sh</span><span class="p">,</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+            <span class="n">x_text</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">35</span><span class="p">])</span>
+            <span class="n">y_text</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">sh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">28</span><span class="p">])</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">27.7</span><span class="p">,</span> <span class="mf">26.9</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;100%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">30.5</span><span class="p">,</span> <span class="mf">23.7</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;80%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">20.</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;60%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">34.5</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;40%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">35.8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;20%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+
+        <span class="n">x_text</span><span class="p">,</span> <span class="n">y_text</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">3.5</span>
+
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">200.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="mf">1.006</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.86</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">2501</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="s1">&#39;k:&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">y_text</span> <span class="o">&lt;</span> <span class="mf">30.</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_text</span><span class="p">,</span> <span class="n">y_text</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot; [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$kJ/kg_</span><span class="si">{da}</span><span class="s2">$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+                        <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+            <span class="n">x_text</span> <span class="o">+=</span> <span class="mi">3</span>
+            <span class="n">y_text</span> <span class="o">+=</span> <span class="mf">2.7</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_chart</span> <span class="o">=</span> <span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_BaseAirHandlingUnit.print_psychro_chart"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit._BaseAirHandlingUnit.print_psychro_chart">[docs]</a>    <span class="k">def</span> <span class="nf">print_psychro_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Just a function to print the psychrometric chart with current transformations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_psychro_chart&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_plot</span><span class="p">()</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_chart</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_ext</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_ext</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_hr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_hr</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_preh_deu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_preh_deu</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_as</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_as</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">]])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_zone</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_zone</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">],</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">]</span>
+        <span class="p">])</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r-o&#39;</span><span class="p">,</span> <span class="n">fillstyle</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;k--o&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">fillstyle</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">&quot;To run the AirHandlingUnit._psychro_plot you need to install matplotlib package&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+
+<span class="c1">#%%---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># AHU class</span>
+<div class="viewcode-block" id="AirHandlingUnit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit">[docs]</a><span class="k">class</span> <span class="nc">AirHandlingUnit</span><span class="p">(</span><span class="n">_BaseAirHandlingUnit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class manages the air handling unit.</span>
+<span class="sd">    Some general variables are set as class variables while the __init__ memorizes the inputs</span>
+<span class="sd">    &#39;&#39;&#39;</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AirHandlingUnit.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                  <span class="n">mechanical_vent</span><span class="p">:</span> <span class="n">MechanicalVentilation</span><span class="p">,</span>
                  <span class="n">supply_temperature</span><span class="p">:</span> <span class="n">Schedule</span><span class="p">,</span>
@@ -185,12 +355,13 @@
 
 
         <span class="bp">self</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vapour_flow_rate_kg_S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mechanical_ventilation</span><span class="o">.</span><span class="n">get_flow_rate</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span> <span class="n">volume</span> <span class="o">=</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_volume</span><span class="p">,</span> <span class="n">area</span> <span class="o">=</span> <span class="n">thermal_zone</span><span class="o">.</span><span class="n">_net_floor_area</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption_W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption_based_on_mass_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">)</span>
 
         <span class="c1"># Association of AHU to thermal zone</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">thermal_zone</span><span class="o">.</span><span class="n">add_air_handling_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR AHU inizialization, thermal zone must be an ThermalZone object: thermal_zone </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">thermal_zone</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR AHU inizialization, thermal zone must be an ThermalZone object: thermal_zone </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">thermal_zone</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
@@ -686,143 +857,206 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="p">,</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span> <span class="o">=</span>       <span class="bp">self</span><span class="o">.</span><span class="n">T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mix</span>
             
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;AHUOnOff value not allowed at time step: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span></div>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s1">&#39;AHUOnOff value not allowed at time step: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span></div></div>
 
-<div class="viewcode-block" id="AirHandlingUnit.properties"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit.properties">[docs]</a>    <span class="k">def</span> <span class="nf">properties</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Just a function to print the memorized conditions</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">HR :</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_hr</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_hr</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
-<span class="s2">MIX:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_mix</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
-<span class="s2">PRE:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_preh_deu</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_preh_deu</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_ph</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
-<span class="s2">AS :</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_as</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_as</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_as</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
-<span class="s2">SUP:</span><span class="se">\t</span><span class="s2">T </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C,</span><span class="se">\t</span><span class="s2">x </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2"> kg/kg,</span><span class="se">\t</span><span class="s2">h </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">h_sup</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> J/kg</span>
+<span class="c1"># %%---------------------------------------------------------------------------------------------------</span>
+<span class="c1"># AHU class</span>
+<div class="viewcode-block" id="HeatRecoveryUnit"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.HeatRecoveryUnit">[docs]</a><span class="k">class</span> <span class="nc">HeatRecoveryUnit</span><span class="p">(</span><span class="n">_BaseAirHandlingUnit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;This class manages a heat recovery unit (only fans and heat recovery, without active heating/cooling of air.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
 
-<span class="s2">AHU_SENS:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_sens</span><span class="si">}</span><span class="s2"> W</span>
-<span class="s2">AHU_LAT:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_lat</span><span class="si">}</span><span class="s2"> W</span>
-<span class="s2">AHU_TOT:</span><span class="se">\t</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand</span><span class="si">}</span><span class="s2"> W</span>
-<span class="s2">        &quot;&quot;&quot;</span></div>
-<span class="c1">#%%--------------------------------------------------------------------------------------------------- </span>
-<span class="c1">#%%</span>
+<div class="viewcode-block" id="HeatRecoveryUnit.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.HeatRecoveryUnit.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">mechanical_vent</span><span class="p">:</span> <span class="n">MechanicalVentilation</span><span class="p">,</span>
+                 <span class="n">sensible_heat_recovery_eff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">latent_heat_recovery_eff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">weather</span><span class="p">:</span> <span class="n">WeatherFile</span><span class="p">,</span>
+                 <span class="n">thermal_zone</span><span class="p">,</span>
 
-<div class="viewcode-block" id="AirHandlingUnit.checkSatCond"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit.checkSatCond">[docs]</a>    <span class="k">def</span> <span class="nf">checkSatCond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Check Saturation Condition</span>
+                 <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Heat recovery unit Constructor: creates the HRU object and memorizes the attributes (using properties set methods tho check types)</span>
 
-<span class="sd">        This function takes as inputs temperature [°C] and humidity ratio</span>
-<span class="sd">        [kg_vap/kg_as] to check if a point is outside saturation conditions</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        temp : float</span>
-<span class="sd">            Temperature [°C]</span>
-<span class="sd">        x : float</span>
-<span class="sd">            Specific Humidity [kg_vap/kg_as].</span>
-<span class="sd">        p : float</span>
-<span class="sd">            Pressure [Pa].</span>
+<span class="sd">        name : str</span>
+<span class="sd">            name of the Air Handling Unit</span>
+<span class="sd">        mechanical_vent : eureca_building.ventilation.MechanicalVentilation</span>
+<span class="sd">            ventialation object to define air flow rate</span>
+<span class="sd">        sensible_heat_recovery_eff : float</span>
+<span class="sd">            sensible heat recovery efficiency, must be between 0 and 1</span>
+<span class="sd">        latent_heat_recovery_eff : float</span>
+<span class="sd">            sensible heat recovery efficiency, must be between 0 and 1</span>
+<span class="sd">        weather : eureca_building.weather.WeatherFile</span>
+<span class="sd">            Weather object</span>
+<span class="sd">        thermal_zone : eureca_building.thermal_zone.ThermalZone</span>
+<span class="sd">            ThermalZone object</span>
+<span class="sd">        tag : str</span>
+<span class="sd">            possible tags</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tuple</span>
-<span class="sd">            boolean (wheter saturation is reached), and Saturation Pressure [Pa].</span>
-
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            checks the input type</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            checks the input type</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Check input data type</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR input T is not an interger: T </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR input x is not an interger: x </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR AHU inizialization, name must be an string: Name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-        <span class="c1"># Control input data quality</span>
-        <span class="k">if</span> <span class="n">temp</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">40</span> <span class="ow">or</span> <span class="n">temp</span> <span class="o">&gt;</span> <span class="mi">70</span><span class="p">:</span>
+        <span class="c1"># Inizialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mechanical_ventilation</span> <span class="o">=</span> <span class="n">mechanical_vent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensible_heat_recovery_eff</span> <span class="o">=</span> <span class="n">sensible_heat_recovery_eff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_heat_recovery_eff</span> <span class="o">=</span> <span class="n">latent_heat_recovery_eff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vapour_flow_rate_kg_S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mechanical_ventilation</span><span class="o">.</span><span class="n">get_flow_rate</span><span class="p">(</span><span class="n">weather</span><span class="p">,</span>
+                                                                                                        <span class="n">volume</span><span class="o">=</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_volume</span><span class="p">,</span>
+                                                                                                        <span class="n">area</span><span class="o">=</span><span class="n">thermal_zone</span><span class="o">.</span><span class="n">_net_floor_area</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption_W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption_based_on_mass_flow_rate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">)</span>
+
+        <span class="c1"># Association of AHU to thermal zone</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">thermal_zone</span><span class="o">.</span><span class="n">add_air_handling_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weather</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;ERROR AHU inizialization, thermal zone must be an ThermalZone object: thermal_zone </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">thermal_zone</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sensible_heat_recovery_eff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sensible_heat_recovery_eff</span>
+
+    <span class="nd">@sensible_heat_recovery_eff</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">sensible_heat_recovery_eff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Air Handling Unit object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s2">, sensible_heat_recovery_eff not float: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mf">1.</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Air Handling Unit object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s2">, sensible_heat_recovery_eff in range [0.,1]: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sensible_heat_recovery_eff</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">latent_heat_recovery_eff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_latent_heat_recovery_eff</span>
+
+    <span class="nd">@latent_heat_recovery_eff</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">latent_heat_recovery_eff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Air Handling Unit object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s2">, latent_heat_recovery_eff not float: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mf">1.</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PropertyOutsideBoundaries</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Air Handling Unit object </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s2">, latent_heat_recovery_eff in range [0.,1]: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_latent_heat_recovery_eff</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="HeatRecoveryUnit.air_handling_unit_calc"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.HeatRecoveryUnit.air_handling_unit_calc">[docs]</a>    <span class="k">def</span> <span class="nf">air_handling_unit_calc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">t</span><span class="p">,</span>
+                               <span class="n">weather</span><span class="p">,</span>
+                               <span class="n">T_int</span><span class="p">,</span>
+                               <span class="n">x_int</span><span class="p">,</span>
+                               <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Solution of the time step calculation. It uses outdoor conditions (from WeatherFile), and zone conditions (from zone)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : int</span>
+<span class="sd">            timestep: int [-]</span>
+<span class="sd">        weather : eureca_building.weather.WeatherFile</span>
+<span class="sd">            WeatherFile object</span>
+<span class="sd">        T_int : float</span>
+<span class="sd">            zone internal temperature: float [°C]</span>
+<span class="sd">        x_int : float</span>
+<span class="sd">            zone internal specific humidity: float [kg_v/kg_da]</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input data type</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ERROR AHUCalc, bd </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s1">, time step </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s1">, input t is not an interger: t </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">T_ext</span> <span class="o">=</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s1">&#39;out_air_db_temperature&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span>
+        <span class="n">x_ext</span> <span class="o">=</span> <span class="n">weather</span><span class="o">.</span><span class="n">hourly_data</span><span class="p">[</span><span class="s1">&#39;out_air_specific_humidity&#39;</span><span class="p">][</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_ext</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_ext</span> <span class="o">=</span> <span class="n">T_ext</span><span class="p">,</span> <span class="n">x_ext</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_zone</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_zone</span> <span class="o">=</span> <span class="n">T_int</span><span class="p">,</span> <span class="n">x_int</span>
+
+        <span class="n">m_vent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">air_flow_rate_kg_S</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="c1"># Saturation conditions check</span>
+        <span class="n">sat_cond</span><span class="p">,</span> <span class="n">psat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkSatCond</span><span class="p">(</span><span class="n">T_ext</span><span class="p">,</span> <span class="n">x_ext</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_atm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sat_cond</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">x_ext</span> <span class="o">=</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="mf">0.622</span> <span class="o">*</span> <span class="n">psat</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p_atm</span> <span class="o">-</span> <span class="mf">0.99</span> <span class="o">*</span> <span class="n">psat</span><span class="p">)</span>
+        <span class="n">sat_cond</span><span class="p">,</span> <span class="n">psat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkSatCond</span><span class="p">(</span><span class="n">T_int</span><span class="p">,</span> <span class="n">x_int</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_atm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sat_cond</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;WARNING CheckSatCond function, input temperature outside limit boundary [-15,60]: T </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0005</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mf">0.040</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;WARNING CheckSatCond function, input humidity outside limit boundary [0.0005,0.04]: x </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="sa">f</span><span class="s1">&#39;ERROR  HRUCalc method, bd </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ahu_name</span><span class="si">}</span><span class="s1">, time step </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s1">, Zone conditions outside saturation limit&#39;</span><span class="p">)</span>
 
-        <span class="c1"># Is or not outside the saturation condition? True/False</span>
-        <span class="n">pp</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.622</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">temp</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">psat</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="mf">21.875</span> <span class="o">*</span> <span class="n">temp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">265.5</span> <span class="o">+</span> <span class="n">temp</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">psat</span> <span class="o">=</span> <span class="mf">610.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="mf">17.269</span> <span class="o">*</span> <span class="n">temp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">237.3</span> <span class="o">+</span> <span class="n">temp</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">pp</span> <span class="o">-</span> <span class="n">psat</span> <span class="o">&gt;</span> <span class="mf">0.01</span><span class="p">:</span>
-            <span class="n">sat_cond</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">sat_cond</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="n">sat_cond</span><span class="p">,</span> <span class="n">psat</span></div>
+        <span class="c1"># Pre-processing on Heat Recovery and Mixer</span>
+        <span class="c1"># Enthalpy in J/(kg)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_air</span> <span class="o">*</span> <span class="n">T_ext</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpv</span> <span class="o">*</span> <span class="n">T_ext</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_ext</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_air</span> <span class="o">*</span> <span class="n">T_int</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpv</span> <span class="o">*</span> <span class="n">T_int</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_int</span>
 
-    <span class="k">def</span> <span class="nf">_psychro_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Just a function to get a psychrometric chart (internal use only)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="s2">&quot;To run the AirHandlingUnit._psychro_plot you need to install matplotlib package&quot;</span><span class="p">)</span>
-        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Specific Humidity [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$g_</span><span class="si">{v}</span><span class="s2">/kg_</span><span class="si">{da}</span><span class="s2">$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Temperature [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$°C$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">45</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Psychrometric chart&quot;</span><span class="p">)</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">46</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">p_sat</span> <span class="o">=</span> <span class="mf">6.1094</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">17.625</span> <span class="o">*</span> <span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mf">243.04</span><span class="p">))</span> <span class="o">*</span> <span class="mi">100</span>
-        <span class="k">for</span> <span class="n">ur</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">):</span>
-            <span class="n">p</span> <span class="o">=</span> <span class="n">p_sat</span> <span class="o">*</span> <span class="n">ur</span>
-            <span class="n">sh</span> <span class="o">=</span> <span class="mf">0.622</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="mi">101325</span> <span class="o">-</span> <span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="mi">1000</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sh</span><span class="p">,</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
-            <span class="n">x_text</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">35</span><span class="p">])</span>
-            <span class="n">y_text</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">sh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">28</span><span class="p">])</span>
+        <span class="c1"># Heat Recovery Bypass in condition of free heating or cooling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span> <span class="o">=</span> <span class="n">T_ext</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_heat_recovery_eff</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_int</span> <span class="o">-</span> <span class="n">T_ext</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_out</span> <span class="o">=</span> <span class="n">T_int</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensible_heat_recovery_eff</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_int</span> <span class="o">-</span> <span class="n">T_ext</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span> <span class="o">=</span> <span class="n">x_ext</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">latent_heat_recovery_eff</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_int</span> <span class="o">-</span> <span class="n">x_ext</span><span class="p">)</span>
+        <span class="c1"># Enthalpy in J/(kg)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_air</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpv</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
 
-        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">27.7</span><span class="p">,</span> <span class="mf">26.9</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;100%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">30.5</span><span class="p">,</span> <span class="mf">23.7</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;80%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">32.5</span><span class="p">,</span> <span class="mf">20.</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;60%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">34.5</span><span class="p">,</span> <span class="mf">14.5</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;40%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">35.8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;20%&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
+        <span class="c1"># Mixer</span>
+        <span class="c1"># Enthalpy in J/(kg)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_mix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_mix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_mix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span>
 
-        <span class="n">x_text</span><span class="p">,</span> <span class="n">y_text</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9.</span><span class="p">,</span> <span class="mf">3.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_ph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_ph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_ph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span>
 
-        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">200.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">):</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="mf">1.006</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.86</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">2501</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
-            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="s1">&#39;k:&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">y_text</span> <span class="o">&lt;</span> <span class="mf">30.</span><span class="p">:</span>
-                <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x_text</span><span class="p">,</span> <span class="n">y_text</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot; [&quot;</span> <span class="o">+</span> <span class="s2">&quot;$kJ/kg_</span><span class="si">{da}</span><span class="s2">$&quot;</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">backgroundcolor</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
-            <span class="n">x_text</span> <span class="o">+=</span> <span class="mi">3</span>
-            <span class="n">y_text</span> <span class="o">+=</span> <span class="mf">2.7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_as</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_as</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_as</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_chart</span> <span class="o">=</span> <span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span>
 
-<div class="viewcode-block" id="AirHandlingUnit.print_psychro_chart"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.air_handling_unit.AirHandlingUnit.print_psychro_chart">[docs]</a>    <span class="k">def</span> <span class="nf">print_psychro_chart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Just a function to print the psychrometric chart with current transformations</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_psychro_chart&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_plot</span><span class="p">()</span>
+        <span class="c1"># Batteries Demand [W]</span>
+        <span class="c1"># Pre-Heater</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_ph</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_mix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem_sens</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_air</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_ph</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_mix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem_lat</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_ph</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mix</span><span class="p">)</span>
+        <span class="c1"># Adiabatic Saturator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_as</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_ph</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem_lat</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_as</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_ph</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem_sens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem_lat</span>
+        <span class="c1"># Post-Heater</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_sup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_as</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem_sens</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_air</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_as</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem_lat</span> <span class="o">=</span> <span class="n">m_vent</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_0</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_sup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_as</span><span class="p">)</span>
+        <span class="c1"># Total Demand</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_sens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem_sens</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem_sens</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem_sens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AHU_demand_lat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preh_deu_Dem_lat</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sat_Dem_lat</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">posth_Dem_lat</span>
 
-        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psychro_chart</span>
+        <span class="c1"># Conditions for chart</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_hr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_hr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_hr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_hr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_mix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_preh_deu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_preh_deu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_ph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_ph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_as</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_as</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_as</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_as</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sup</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_sup</span></div></div>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_ext</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_ext</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_hr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_hr</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_preh_deu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_preh_deu</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_as</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_as</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_posth</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_posth</span><span class="o">*</span><span class="mi">1000</span><span class="p">]])</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_zone</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_zone</span><span class="o">*</span><span class="mi">1000</span><span class="p">],</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_chart_T_mix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chart_x_mix</span><span class="o">*</span><span class="mi">1000</span><span class="p">]</span>
-        <span class="p">])</span>
-
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r-o&#39;</span><span class="p">,</span> <span class="n">fillstyle</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values_tz</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;k--o&#39;</span><span class="p">,</span><span class="n">linewidth</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>  <span class="n">fillstyle</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span><span class="s2">&quot;To run the AirHandlingUnit._psychro_plot you need to install matplotlib package&quot;</span><span class="p">)</span>
-        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
 </pre></div>
 
            </div>

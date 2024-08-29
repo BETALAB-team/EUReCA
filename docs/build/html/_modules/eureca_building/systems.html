@@ -111,14 +111,14 @@
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="System.__subclasshook__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.System.__subclasshook__">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">__subclasshook__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">C</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="n">System</span><span class="p">:</span>
             <span class="n">attrs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">C</span><span class="p">))</span>
             <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__abstractmethods__</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">attrs</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">True</span>
 
-        <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span></div>
 
 <div class="viewcode-block" id="System.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.System.__init__">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -191,6 +191,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="IdealLoad.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.IdealLoad.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;IdealLoad init method. No input needed</span>
@@ -253,6 +255,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="CondensingBoiler.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.CondensingBoiler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes for the method are initialized</span>
@@ -412,6 +416,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="TraditionalBoiler.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.TraditionalBoiler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes for the method</span>
@@ -579,6 +585,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="SplitAirCooler.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.SplitAirCooler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes for the method</span>
@@ -790,6 +798,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="ChillerAirtoWater.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.ChillerAirtoWater.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes for the method</span>
@@ -989,6 +999,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="SplitAirConditioner.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.SplitAirConditioner.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes for the method</span>
@@ -1116,6 +1128,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="Heating_EN15316.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.Heating_EN15316.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes are set</span>
@@ -1207,6 +1221,12 @@
         <span class="k">if</span> <span class="s2">&quot;Oil&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">oil_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="o">/</span> <span class="n">fuels_pci</span><span class="p">[</span><span class="s2">&quot;Oil&quot;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+        <span class="k">elif</span> <span class="s2">&quot;Coal&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coal_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="o">/</span> <span class="n">fuels_pci</span><span class="p">[</span><span class="s2">&quot;Coal&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+        <span class="k">elif</span> <span class="s2">&quot;District Heating&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">DH_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
         <span class="k">elif</span> <span class="s2">&quot;Stove&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">wood_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="o">/</span> <span class="n">fuels_pci</span><span class="p">[</span><span class="s2">&quot;Wood&quot;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
@@ -1214,7 +1234,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
         <span class="k">elif</span> <span class="s2">&quot;Gas&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gas_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="o">/</span> <span class="n">fuels_pci</span><span class="p">[</span><span class="s2">&quot;Natural Gas&quot;</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span>
+        <span class="k">elif</span> <span class="s2">&quot;Electric Heater&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_type</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">electric_consumption</span> <span class="o">=</span> <span class="n">total_energy</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">generation_auxiliary_electric_load</span> <span class="o">/</span> <span class="n">CONFIG</span><span class="o">.</span><span class="n">ts_per_hour</span></div></div>
 
 <div class="viewcode-block" id="Cooling_EN15316"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.Cooling_EN15316">[docs]</a><span class="k">class</span> <span class="nc">Cooling_EN15316</span><span class="p">(</span><span class="n">System</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;Class Cooling_EN15316. This method considers a generic cooling system as the heating system</span>
@@ -1225,6 +1247,8 @@
     <span class="n">electric_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">wood_consumption</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">oil_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coal_consumption</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">DH_consumption</span> <span class="o">=</span> <span class="mi">0</span>
 
 <div class="viewcode-block" id="Cooling_EN15316.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.systems.Cooling_EN15316.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&#39;&#39;&#39;init method. Set some attributes are set</span>
@@ -1322,6 +1346,12 @@
     <span class="s2">&quot;Condensing Gas Boiler, Single, Radiant surface&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;Oil Boiler, Centralized, High Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;Oil Boiler, Single, High Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;Coal Heater, Centralized, High Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;Coal Heater, Single, High Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;District Heating, Centralized, High Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;District Heating, Centralized, Low Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;District Heating, Centralized, Fan coil&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;District Heating, Centralized, Radiant surface&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;Stove&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;A-W Heat Pump, Centralized, Low Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;A-W Heat Pump, Single, Low Temp Radiator&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
@@ -1329,6 +1359,7 @@
     <span class="s2">&quot;A-W Heat Pump, Single, Fan coil&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;A-W Heat Pump, Centralized, Radiant surface&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
     <span class="s2">&quot;A-W Heat Pump, Single, Radiant surface&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
+    <span class="s2">&quot;Electric Heater&quot;</span><span class="p">:</span><span class="n">Heating_EN15316</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">hvac_cooling_systems_classes</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;IdealLoad&quot;</span><span class="p">:</span><span class="n">IdealLoad</span><span class="p">,</span>

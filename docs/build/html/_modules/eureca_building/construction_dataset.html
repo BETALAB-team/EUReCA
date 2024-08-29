@@ -39,9 +39,9 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">eureca-ubem</a></li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme_link.html">EUReCA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Source code</a></li>
 </ul>
 
         </div>
@@ -102,14 +102,14 @@
 <span class="sd">        Dict: dictionary with all Windows</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ConstructionDataset.__init__"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction_dataset.ConstructionDataset.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates the ConstructionDataset and the list of materials,</span>
 <span class="sd">        contructions, and windows</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">materials_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constructions_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">windows_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">windows_dict</span> <span class="o">=</span> <span class="p">{}</span></div>
 
 <div class="viewcode-block" id="ConstructionDataset.read_excel"><a class="viewcode-back" href="../../eureca_building.html#eureca_building.construction_dataset.ConstructionDataset.read_excel">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">read_excel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>

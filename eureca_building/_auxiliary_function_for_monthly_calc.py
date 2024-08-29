@@ -36,9 +36,16 @@ def get_monthly_value_from_annual_vector(
         an array with the resampled array
     """
     array_year = pd.Series(array, index = pd.date_range(start="01/01/2023 00:00",end="31/12/2023 23:00",freq=f"{CONFIG.time_step}s"))
-    monthly_array = {
-        'sum': array_year.resample('1ME').sum(),
-        'integral': array_year.resample('1ME').sum()*CONFIG.time_step, # [W]*[s] = [J]
-        'mean': array_year.resample('1ME').mean()
-    }[method]
+    try:
+        monthly_array = {
+            'sum': array_year.resample('1ME').sum(),
+            'integral': array_year.resample('1ME').sum()*CONFIG.time_step, # [W]*[s] = [J]
+            'mean': array_year.resample('1ME').mean()
+        }[method]
+    except ValueError:
+        monthly_array = {
+            'sum': array_year.resample('1M').sum(),
+            'integral': array_year.resample('1M').sum()*CONFIG.time_step, # [W]*[s] = [J]
+            'mean': array_year.resample('1M').mean()
+        }[method]
     return monthly_array.values
