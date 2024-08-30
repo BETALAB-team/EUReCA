@@ -184,9 +184,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             for s in tz._surface_list:
                 building_surface_list.append(s)
         
-        self.solarthermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
-                               weatherobject=weather_obj,
-                               surface_list=building_surface_list)
+        try: 
+            self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+                                   weatherobject=weather_obj,
+                                   surface_list=building_surface_list)
+        except AttributeError:
+            logging.warning(
+                f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
         
         
     def solve_timestep(self, t: int, weather: WeatherFile):
@@ -237,7 +241,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         else:
             solar_gain =0
 
-        self.heating_system.solve_system(heat_load, dhw_load,solar_gain, weather, t, air_t, air_rh)
+        self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
     def simulate(self,

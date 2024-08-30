@@ -20,6 +20,7 @@ import numpy as np
 from eureca_building.systems_info import systems_info
 from eureca_building.fluids_properties import fuels_pci, water_properties
 from eureca_building.config import CONFIG
+from eureca_building.solarthermal import SolarThermal_Collector
 
 # including Systems info from system_info json
 global systems_info_dict
@@ -39,6 +40,7 @@ class System(metaclass=abc.ABCMeta):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    solar_gain = 0
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -95,6 +97,11 @@ class System(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def oil_consumption(self):
         pass
+    
+    @property
+    @abc.abstractmethod
+    def solar_gain(self):
+        pass
 
     @property
     def system_type(self):
@@ -109,8 +116,17 @@ class System(metaclass=abc.ABCMeta):
         self._system_type = value
         
     @property
-    def SolarThermal(self):
-        pass
+    def solar_thermal_system(self):
+        return self._solar_thermal_system
+
+    @solar_thermal_system.setter
+    def solar_thermal_system(self, value: SolarThermal_Collector):
+        if not isinstance(value, SolarThermal_Collector):
+            raise TypeError(
+                f"Solar thermal needs to be defined as a SolarThermal_Collector class"
+            )
+        self._solar_thermal_system = value
+        self.set_solar_gain()
     
     
 
@@ -157,8 +173,11 @@ class System(metaclass=abc.ABCMeta):
         self.dhw_tank_current_charge_perc=self.dhw_tank_minimum_charge/self.dhw_tank_design_charge
         self.losses_discharging_rate = 0.02 # %/h
 
-    def dhw_tank_solver(self, dhw_demand, weather,**kwargs):
-        self.solar_thermal_gain=kwargs["solar"]/CONFIG.ts_per_hour
+    def dhw_tank_solver(self, dhw_demand, weather,timestep,**kwargs):
+        if hasattr(self,"solar_gain"):
+            self.solar_thermal_gain=self.solar_gain[timestep]/CONFIG.ts_per_hour
+        else:
+            self.solar_thermal_gain=0
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
         loss_rate=self.losses_discharging_rate*max(1,self.dhw_tank_current_charge_perc)
@@ -182,6 +201,10 @@ class System(metaclass=abc.ABCMeta):
         self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100 
         # self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge
 
+    def set_solar_gain(self):
+        if hasattr(self,"solar_thermal_system"):
+            self.solar_gain = self.solar_thermal_system.gained_heat
+
 
 
 # %%---------------------------------------------------------------------------------------------------
@@ -197,6 +220,7 @@ class IdealLoad(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -261,6 +285,7 @@ class CondensingBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -351,7 +376,7 @@ class CondensingBoiler(System):
         # if ST exists:
         #     self.ST_system.calc_production(weather file)
 
-    def solve_system(self, heat_flow, dhw_flow,solar_gain, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate Condensing Boiler power and losses following
          the Standard UNI-TS 11300:2 - 2008
 
@@ -368,13 +393,8 @@ class CondensingBoiler(System):
          RH_int : float
              Zone relative humidity [%]
          '''
-        solar_gain=kwargs["solar"]
-        if len(solar_gain)>1:
-            solar=solar_gain[t]
-        else:
-            solar=solar_gain
 
-        self.dhw_tank_solver(dhw_flow, weather,solar)
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -439,6 +459,7 @@ class TraditionalBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -524,7 +545,7 @@ class TraditionalBoiler(System):
         self.W_aux_P0 = (15)   # [W]
         self.FC_Pint = self.Pint / self.design_power
 
-    def solve_system(self, heat_flow, dhw_flow,solar_gain, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
         '''This method allows to calculate Traditional Boiler losses following
         the Standard UNI-TS 11300:2 - 2008
 
@@ -542,13 +563,8 @@ class TraditionalBoiler(System):
             Zone relative humidity [%]
 
         '''
-        solar_gain=kwargs["solar"]
-        if len(solar_gain)>1:
-            solar=solar_gain[t]
-        else:
-            solar=solar_gain
 
-        self.dhw_tank_solver(dhw_flow, weather,solar)
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -619,6 +635,7 @@ class SplitAirCooler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -832,6 +849,7 @@ class ChillerAirtoWater(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1033,6 +1051,7 @@ class SplitAirConditioner(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1162,6 +1181,7 @@ class Heating_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1249,13 +1269,9 @@ class Heating_EN15316(System):
             Zone relative humidity [%]
         kwargs
         '''
-        solar_gain=kwargs["solar"]
-        if len(solar_gain)>1:
-            solar=solar_gain[t]
-        else:
-            solar=solar_gain
 
-        self.dhw_tank_solver(dhw_flow, weather,solar=solar)
+
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         total_energy = heat_flow / self.total_efficiency
@@ -1291,6 +1307,7 @@ class Cooling_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
