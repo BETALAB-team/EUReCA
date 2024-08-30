@@ -142,12 +142,14 @@ class System(metaclass=abc.ABCMeta):
 
         max_daily_flow_cons = (dhw_flow_rate[:364*24*CONFIG.ts_per_hour].reshape(364, 24*CONFIG.ts_per_hour)*CONFIG.time_step).sum(axis=1).max() # [m3]
         max_flow_rate = dhw_flow_rate.max() * 3600 # m3/h
+        max_flow_rate = 1e-10 if max_flow_rate < 1e-10 else max_flow_rate
         request_time = max_daily_flow_cons/max_flow_rate
 
         # from UNI 9182 [m3]
         self.dhw_tank_volume = 1.5*max_flow_rate * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * pre_heating_time / (T_tank - T_ground) # [m3]
         self.dhw_tank_volume = np.round(self.dhw_tank_volume,decimals = 1)
+        self.dhw_tank_volume  = 1e-10 if self.dhw_tank_volume  < 1e-10 else self.dhw_tank_volume
 
         self.dhw_design_load = 1.5*max_flow_rate * 1000 * request_time * (T_user - T_ground) / \
                                (pre_heating_time + request_time) * 1.163 # [W]
@@ -166,7 +168,10 @@ class System(metaclass=abc.ABCMeta):
                                water_properties["density"] * \
                                water_properties["specific_heat"] * \
                                (T_tank_min-T_user) / 3600          
+        self.dhw_tank_design_charge  = 1e-10 if self.dhw_tank_design_charge  < 1e-10 else self.dhw_tank_design_charge
+
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
+        self.dhw_tank_current_charge_perc = 0.5
         self.charging_mode = 0.
         self.discharging_mode =0.
         self.dhw_capacity_to_tank = 0.
@@ -1296,6 +1301,46 @@ class Heating_EN15316(System):
         elif "Electric Heater" in self.generation_type:
             self.electric_consumption = total_energy / CONFIG.ts_per_hour + self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
 
+    def solve_quasi_steady_state(self, heat_flow, dhw_flow):
+        '''This method allows to calculate the system power for each time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        dhw_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        total_energy = (heat_flow + dhw_flow) / self.total_efficiency # Wh
+
+        if "Oil" in self.generation_type:
+            self.oil_consumption = total_energy / fuels_pci["Oil"]
+        elif "Coal" in self.generation_type:
+            self.coal_consumption = total_energy / fuels_pci["Coal"]
+        elif "District Heating" in self.generation_type:
+            self.DH_consumption = total_energy
+        elif "Stove" in self.generation_type:
+            self.wood_consumption = total_energy / fuels_pci["Wood"]
+        elif "Heat Pump" in self.generation_type:
+            self.electric_consumption = total_energy
+        elif "Gas" in self.generation_type:
+            self.gas_consumption = total_energy / fuels_pci["Natural Gas"]
+        elif "Electric Heater" in self.generation_type:
+            self.electric_consumption = total_energy
+
+
 class Cooling_EN15316(System):
     '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
     of the entire building following EN 15316.
@@ -1382,6 +1427,19 @@ class Cooling_EN15316(System):
         total_energy = abs(heat_flow) / self.total_efficiency
         self.electric_consumption = total_energy / CONFIG.ts_per_hour
 
+    def solve_quasi_steady_state(self, heat_flow):
+        '''This method allows to calculate the system power for each month
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        total_energy = abs(heat_flow) / self.total_efficiency
+
+        self.electric_consumption = total_energy
 
 hvac_heating_systems_classes = {
     "IdealLoad":IdealLoad,

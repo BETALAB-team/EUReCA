@@ -14,6 +14,7 @@ import numpy as np
 from cjio import cityjson
 from scipy.spatial import cKDTree
 from shapely.validation import make_valid
+from shapely.geometry import MultiPolygon
 from eureca_building.config import CONFIG
 from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
@@ -322,6 +323,9 @@ class City():
         # Case of GeoJSON file availability:
         
         self.cityjson = gpd.read_file(json_path)# .explode(index_parts=True)
+        # for p in self.cityjson.index:
+        #     if shapely.geometry.mapping(self.cityjson.loc[p].geometry)["type"] == "Polygon":
+        #         self.cityjson["geometry"].loc[p] = MultiPolygon([self.cityjson.loc[p].geometry])
         #fix geometries
         self.cityjson['geometry'] = self.cityjson['geometry'].apply(fix_geometry)
         self.cityjson = self.cityjson[~self.cityjson['geometry'].isna()]
@@ -333,6 +337,8 @@ class City():
             self.cityjson["VolCoeff"] = 1.
         if "Lower End Use" not in self.cityjson.columns:
             self.cityjson["Lower End Use"] = ''
+        if "Upper End Use" not in self.cityjson.columns:
+            self.cityjson["Upper End Use"] = ''
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
@@ -367,7 +373,7 @@ class City():
                 
                 "upper End Use": {
                     "surfaces objs": [],
-                    "end use": self.cityjson["End Use"],
+                    "end use": self.cityjson["Upper End Use"],
                     "surfaces counter": 0.,
                     "subpart counter": 0.,
                     "footprint area": 0.,
@@ -396,6 +402,7 @@ class City():
                 upper_soffitto = []
                 z_pav = 0
                 z_soff = self.cityjson.loc[i]['Height']
+                first_floor_z = floor_height - 0.01 if n_floors == 1 else floor_height
                 normal = normal_versor_2(tuple([tuple(coords[n] + [z_pav]) for n in range(len(coords))]))
                 if normal[2] > 0.:
                     # Just to adjust in case of anticlockwise perimeter
@@ -410,14 +417,14 @@ class City():
                                         tuple(coords[n]+[z_soff]),\
                                         tuple(coords[n]+[z_pav]),\
                                         tuple(coords[n-1]+[z_pav])]))
-                    lower_build_surf.append(tuple([tuple(coords[n-1]+[floor_height]),\
-                                        tuple(coords[n]+[floor_height]),\
+                    lower_build_surf.append(tuple([tuple(coords[n-1]+[first_floor_z]),\
+                                        tuple(coords[n]+[first_floor_z]),\
                                         tuple(coords[n]+[z_pav]),\
                                         tuple(coords[n-1]+[z_pav])]))
                     upper_build_surf.append(tuple([tuple(coords[n-1]+[z_soff]),\
                                         tuple(coords[n]+[z_soff]),\
-                                        tuple(coords[n]+[z_pav + floor_height]),\
-                                        tuple(coords[n-1]+[z_pav + floor_height])]))
+                                        tuple(coords[n]+[z_pav + first_floor_z]),\
+                                        tuple(coords[n-1]+[z_pav + first_floor_z])]))
 
                 list_of_int_rings = []
                 area_of_int_rings = []
@@ -550,7 +557,7 @@ class City():
                     )
 
                 
-                if self.cityjson.loc[i]['Lower End Use'] != '':
+                if self.cityjson.loc[i]['Lower End Use'] != '' and (self.cityjson.loc[i]['Lower End Use'] != self.cityjson.loc[i]['Upper End Use']):
                     tz_list = [building_parts_data["upper End Use"]["tz"], building_parts_data["lower End Use"]["tz"]]
                 else:
                     tz_list = [building_parts_data["single End Use"]["tz"]]
@@ -586,9 +593,9 @@ class City():
             # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
 
-            if building_info["Lower End Use"] != '':
+            if len(building_obj._thermal_zones_list) > 1:
                 zones_objs = [
-                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["End Use"]]],
+                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["Upper End Use"]]],
                     [building_obj._thermal_zones_list[1], self.end_uses_dict[building_info["Lower End Use"]]],
                 ]
             else:
@@ -716,8 +723,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             counter += 1
 
             info = {}
+            info["TZ info"] = {}
             for tz in self.buildings_objects[bd_id]._thermal_zones_list:
-                info[f"TZ {tz.name}"] = tz.get_zone_info()
+                info["TZ info"][f"TZ {tz.name}"] = tz.get_zone_info()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
