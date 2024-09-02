@@ -158,7 +158,7 @@ class PV_system():
                                  'initial_charge':0.2,
                                  'voltage':12}
         
-    def Battery_charge(self,electricity,pv_prod,days_of_autonomy=1):
+    def Battery_charge(self,electricity,pv_prod,days_of_solar_save=1):
         '''
         calculates the battery charge at each timestep. using it to calculate the energy going into the battery,
         and taken from battery. therefore it is also capable of calculating the grid 
@@ -172,18 +172,15 @@ class PV_system():
             directsolar: energy consumed directly from solar production at each timestep [Wh]
 
         '''
-        autonomy_window=days_of_autonomy*24*CONFIG.ts_per_hour
+        solar_save_window=days_of_solar_save*24*CONFIG.ts_per_hour
 
         pv_prod=pv_prod
         electricity=electricity
-        state_evolution=pv_prod-electricity
-        Autonomy_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+autonomy_window])) for x in range(len(state_evolution))])
-        Autonomy_window_evolution_battery_required=Autonomy_window_evolution[Autonomy_window_evolution<0]
-        if len(Autonomy_window_evolution_battery_required) == 0:
-            self.battery_parameters['capacity']=0
-        else:
-            self.battery_parameters['capacity']=-np.median(Autonomy_window_evolution_battery_required)//self.battery_parameters['voltage']
-        
+        state_evolution=-pv_prod+electricity
+        solar_save_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+solar_save_window])) for x in range(len(state_evolution))])
+        solar_save_window_evolution[solar_save_window_evolution<0]=0
+        self.battery_parameters['capacity']=np.quantile(solar_save_window_evolution,0.8)/self.battery_parameters['voltage']
+
         Generation_Consumption_Balance=pv_prod-electricity
         charger=Generation_Consumption_Balance.copy()
         discharger=Generation_Consumption_Balance.copy()
@@ -193,8 +190,11 @@ class PV_system():
         State_Change=np.zeros_like(State)
         maxcharge=self.battery_parameters['max_charge']*self.battery_parameters['voltage']*self.battery_parameters['capacity']
         mincharge=self.battery_parameters['min_charge']*self.battery_parameters['voltage']*self.battery_parameters['capacity']
-        Momentual_Charge_Dischare=charger*self.battery_parameters['charge_efficiency']+discharger*self.battery_parameters['discharge_efficiency']
-        
+        Momentual_Charge_Dischare=charger*self.battery_parameters['charge_efficiency']+discharger/self.battery_parameters['discharge_efficiency']
+        charger=Momentual_Charge_Dischare.copy()
+        discharger=Momentual_Charge_Dischare.copy()
+        charger[charger<0]=0
+        discharger[discharger>0]=0
         for j, elem in np.ndenumerate(State):
             i=j[0]
             if i==0:
@@ -226,6 +226,7 @@ class PV_system():
         
 
         return [State_percent , tobattery, frombattery, togrid, fromgrid, directsolar]
+                
                 
         
         
