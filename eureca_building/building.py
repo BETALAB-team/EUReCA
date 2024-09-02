@@ -237,12 +237,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
-        if hasattr(self, 'solarthermal_system'):
-            solar_gain=self.solarthermal_system.gained_heat
-        
-        else:
-            solar_gain =0
-
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
