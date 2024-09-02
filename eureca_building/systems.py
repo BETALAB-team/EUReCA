@@ -127,6 +127,8 @@ class System(metaclass=abc.ABCMeta):
             )
         self._solar_thermal_system = value
         self.set_solar_gain()
+        print(np.max(self.solar_gain))
+        
     
     
 
@@ -179,14 +181,17 @@ class System(metaclass=abc.ABCMeta):
         self.losses_discharging_rate = 0.02 # %/h
 
     def dhw_tank_solver(self, dhw_demand, weather,timestep,**kwargs):
-        if hasattr(self,"solar_gain"):
-            self.solar_thermal_gain=self.solar_gain[timestep]/CONFIG.ts_per_hour
-        else:
-            self.solar_thermal_gain=0
+        # if hasattr(self,"solar_gain"):
+        #     solar_thermal_gain=self.solar_gain[timestep]/CONFIG.ts_per_hour
+        # else:
+        #     solar_thermal_gain=0
+        
+        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if isinstance(self.solar_gain, np.ndarray) else 0
+        solar_gain=self.solar_gain_out
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
         loss_rate=self.losses_discharging_rate*max(1,self.dhw_tank_current_charge_perc)
-        self.dhw_tank_current_charge=self.dhw_tank_current_charge+self.solar_thermal_gain-dhw_demand/CONFIG.ts_per_hour
+        self.dhw_tank_current_charge=self.dhw_tank_current_charge+solar_gain-dhw_demand/CONFIG.ts_per_hour
         self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100 
         
         self.storage_tank_loss=self.dhw_tank_design_charge * loss_rate/CONFIG.ts_per_hour/100

@@ -38,6 +38,7 @@ class SolarThermal_Collector():
         Air_temperature=self.weather['temp_air']
      
         self.gained_heat=0
+
         for Surface in self._surfaces: 
             tilt=Surface._height_round
             orient=Surface._azimuth_round
