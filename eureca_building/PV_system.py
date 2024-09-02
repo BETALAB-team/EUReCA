@@ -174,8 +174,8 @@ class PV_system():
         '''
         autonomy_window=days_of_autonomy*24*CONFIG.ts_per_hour
 
-        pv_prod=pv_prod.to_numpy()
-        electricity=electricity.to_numpy()
+        pv_prod=pv_prod
+        electricity=electricity
         state_evolution=pv_prod-electricity
         Autonomy_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+autonomy_window])) for x in range(len(state_evolution))])
         Autonomy_window_evolution_battery_required=Autonomy_window_evolution[Autonomy_window_evolution<0]
