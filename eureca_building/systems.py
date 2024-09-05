@@ -20,7 +20,7 @@ import numpy as np
 from eureca_building.systems_info import systems_info
 from eureca_building.fluids_properties import fuels_pci, water_properties
 from eureca_building.config import CONFIG
-from eureca_building.solarthermal import SolarThermal_Collector
+from eureca_building.solar_thermal_system import SolarThermal_Collector
 
 # including Systems info from system_info json
 global systems_info_dict
@@ -40,7 +40,6 @@ class System(metaclass=abc.ABCMeta):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
-    solar_gain = 0
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -98,10 +97,10 @@ class System(metaclass=abc.ABCMeta):
     def oil_consumption(self):
         pass
     
-    @property
-    @abc.abstractmethod
-    def solar_gain(self):
-        pass
+    # @property
+    # @abc.abstractmethod
+    # def solar_gain(self):
+    #     pass
 
     @property
     def system_type(self):
@@ -127,7 +126,7 @@ class System(metaclass=abc.ABCMeta):
             )
         self._solar_thermal_system = value
         self.set_solar_gain()
-        print(np.max(self.solar_gain))
+        # print(np.max(self.solar_gain))
         
     
     
@@ -175,7 +174,7 @@ class System(metaclass=abc.ABCMeta):
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
         self.dhw_tank_current_charge_perc = 0.5
         self.charging_mode = 0.
-        self.discharging_mode =0.
+        # self.discharging_mode =0.
         self.dhw_capacity_to_tank = 0.
         self.dhw_tank_current_charge_perc=self.dhw_tank_minimum_charge/self.dhw_tank_design_charge
         self.losses_discharging_rate = 0.02 # %/h
@@ -185,23 +184,25 @@ class System(metaclass=abc.ABCMeta):
         #     solar_thermal_gain=self.solar_gain[timestep]/CONFIG.ts_per_hour
         # else:
         #     solar_thermal_gain=0
-        
-        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if isinstance(self.solar_gain, np.ndarray) else 0
+        self.charging_mode = 0
+        self.discharging_mode = 0
+        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
         solar_gain=self.solar_gain_out
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
         loss_rate=self.losses_discharging_rate*max(1,self.dhw_tank_current_charge_perc)
-        self.dhw_tank_current_charge=self.dhw_tank_current_charge+solar_gain-dhw_demand/CONFIG.ts_per_hour
-        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100 
-        
         self.storage_tank_loss=self.dhw_tank_design_charge * loss_rate/CONFIG.ts_per_hour/100
+
+        self.dhw_tank_current_charge=self.dhw_tank_current_charge+solar_gain-dhw_demand/CONFIG.ts_per_hour
         self.dhw_tank_current_charge=self.dhw_tank_current_charge-self.storage_tank_loss
+        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100
         if (self.dhw_tank_current_charge<self.dhw_tank_minimum_charge):
-            self.charging_mode=1 
-            self.dhw_capacity_to_tank=min(self.dhw_tank_design_charge-self.dhw_tank_current_charge,self.dhw_design_load)
+            self.charging_mode = 1
+            self.dhw_capacity_to_tank=min(self.dhw_tank_design_charge-self.dhw_tank_current_charge,self.dhw_design_load/CONFIG.ts_per_hour)
             self.dhw_tank_current_charge=self.dhw_tank_current_charge+self.dhw_capacity_to_tank
         if (self.dhw_tank_current_charge>self.dhw_tank_maximum_charge):
-            self.discharging_mode =0.
+            self.discharging_mode = 1
+            # self.charging_mode = 0
             self.tank_discharge=self.dhw_tank_current_charge-self.dhw_tank_maximum_charge
             self.dhw_tank_current_charge=self.dhw_tank_current_charge-self.tank_discharge
             
@@ -230,7 +231,6 @@ class IdealLoad(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -295,7 +295,6 @@ class CondensingBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -469,7 +468,6 @@ class TraditionalBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -645,7 +643,6 @@ class SplitAirCooler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -859,7 +856,6 @@ class ChillerAirtoWater(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1061,7 +1057,6 @@ class SplitAirConditioner(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1191,7 +1186,6 @@ class Heating_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1357,7 +1351,6 @@ class Cooling_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
-    solar_gain = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set

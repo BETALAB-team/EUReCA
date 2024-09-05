@@ -19,7 +19,7 @@ from eureca_building.config import CONFIG
 from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.pv_system import PV_system
-from eureca_building.solarthermal import SolarThermal_Collector
+from eureca_building.solar_thermal_system import SolarThermal_Collector
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -288,13 +288,14 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
-            #'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            #'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            #'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
 
             # 'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            # 'Solar Thermal PRoduction [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            # 'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Thermal Production [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -337,10 +338,16 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
                                                                       self._thermal_zones_list]
 
-            #results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
-            #results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
-            # results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_gain_out
-            # results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
+            results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
+            results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
+            results['DHW tank charge [Wh]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge
+            results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
+            try:
+                results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_gain_out
+            except AttributeError:
+                results['Solar Thermal Production [Wh]'][t - t_start, 0] = 0
+
+
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
@@ -351,7 +358,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
 
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
-        print((np.max(results['Solar Thermal PRoduction [Wh]'])))
+        # print((np.max(results['Solar Thermal Production [Wh]'])))
         # Saving results
 
         tz_labels = [res for res in results.keys() if res.startswith("TZ")]

@@ -129,9 +129,10 @@ class PV_system():
         the production is calculated for each timestep
 
         '''
+        ProductionWh = 0
         for Surface,Dict_pv_data in self._pv_efficiencies.items():
-            Production_watt=Dict_pv_data['power_stc']*Dict_pv_data['pv_rel_eta']*Dict_pv_data['poa_global']/self.pv_g_stc
-            ProductionWh=Production_watt/CONFIG.ts_per_hour
+            Production_watt = Dict_pv_data['power_stc']*Dict_pv_data['pv_rel_eta']*Dict_pv_data['poa_global']/self.pv_g_stc
+            ProductionWh += Production_watt/CONFIG.ts_per_hour
 
         return ProductionWh
     
@@ -167,10 +168,15 @@ class PV_system():
 
         pv_prod=pv_prod
         electricity=electricity
-        state_evolution=-pv_prod+electricity
+        state_evolution = -pv_prod + electricity
         solar_save_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+solar_save_window])) for x in range(len(state_evolution))])
         solar_save_window_evolution[solar_save_window_evolution<0]=0
         self.battery_parameters['capacity']=np.quantile(solar_save_window_evolution,0.8)/self.battery_parameters['voltage']
+
+        # net_prod = np.clip(state_evolution, None, 0) # Only negative values (surplus production)
+        # net_prod_int = -1 * np.array([np.sum(net_prod[x:x+solar_save_window]) for x in range(len(net_prod))]) # Wh
+        # self.battery_parameters['capacity'] = np.quantile(net_prod_int, 0.8) / self.battery_parameters[
+        #     'voltage'] # Immagino sia in Ah
 
         Generation_Consumption_Balance=pv_prod-electricity
         charger=Generation_Consumption_Balance.copy()
