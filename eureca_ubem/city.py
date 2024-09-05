@@ -342,7 +342,6 @@ class City():
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
-
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -673,7 +672,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
-
+            if "ST" in building_info["Solar technologies"]:
+                building_obj.add_solar_thermal(weather_obj=self.weather_file)
+               
 
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
