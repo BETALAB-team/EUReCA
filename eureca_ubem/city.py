@@ -469,6 +469,7 @@ class City():
                 if bd_data["Simulate"]:
                     envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
 
+                maximum_footprint_area = 0.
                 for part_k, part_v in building_parts_data.items():
                     for vertices in part_v["surfaces coord"]:
                         surface = Surface(
@@ -506,7 +507,7 @@ class City():
                             part_v["footprint area"] += surface._area
                             
                         part_v["subpart counter"] += 1
-            
+                    maximum_footprint_area = np.max([maximum_footprint_area, part_v["footprint area"]])
 
             if bd_data["Simulate"]:
                 # Add internal walls and ceilings 3.3 m height
@@ -544,14 +545,14 @@ class City():
                         )
                     )
 
-                    n_units = int(np.around(part_v["footprint area"] * part_v["number of floors"] / 77.))
+                    n_units = int(np.around(maximum_footprint_area * part_v["number of floors"] / 77.))
                     if n_units == 0: n_units = 1
 
                     part_v["tz"] = ThermalZone(
                         name=f"Bd {name} thermal zone {part_k}",
                         surface_list= part_v["surfaces objs"],
-                        net_floor_area=part_v["footprint area"] * part_v["number of floors"],
-                        volume=part_v["footprint area"] * part_v["number of floors"] * floor_height * bd_data["VolCoeff"],
+                        net_floor_area=maximum_footprint_area * part_v["number of floors"],
+                        volume=maximum_footprint_area * part_v["number of floors"] * floor_height * bd_data["VolCoeff"],
                         number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                     )
 
@@ -727,6 +728,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             info["TZ info"] = {}
             for tz in self.buildings_objects[bd_id]._thermal_zones_list:
                 info["TZ info"][f"TZ {tz.name}"] = tz.get_zone_info()
+            info["TZ info"] = pd.DataFrame(info["TZ info"])
+            info["TZ info"]["Total"] = info["TZ info"].sum(axis = 1)
+            for i in info["TZ info"].index:
+                info[i] = info["TZ info"].loc[i]["Total"]
+            info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)

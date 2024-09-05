@@ -517,6 +517,8 @@ class ThermalZone(object):
         self.DenAm = 0.
         self.Atot = 0.
         self.Htr_op = 0.
+        self.ext_wall_opaque_area = 0.
+        self.ext_wall_glazed_area = 0.
 
         # list all surface to extract the window and opeque area and other thermo physical prop
 
@@ -534,6 +536,11 @@ class ThermalZone(object):
                     self.Htr_op += surface._opaque_area * surface.construction._u_value
                     if surface._glazed_area > 0.:
                         self.Htr_w += surface._glazed_area * surface.window._u_value
+
+                if surface.surface_type == "ExtWall":
+                    self.ext_wall_opaque_area += surface._opaque_area
+                    self.ext_wall_glazed_area += surface._glazed_area
+
             except AttributeError:
                 raise AttributeError(
                     f"Thermal zone {self.name}, surface {surface.name} construction or window not specified"
@@ -610,12 +617,17 @@ Thermal zone {self.name} 1C params:
         self.Aaw_tot = 0
         self.Araum_opaque = 0
         self.Aaw_opaque = 0
+        self.ext_wall_opaque_area = 0.
+        self.ext_wall_glazed_area = 0.
 
         # Cycling surface to calculates the Resistance and capacitance of the vdi 6007
 
         for surface in self._surface_list:
             self.Araum_tot += surface._area
             self.Araum_opaque += surface._opaque_area
+            if surface.surface_type == "ExtWall":
+                self.ext_wall_opaque_area += surface._opaque_area
+                self.ext_wall_glazed_area += surface._glazed_area
             if surface.surface_type in ["ExtWall", "GroundFloor", "Roof"]:
                 self.Aaw_tot += surface._area
                 self.Aaw_opaque += surface._opaque_area
@@ -1809,6 +1821,8 @@ Thermal zone {self.name} 2C params:
             "Zone volume [m3]": self._volume,
             "Zone net floor area [m2]": self._net_floor_area,
             'Number of units [-]': self.number_of_units,
+            "Zone external walls opaque area [m2]": self.ext_wall_opaque_area,
+            "Zone external walls glazed area [m2]": self.ext_wall_glazed_area,
             "Zone opaque heat transfer loss [W/K]": self.Htr_op,
             "Zone glazed heat transfer loss [W/K]": self.Htr_w,
             "Zone design heating load [kW]": self.design_heating_system_power/1000,
