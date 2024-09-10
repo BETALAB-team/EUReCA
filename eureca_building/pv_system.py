@@ -224,6 +224,7 @@ class PV_system():
 
         return [State_percent , tobattery, frombattery, togrid, fromgrid, directsolar]
                 
+                
         
         
    
