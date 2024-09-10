@@ -357,7 +357,10 @@ class City():
             floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
-            building_parts = list(self.cityjson.loc[i].geometry.geoms)
+            try:
+                building_parts = list(self.cityjson.loc[i].geometry.geoms)
+            except AttributeError:
+                building_parts = [self.cityjson.loc[i].geometry] # Case for polygon geometry
             surf_counter = 0
             footprint_area = 0.
 
@@ -444,13 +447,13 @@ class City():
                                             tuple(coords_int[n-1]+[z_pav]),\
                                             tuple(coords_int[n]+[z_pav]),\
                                             tuple(coords_int[n]+[z_soff]),]))
-                        lower_build_surf.append(tuple([tuple(coords_int[n-1]+[floor_height]),\
+                        lower_build_surf.append(tuple([tuple(coords_int[n-1]+[first_floor_z]),\
                                             tuple(coords_int[n-1]+[z_pav]),\
                                             tuple(coords_int[n]+[z_pav]),\
-                                            tuple(coords_int[n]+[floor_height]),]))
+                                            tuple(coords_int[n]+[first_floor_z]),]))
                         upper_build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
-                                            tuple(coords_int[n-1]+[z_pav + floor_height]),\
-                                            tuple(coords_int[n]+[z_pav + floor_height]),\
+                                            tuple(coords_int[n-1]+[z_pav + first_floor_z]),\
+                                            tuple(coords_int[n]+[z_pav + first_floor_z]),\
                                             tuple(coords_int[n]+[z_soff]),]))
 
                 build_surf.append(tuple(pavimento))
