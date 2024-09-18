@@ -142,7 +142,7 @@ class WeatherFile():
             self.irradiances_calculation()
 
         self.general_data['urban_shading_tol'] = urban_shading_tol
-
+        self.general_data['yearly_solar_irradiation'] = self._epw_hourly_data["ghi"].sum()/2 #Wh
         # Definition of average T_ext during heating season
         av_t_daily = np.array([np.mean(self.hourly_data["out_air_db_temperature"][i:i+24*time_steps]) for i in range(0,8760 * time_steps, 24*time_steps)])
         self.general_data['heating_degree_days'] =  np.sum(20-av_t_daily[av_t_daily < 12])
