@@ -1660,8 +1660,8 @@ Thermal zone {self.name} 2C params:
             h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
             c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
 
-        h_av_sp = h_av_sp if monthly_heating_timesteps.sum() > 0 else -20
-        c_av_sp = c_av_sp if monthly_cooling_timesteps.sum() > 0 else 50
+        h_av_sp = h_av_sp if monthly_heating_timesteps.sum() > 0 else 20
+        c_av_sp = c_av_sp if monthly_cooling_timesteps.sum() > 0 else 26
         # [J] = [W/K] * ([°C] - [°C]) * [-] * [s]
         Q_h_tr_monthly = self.UA_tot * (h_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_heating_timesteps * CONFIG.time_step
         # Q_h_tr_monthly[Q_h_tr_monthly < 0.] = 0.
@@ -1712,8 +1712,8 @@ Thermal zone {self.name} 2C params:
         eta_c_is[gamma_c <= 0.] = 1
 
         # Final monthly calc
-        Q_h_sens = Q_h_ht - eta_h_gn * Q_h_gn
-        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht)
+        Q_h_sens = (Q_h_ht - eta_h_gn * Q_h_gn) * (monthly_heating_timesteps > 0)
+        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht) * (monthly_cooling_timesteps > 0)
         Q_h_sens[Q_h_sens<0.] = 0.
         Q_c_sens[Q_c_sens>0.] = 0.
 
