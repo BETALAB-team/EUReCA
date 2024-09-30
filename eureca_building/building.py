@@ -453,14 +453,14 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         cool_demand = np.array([0]*12)
         for tz in self._thermal_zones_list:
             tz.solve_quasisteadystate_method(weather_object)
-            shd = np.clip(tz.sensible_zone_demand_qss_method, 0, None)*1000 # Wh
-            lhd = np.clip(tz.latent_zone_demand_qss_method, 0, None)*1000 # Wh
+            shd = np.clip(tz.heat_sensible_zone_demand_qss_method, 0, None)*1000 # Wh
+            lhd = np.clip(tz.heat_latent_zone_demand_qss_method, 0, None)*1000 # Wh
             sad = np.clip(tz.sensible_AHU_demand_qss_method, 0, None)*1000 # Wh
             lad = np.clip(tz.latent_AHU_demand_qss_method, 0, None)*1000 # Wh
             heat_demand = heat_demand + shd + lhd + sad + lad
 
-            shd = np.clip(tz.sensible_zone_demand_qss_method, None, 0)*1000 # Wh
-            lhd = np.clip(tz.latent_zone_demand_qss_method, None, 0)*1000 # Wh
+            shd = np.clip(tz.cool_sensible_zone_demand_qss_method, None, 0)*1000 # Wh
+            lhd = np.clip(tz.cool_latent_zone_demand_qss_method, None, 0)*1000 # Wh
             sad = np.clip(tz.sensible_AHU_demand_qss_method, None, 0)*1000 # Wh
             lad = np.clip(tz.latent_AHU_demand_qss_method, None, 0)*1000 # Wh
             cool_demand = cool_demand + shd + lhd + sad + lad
@@ -482,6 +482,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['Heating system oil consumption [L]'] = self.heating_system.oil_consumption
         results['Heating system coal consumption [kg]'] = self.heating_system.coal_consumption
         results['Heating system wood consumption [kg]'] = self.heating_system.wood_consumption
+        results['Heating system pellet consumption [kg]'] = self.heating_system.pellet_consumption
         results['Heating system DH consumption [Wh]'] = self.heating_system.DH_consumption
         results['Heating system electric consumption [Wh]'] = self.heating_system.electric_consumption
         results['Cooling system electric consumption [Wh]'] = self.cooling_system.electric_consumption
