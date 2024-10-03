@@ -298,8 +298,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system gasoline consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system pellet consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system LPG consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -350,8 +353,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system gasoline consumption [L]'][t - t_start,0] = self.heating_system.gasoline_consumption
+            results['Heating system LPG consumption [kg]'][t - t_start,0] = self.heating_system.lpg_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
-            results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.pellet_consumption
+            results['Heating system pellet consumption [kg]'][t - t_start,0] = self.heating_system.gasoline_consumption
             results['Heating system DH consumption [Wh]'][t - t_start,0] = self.heating_system.DH_consumption
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption

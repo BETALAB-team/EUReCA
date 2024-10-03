@@ -40,6 +40,9 @@ class System(metaclass=abc.ABCMeta):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -231,6 +234,9 @@ class IdealLoad(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -295,6 +301,9 @@ class CondensingBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -468,6 +477,9 @@ class TraditionalBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1058,6 +1070,7 @@ class SplitAirConditioner(System):
     coal_consumption = 0
     DH_consumption = 0
 
+
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
 
@@ -1186,6 +1199,9 @@ class Heating_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
