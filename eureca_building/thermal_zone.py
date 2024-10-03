@@ -519,6 +519,7 @@ class ThermalZone(object):
         self.Htr_op = 0.
         self.ext_wall_opaque_area = 0.
         self.ext_wall_glazed_area = 0.
+        self.ext_roof_area = 0.
 
         # list all surface to extract the window and opeque area and other thermo physical prop
 
@@ -536,6 +537,9 @@ class ThermalZone(object):
                     self.Htr_op += surface._opaque_area * surface.construction._u_value
                     if surface._glazed_area > 0.:
                         self.Htr_w += surface._glazed_area * surface.window._u_value
+                        
+                if surface.surface_type == "Roof":
+                    self.ext_roof_area += surface._area
 
                 if surface.surface_type == "ExtWall":
                     self.ext_wall_opaque_area += surface._opaque_area
@@ -619,6 +623,7 @@ Thermal zone {self.name} 1C params:
         self.Aaw_opaque = 0
         self.ext_wall_opaque_area = 0.
         self.ext_wall_glazed_area = 0.
+        self.ext_roof_area = 0.
 
         # Cycling surface to calculates the Resistance and capacitance of the vdi 6007
 
@@ -628,6 +633,8 @@ Thermal zone {self.name} 1C params:
             if surface.surface_type == "ExtWall":
                 self.ext_wall_opaque_area += surface._opaque_area
                 self.ext_wall_glazed_area += surface._glazed_area
+            if surface.surface_type == "Roof":
+                self.ext_roof_area += surface._area
             if surface.surface_type in ["ExtWall", "GroundFloor", "Roof"]:
                 self.Aaw_tot += surface._area
                 self.Aaw_opaque += surface._opaque_area
