@@ -390,7 +390,17 @@ class City():
                 },
             }
 
+            total_areas = {
+                "S": 0.,
+                "W": 0.,
+                "N": 0.,
+                "E": 0.,
+            }
+
             for g in building_parts:
+
+
+
                 x,y = g.exterior.coords.xy
                 coords = np.dstack((x,y)).tolist()
                 coords = coords[0]
@@ -511,6 +521,36 @@ class City():
                             
                         part_v["subpart counter"] += 1
                     maximum_footprint_area = np.max([maximum_footprint_area, part_v["footprint area"]])
+
+            for s in building_parts_data["single End Use"]["surfaces objs"]:
+                if s.surface_type == "ExtWall":
+                    if s._azimuth_round == 0:
+                        total_areas["S"] += s._area
+                    elif s._azimuth_round == 90:
+                        total_areas["W"] += s._area
+                    elif s._azimuth_round == -90:
+                        total_areas["E"] += s._area
+                    elif s._azimuth_round == -180:
+                        total_areas["N"] += s._area
+
+            total_wwr = {
+                "S": bd_data['Windows S Area'] / total_areas["S"],
+                "N": bd_data['Windows N Area'] / total_areas["N"],
+                "E": bd_data['Windows E Area'] / total_areas["E"],
+                "W": bd_data['Windows W Area'] / total_areas["W"],
+            }
+
+            for s in building_parts_data["single End Use"]["surfaces objs"]:
+                if s.surface_type == "ExtWall":
+                    if s._azimuth_round == 0:
+                        s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
+                    elif s._azimuth_round == 90:
+                        s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
+                    elif s._azimuth_round == -90:
+                        s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
+                    elif s._azimuth_round == -180:
+                        s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
+
 
             if bd_data["Simulate"]:
                 # Add internal walls and ceilings 3.3 m height
@@ -801,7 +841,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
-        new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
+        new_geojson = pd.concat([self.output_geojson.loc[bd_summary.index],bd_summary],axis=1)
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         new_geojson.drop("geometry",axis = 1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep =";")
 
