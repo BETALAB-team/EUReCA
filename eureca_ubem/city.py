@@ -534,11 +534,19 @@ class City():
                         total_areas["N"] += s._area
 
             total_wwr = {
-                "S": bd_data['Windows S Area'] / total_areas["S"],
-                "N": bd_data['Windows N Area'] / total_areas["N"],
-                "E": bd_data['Windows E Area'] / total_areas["E"],
-                "W": bd_data['Windows W Area'] / total_areas["W"],
+                "S": 0.,
+                "N": 0.,
+                "E": 0.,
+                "W": 0.,
             }
+            for k, v in total_wwr.items():
+                try:
+                    total_wwr[k] = bd_data[f'Windows {k} Area'] / total_areas[k]
+                except ZeroDivisionError:
+                    total_wwr[k] = 0.
+                if np.isnan(total_wwr[k]):
+                    total_wwr[k] = 0.
+
 
             for s in building_parts_data["single End Use"]["surfaces objs"]:
                 if s.surface_type == "ExtWall":
