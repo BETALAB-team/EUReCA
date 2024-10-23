@@ -6,6 +6,7 @@ import logging
 import warnings
 warnings.filterwarnings("ignore")
 import pandas as pd
+import geopandas as gpd
 
 
 # import matplotlib

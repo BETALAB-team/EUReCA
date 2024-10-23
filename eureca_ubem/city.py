@@ -341,6 +341,13 @@ class City():
             self.cityjson["Upper End Use"] = ''
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
+        
+        for direct in ["N","S","E","W"]:
+            if f"WWR {direct}" not in self.cityjson.columns:
+                self.cityjson[f"WWR {direct}"] = np.nan
+            if f"Total wall area {direct}" not in self.cityjson.columns:
+                self.cityjson[f"Total wall area {direct}"] = np.nan
+        
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
         self.output_geojson = self.cityjson
         self.json_buildings= {}
@@ -533,10 +540,10 @@ class City():
                     elif s._azimuth_round == -180:
                         total_areas["N"] += s._area
                         
-            self.output_geojson.loc[i]["Total wall area E"] = total_areas["E"]
-            self.output_geojson.loc[i]["Total wall area W"] = total_areas["W"]
-            self.output_geojson.loc[i]["Total wall area N"] = total_areas["N"]
-            self.output_geojson.loc[i]["Total wall area S"] = total_areas["S"]
+            self.output_geojson["Total wall area E"].loc[i] = total_areas["E"]
+            self.output_geojson["Total wall area W"].loc[i] = total_areas["W"]
+            self.output_geojson["Total wall area N"].loc[i] = total_areas["N"]
+            self.output_geojson["Total wall area S"].loc[i] = total_areas["S"]
 
             total_wwr = {
                 "S": 0.,
@@ -558,16 +565,16 @@ class City():
                 if s.surface_type == "ExtWall":
                     if s._azimuth_round == 0:
                         s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
-                        self.output_geojson.loc[i]["WWR S"] = s._wwr
+                        self.output_geojson["WWR S"].loc[i] = s._wwr
                     elif s._azimuth_round == 90:
                         s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
-                        self.output_geojson.loc[i]["WWR W"] = s._wwr
+                        self.output_geojson["WWR W"].loc[i] = s._wwr
                     elif s._azimuth_round == -90:
                         s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
-                        self.output_geojson.loc[i]["WWR E"] = s._wwr
+                        self.output_geojson["WWR E"].loc[i] = s._wwr
                     elif s._azimuth_round == -180:
                         s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
-                        self.output_geojson.loc[i]["WWR N"] = s._wwr
+                        self.output_geojson["WWR N"].loc[i] = s._wwr
 
 
             if bd_data["Simulate"]:
