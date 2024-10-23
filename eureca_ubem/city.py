@@ -646,7 +646,7 @@ class City():
                     "2C": thermal_zone._VDI6007_params,
                 }[self.building_model]()
 
-    def loads_calculation(self, region = None):
+    def loads_calculation(self, region = None,  ext_wall_coef = None, t_set = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
         
@@ -729,21 +729,47 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 )
                 
 
-                tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
-                
-                tz.design_heating_load(-5.)
-                
-                tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
+            np.replace = use.zone_system['temperature_setpoint'].schedule_lower
+
+            tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
+            tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
+
+            tz.add_infiltration(use.infiltration['infiltration'])
+            tz.calc_infiltration(self.weather_file)
+
+            ahu = AirHandlingUnit(
+                name = f"ahu Bd {building_info['Name']}",
+                mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
+                supply_temperature = use.air_handling_unit_system['ahu_supply_temperature'],
+                supply_specific_humidity = use.air_handling_unit_system['ahu_supply_humidity'],
+                ahu_operation = use.air_handling_unit_system['ahu_availability'],
+                humidity_control = use.air_handling_unit_system['ahu_humidity_control'],
+                sensible_heat_recovery_eff = use.air_handling_unit_system['ahu_sensible_heat_recovery'],
+                latent_heat_recovery_eff = use.air_handling_unit_system['ahu_latent_heat_recovery'],
+                outdoor_air_ratio = use.air_handling_unit_system['outdoor_air_ratio'],
+                weather = self.weather_file,
+                thermal_zone = tz,
+            )
+            
+
+            tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+            
+            tz.design_heating_load(-5.)
+            
+            tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
+            
             building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
+            # print(f"{int(100*iiii/jjjj)} %: load calc")
 
+            if t_set is not None and ext_wall_coef is not None:
+                building_obj.update_wall_factor_and_setpoint(ext_wall_coef[bd_id], t_set[bd_id], self.weather_file)
+            
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
             if "ST" in building_info["Solar technologies"]:
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
-               
 
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
@@ -1448,3 +1474,137 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     #                 self.complexes[self.city.loc[i]['nome']].AHUDemand_sensC += self.buildings[self.city.loc[x]['id']].AHUDemand_sensBD
     #         i = i + 1
     #         x = x + 1
+
+    def calibrate(self, print_single_building_results=False, output_type="parquet",
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]):
+        """Simulation of the whole city, and memorization and stamp of results.
+
+        Parameters
+        ----------
+        print_single_building_results : bool, default False
+            If True, the prints a file with time step results for each building.
+            USE CAREFULLY: It might fill a lot of disk space
+        output_type : str, default 'parquet'
+            It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
+        """
+
+        import time
+        start = time.time()
+        # parallel simulation commented
+        # bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]
+        # def bd_parallel_solve(x):
+        #     bd, weather, out_fold = x
+        #     bd.simulate(weather, output_folder=out_fold)
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+        #
+        # print(f"Parallel simulation : {(time.time() - start)/60:0.2f} min")
+        # start = time.time()
+
+        final_results = {}
+
+        index = pd.date_range(start=CONFIG.start_date, periods=CONFIG.number_of_time_steps, freq=f"{CONFIG.time_step}s")
+        district_hourly_results = pd.DataFrame(0., index=index, columns=[
+            "Gas consumption [Nm3]",
+            "Electric consumption [Wh]",
+            "Oil consumption [L]",
+            "Wood consumption [kg]",
+            "TZ sensible load [W]",
+            "TZ latent load [W]",
+            "TZ AHU pre heater load [W]",
+            "TZ AHU post heater load [W]",
+            "TZ DHW demand [W]",
+        ])
+        n_buildings = len(self.buildings_objects)
+        counter = 0
+        for bd_id, building_info in self.buildings_info.items():
+            if counter % 10 == 0:
+                print(f"{counter} buildings simulated out of {n_buildings}")
+            counter += 1
+
+            info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+            info["Name"] = self.buildings_objects[bd_id].name
+            if print_single_building_results:
+                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"],
+                                                                  self.weather_file,
+                                                                  limits_setpoint=limits_setpoint,
+                                                                  limits_fwalls=limits_fwalls
+                                                                  )
+                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0],cal_res[0][1], self.weather_file)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder,
+                                                                  output_type=output_type)
+                info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+                info["Name"] = self.buildings_objects[bd_id].name
+                info["ExtWallCoef_cal"] = cal_res[0][0]
+                info["TSet_cal"] = cal_res[0][1]
+                info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
+            else:
+                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"], self.weather_file,
+                                                                limits_setpoint = limits_setpoint,
+                                                              limits_fwalls = limits_fwalls
+                                                                )
+                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0], cal_res[0][1],
+                                                                              self.weather_file)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
+                info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+                info["Name"] = self.buildings_objects[bd_id].name
+                info["ExtWallCoef_cal"] = cal_res[0][0]
+                info["TSet_cal"] = cal_res[0][1]
+                info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
+            results.index = index
+            monthly = results.resample("M").sum()
+            gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
+            el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
+            oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
+            wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            gas_consumption["Total"] = gas_consumption.sum()
+            el_consumption["Total"] = el_consumption.sum()
+            oil_consumption["Total"] = oil_consumption.sum()
+            wood_consumption["Total"] = wood_consumption.sum()
+            for i in gas_consumption.index:
+                if i == "Total":
+                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                else:
+                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+            final_results[bd_id] = info
+            district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,
+                                                                0]
+            district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:, 0]
+            district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,
+                                                                0]
+            district_hourly_results["Electric consumption [Wh]"] += results[
+                                                                        "Heating system electric consumption [Wh]"].iloc[
+                                                                    :, 0] \
+                                                                    + results[
+                                                                          "Cooling system electric consumption [Wh]"].iloc[
+                                                                      :, 0] \
+                                                                    + results[
+                                                                          "Appliances electric consumption [Wh]"].iloc[
+                                                                      :, 0]
+            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:, 0]
+            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:, 0]
+            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:, 0]
+            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:, 0]
+            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:, 0]
+
+        district_hourly_results.to_csv(os.path.join(self.output_folder, "District_hourly_summary.csv"), sep=";")
+        bd_summary = pd.DataFrame.from_dict(final_results, orient="index")
+        # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
+        bd_summary.drop(["Name"], axis=1, inplace=True)
+        self.output_geojson.set_index("new_id", drop=True, inplace=True)
+        new_geojson = pd.concat([self.output_geojson, bd_summary], axis=1)
+        new_geojson.to_file(os.path.join(self.output_folder, "Buildings_summary.geojson"), driver="GeoJSON")
+        new_geojson.drop("geometry", axis=1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep=";")
+
+        print(f"Standard simulation : {(time.time() - start) / 60:0.2f} min")

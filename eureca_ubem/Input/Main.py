@@ -39,6 +39,7 @@ city_geojson.simulate(print_single_building_results=True, output_type="csv")
 
 
 
+
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
 #

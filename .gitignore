@@ -51,6 +51,7 @@ eureca_building/example_scripts/VDI_bestests.py
 eureca_building/example_scripts/logging.log
 eureca_building.egg-info/
 eureca_building/test/__pycache__/
+eureca_ubem/Input/geojson_corr/
 .idea/
 build/
 dist/

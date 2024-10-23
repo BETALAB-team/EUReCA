@@ -202,6 +202,7 @@ wall_south._h_bottom_windows
 z_n_tot = np.array(z_n_tot)
 mass_flow_rate_tot = np.array(mass_flow_rate_tot)
 
+
 x_lim = [0,24]
 x_lim_flow = [0,24]
 
@@ -263,4 +264,3 @@ ax12.set_ylabel("Natural ventilation\nmass flow rate [kg/s]")
 
 # ax14.plot(wall_west.wind_pressure_coeff, color = "b")
 # ax14.plot(wall_east.wind_pressure_coeff, color = "k")
-# ax14.set_ylabel("Natural ventilation\nmass flow rate [-----]")
