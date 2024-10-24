@@ -1603,7 +1603,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis=1, inplace=True)
         self.output_geojson.set_index("new_id", drop=True, inplace=True)
-        new_geojson = pd.concat([self.output_geojson, bd_summary], axis=1)
+        new_geojson = pd.concat([self.output_geojson.loc[bd_summary.index],bd_summary],axis=1)
         new_geojson.to_file(os.path.join(self.output_folder, "Buildings_summary.geojson"), driver="GeoJSON")
         new_geojson.drop("geometry", axis=1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep=";")
 
