@@ -360,7 +360,10 @@ class City():
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
-            n_floors = int(self.cityjson.loc[i]['Floors'])
+            try:
++                n_floors = int(self.cityjson.loc[i]['Floors'])
++           except ValueError:
++                n_floors = 1
             floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
