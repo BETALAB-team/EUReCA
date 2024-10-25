@@ -9,6 +9,7 @@ __maintainer__ = "Enrico Prataviera"
 
 import logging
 import io
+import os
 
 import pvlib
 import requests
@@ -83,7 +84,7 @@ class WeatherFile():
         self._site = pvlib.location.Location(self._epw_general_data['latitude'],
                                              self._epw_general_data['longitude'],
                                              tz=self._epw_general_data['TZ'])  # Creating a location variable
-
+               
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
             self._epw_hourly_data = epw[0].resample(m).bfill()
@@ -109,6 +110,9 @@ class WeatherFile():
         self.general_data['time_steps_per_hour'] = time_steps
         self.general_data['azimuth_subdivisions'] = azimuth_subdivisions
         self.general_data['height_subdivisions'] = height_subdivisions
+        
+        # summary of epw monthly statistics
+        self.monthly_stats = self.monthly_statistics(printer = True)
 
         # Check some weather data values
         if not np.all(np.greater(self.hourly_data["out_air_db_temperature"], -50.)) or not np.all(
@@ -226,6 +230,45 @@ class WeatherFile():
         )
 
         return w
+    
+    def monthly_statistics(self, printer = True):
+        
+        epw_df = self._epw_hourly_data
+    
+        variables = ['temp_air', 'temp_dew', 'relative_humidity','wind_speed']
+        variables_sun = ['ghi', 'dni', 'dhi']
+        monthly_vars_min = pd.DataFrame()
+        monthly_vars_max = pd.DataFrame()
+        monthly_vars_mean = pd.DataFrame()
+        monthly_vars_sum = pd.DataFrame()
+        for v in variables:
+            monthly_vars_min[v] = epw_df.groupby(['month'])[v].min()
+            monthly_vars_max[v] = epw_df.groupby(['month'])[v].max()
+            monthly_vars_mean[v] = epw_df.groupby(['month'])[v].mean()
+        for vs in variables_sun:
+            monthly_vars_sum[vs] = epw_df.groupby(['month'])[vs].sum()
+        
+        monthly_vars = dict()
+        monthly_vars['min'] = monthly_vars_min.T
+        monthly_vars['mean'] = monthly_vars_mean.T
+        monthly_vars['max'] = monthly_vars_max.T
+        monthly_vars['sum'] = monthly_vars_sum.T
+        
+        if printer == True:
+            try:
+                for k, v in enumerate(monthly_vars):
+                    df = monthly_vars[v]
+                    name = 'weather_stats/' + v + '.csv'
+                    df.to_csv(name)
+            except:
+                os.mkdir('weather_stats')
+                for k, v in enumerate(monthly_vars):
+                    df = monthly_vars[v]
+                    name = 'weather_stats/' + v + '.csv'
+                    df.to_csv(name)
+        
+        return monthly_vars
+
 
 
 
