@@ -607,7 +607,7 @@ class City():
                 ]
 
             for tz, use in zones_objs:
-
+                tz.add_occupancy(use.occupancy)
                 # TODO: copy.deepcopy
                 if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
                     try:
@@ -678,8 +678,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
             if "ST" in building_info["Solar technologies"]:
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
-               
-
+            
+            Refrigerated_end_uses=["supermarket"]
+            if any(building_info[key] in Refrigerated_end_uses for key in ["End Use", "lower End Use", "upper End Use"]):               
+                building_obj.add_refrigeration()
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 

@@ -45,7 +45,7 @@ class Building:
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
-
+        self._total_area=sum(tz._net_floor_area for tz in thermal_zones_list)
 
     @property
     def _thermal_zones_list(self) -> list:
@@ -95,6 +95,16 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
+        
+    @property
+    def refrigerator_system(self) -> System:
+        return self._refrigerator_system
+
+    @refrigerator_system.setter
+    def refrigerator_system(self, value: System):
+        if not isinstance(value, System):
+            raise TypeError(f"Building {self.name}, the refrigerator system must be a System object: {type(value)}")
+        self._refrigerator_system = value
     
     def set_hvac_system(self, heating_system, cooling_system):
         f"""Sets using roperties the heating and cooling system type (strings)
@@ -134,7 +144,12 @@ class Building:
         for tz in self._thermal_zones_list:
             tz.heating_sigma = self.heating_system.sigma
             tz.cooling_sigma = self.cooling_system.sigma
-
+    def add_refrigeration(self, LT_ratio=1):
+        self.refrigeration_system=System.Refrigerator()
+    
+    def set_refrigerator_capacity(self, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.6):
+        self.refrigeration_system.set_capacity(self._total_area, EER_mean=3.5)
+        
     def set_hvac_system_capacity(self, weather_object):
         f"""Calls the thermal zone heating and cooling capacity for all themrmal zones (must be run after the calculation of zone loads)
 
@@ -234,12 +249,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             # DHW
             dhw_load += tz.domestic_hot_water_demand[t]
+            self.refrigeration_system.solve_system(tz.occupancy, weather,t,T_des=30)
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
-
     def simulate(self,
                  weather_object: WeatherFile,
                  t_start: int = CONFIG.start_time_step,

@@ -256,6 +256,8 @@ class EndUse:
         sched_df['appliances'] = daily_df_from_excel['Appliances']
         sched_df['lighting'] = daily_df_from_excel['Lighting']
         sched_df['people'] = daily_df_from_excel['Occupancy (Total)']
+        sched_df["open_or_close"]=( sched_df['people'] > 0)
+
         sched_df['heatingTSP'] = daily_df_from_excel['HeatSP']
         sched_df['coolingTSP'] = daily_df_from_excel['CoolSP']
         sched_df['HeatingRHSP'] = daily_df_from_excel['HumSP'] / 100
@@ -560,7 +562,7 @@ class EndUse:
 
         end_use_obj = cls(name)
         end_use_obj.scalar_data = scalar_data
-
+        end_use_obj.occupancy = sched_df["open_or_close"]
         end_use_obj.heat_gains['appliances'] = app # InternalLoad type
         end_use_obj.heat_gains['lighting'] = lights # InternalLoad type
         end_use_obj.heat_gains['people'] = people # People Type
