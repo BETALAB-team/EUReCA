@@ -1548,12 +1548,16 @@ class Refrigerator(System):
         
         return interpolated_value
 
-    def set_system_capacity(self, area, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.7):
+    def set_system_capacity(self, area, EER_mean, T_network=20, T_int_mean=19.5, T_LT=-18,T_MT=4 ,refrigeration_electric_ratio=0.29, working_hour_ratio=0.7):
         "Building Energy Efficiency Survey UK 2015"
         total_yearly_electric_consumption=390*area
         refrigeration_electric_energy_consumed = refrigeration_electric_ratio*total_yearly_electric_consumption
         mean_refrigeration_electric_power = refrigeration_electric_energy_consumed / (8760 * working_hour_ratio)
         self.Installed_refrigeration_capacity=mean_refrigeration_electric_power * EER_mean *1000 #[W]
+        Carnot_multiplier=((self.LT_ratio+1)/((self.LT_ratio)*((T_LT+273+T_MT+273)/((T_LT+273)*(T_MT+273)))-(self.LT_ratio+1)))/(EER_mean)
+        self.EER_LT= Carnot_multiplier*((T_LT+273)/(T_network-T_LT))
+        self.EER_MT= Carnot_multiplier*((T_MT+273)/(T_network-T_MT))
+        
         
     def solve_system(self, weather,t,T_des=30):
         T_ext = weather.hourly_data["out_air_db_temperature"][t]
@@ -1574,4 +1578,8 @@ class Refrigerator(System):
                                                 *((30-0)/(T_des-0)+(k_T_LT-1)*(T_ext-0)/(T_des-0))\
                                                 *Low_temperature_installed_capacity 
         self.heat_absorbed=self.Medium_temperature_absorbed_heat+self.Low_temperature_absorbed_heat
+        self.Medium_temperature_rejected_heat=self.Medium_temperature_absorbed_heat*(self.EER_MT+1)/(self.EER_MT)
+        self.Low_temperature_rejected_heat=self.Low_temperature_absorbed_heat*(self.EER_LT+1)/(self.EER_LT)
+        self.heat_rejected=self.Medium_temperature_rejected_heat+self.Low_temperature_rejected_heat
+        
 

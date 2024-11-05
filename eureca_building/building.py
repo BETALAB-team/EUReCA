@@ -71,9 +71,8 @@ class Building:
         try:
             value = str(value)
         except ValueError:
-            raise TypeError(f"Building {self.name}, the model must be a str: {type(value)}")
-        if not value in ["1C","2C"]:
-            raise TypeError(f"Building {self.name}, model must be 1C or 2C. Model = {value}")
+            if not value in ["1C","2C"]:
+                raise TypeError(f"Building {self.name}, model must be 1C or 2C. Model = {value}")
         self.__model = value
 
     @property
@@ -345,7 +344,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+            'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Refrigerator Heat Rejected [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+
         }
         
         
@@ -400,6 +401,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
             if hasattr(self,'refrigeration_system'):          
                 results['Refrigerator Heat Absorbed [Wh]'][t - t_start,0]=self.refrigeration_system.heat_absorbed
+                results['Refrigerator Heat Rejected [Wh]'][t - t_start,0]=self.refrigeration_system.heat_rejected
+
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
         # print((np.max(results['Solar Thermal Production [Wh]'])))
         # Saving results
