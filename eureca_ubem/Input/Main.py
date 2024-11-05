@@ -19,9 +19,9 @@ from eureca_ubem.city import City
 
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 
-schedules_file = os.path.join(".","Schedules_total.xlsx")
+schedules_file = os.path.join(".","Sup_schedule.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
-city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef.geojson")
+city_model_file = os.path.join(".","MPPamViaMaroncelli.geojson")
 
 
 city_geojson = City(

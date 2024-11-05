@@ -21,7 +21,7 @@ from eureca_building.thermal_zone import ThermalZone
 from eureca_building.pv_system import PV_system
 from eureca_building.solar_thermal_system import SolarThermal_Collector
 from eureca_building.weather import WeatherFile
-from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
+from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System, Refrigerator
 from eureca_building.exceptions import SimulationError
 # %% Building class
 class Building:
@@ -145,10 +145,11 @@ class Building:
             tz.heating_sigma = self.heating_system.sigma
             tz.cooling_sigma = self.cooling_system.sigma
     def add_refrigeration(self, LT_ratio=1):
-        self.refrigeration_system=System.Refrigerator()
+        print(1)
+        self.refrigeration_system=Refrigerator()
     
     def set_refrigerator_capacity(self, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.6):
-        self.refrigeration_system.set_capacity(self._total_area, EER_mean=3.5)
+        self.refrigeration_system.set_system_capacity(self._total_area, EER_mean)
         
     def set_hvac_system_capacity(self, weather_object):
         f"""Calls the thermal zone heating and cooling capacity for all themrmal zones (must be run after the calculation of zone loads)
@@ -220,6 +221,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
+
         heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
             tz.solve_timestep(t, weather, model = self._model)
@@ -249,10 +251,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             # DHW
             dhw_load += tz.domestic_hot_water_demand[t]
-            self.refrigeration_system.solve_system(tz.occupancy, weather,t,T_des=30)
+            Refrigerated_end_uses=["supermarket"]
+
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
+        if hasattr(self,'refrigeration_system'):          
+            self.refrigeration_system.solve_system( weather,t,T_des=30)
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
     def simulate(self,
@@ -321,7 +326,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             # 'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
         
         
@@ -371,7 +377,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
-
+            if hasattr(self,'refrigeration_system'):          
+                results['Refrigerator Heat Absorbed [Wh]'][t - t_start,0]=self.refrigeration_system.heat_absorbed
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
         # print((np.max(results['Solar Thermal Production [Wh]'])))
         # Saving results

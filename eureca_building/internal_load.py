@@ -260,7 +260,7 @@ class People(InternalLoad):
         self.fraction_radiant = fraction_radiant
         self.fraction_convective = fraction_convective
         self.metabolic_rate = metabolic_rate
-
+        
     @property
     def unit(self):
         return self._unit

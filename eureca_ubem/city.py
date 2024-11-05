@@ -680,8 +680,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
             
             Refrigerated_end_uses=["supermarket"]
-            if any(building_info[key] in Refrigerated_end_uses for key in ["End Use", "lower End Use", "upper End Use"]):               
+            if any(building_info[key] in Refrigerated_end_uses for key in ["End Use", "Lower End Use", "Upper End Use"]):               
                 building_obj.add_refrigeration()
+                building_obj.set_refrigerator_capacity(EER_mean=3.5)
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
 
@@ -725,8 +726,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         n_buildings = len(self.buildings_objects)
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
-            if counter%10 == 0:
-                print(f"{counter} buildings simulated out of {n_buildings}")
+            if counter%1 == 0:
+                print(f"{counter} buildings simulated out of {n_buildings}, {bd_id} is the last one")
             counter += 1
 
             info = {}

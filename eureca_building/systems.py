@@ -1488,11 +1488,16 @@ hvac_cooling_systems_classes = {
     "A-W chiller, Single, Radiant surface":Cooling_EN15316,
 }
 
-class Rrefrigerator(System):
+class Refrigerator(System):
     '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
     of the entire building following EN 15316.
     '''
-
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
     def __init__(self,LT_ratio=1):
         self.refrigerators_electric_consumption=0
         self.refrigerators_heat_absorbed=0 
@@ -1502,12 +1507,16 @@ class Rrefrigerator(System):
                      0.77,0.85,1.01,1.04,0.96,0.99,
                      1.10,1.10,1.03,1.06,1.14,1.12,
                      1.02,0.98,1.07,1.17,1.15,1.05]
-        self._LR_MT=[1.02,1.13,0.94,0.86,0.89,0.84,
+        self._LR_LT=[1.02,1.13,0.94,0.86,0.89,0.84,
                      0.90,0.87,0.92,1.33,1.09,1.03,
                      1.21,0.93,0.98,0.89,0.88,1.11,
                      1.04,0.92,1.00,1.19,0.99,1.01]
+        self._Open=[False,False,False,False,False,False,
+                    False,False,False,True,True,True,
+                    True,True,True,True,True,True,
+                    True,True,True,True,False,False,]
         pass
-    def get_interpolated_value(LR,hour):
+    def get_interpolated_value(self,LR,hour):
         if hour < 0:
             return LR[0]
         elif hour >= len(LR) - 1:
@@ -1523,19 +1532,19 @@ class Rrefrigerator(System):
         
         return interpolated_value
 
-    def set_system_capacity(self, area, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.6):
+    def set_system_capacity(self, area, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.7):
         "Building Energy Efficiency Survey UK 2015"
         total_yearly_electric_consumption=390*area
         refrigeration_electric_energy_consumed = refrigeration_electric_ratio*total_yearly_electric_consumption
         mean_refrigeration_electric_power = refrigeration_electric_energy_consumed / (8760 * working_hour_ratio)
-        self.Installed_refrigeration_capacity=mean_refrigeration_electric_power * EER_mean
+        self.Installed_refrigeration_capacity=mean_refrigeration_electric_power * EER_mean *1000 #[W]
         
-    def solve_system(self, schedule, weather,t,T_des=30):
+    def solve_system(self, weather,t,T_des=30):
         T_ext = weather.hourly_data["out_air_db_temperature"][t]
-        Low_temperature_installed_capacity=self.Installed_refrigeration_capacity*(self.LT_ratio/(self.LT_ratio+1))
-        Medium_temperature_installed_capacity=self.Installed_refrigeration_capacity*(1/(self.LT_ratio+1))
-        open_or_close=schedule[t]
-        hour=(t/CONFIG.ts_per_hour)-((t/CONFIG.ts_per_hour)//24)+CONFIG.start_date.hour+CONFIG.start_date.minue/60
+        Low_temperature_installed_capacity=self.Installed_refrigeration_capacity*(self.LT_ratio/(self.LT_ratio+1))/(CONFIG.ts_per_hour)
+        Medium_temperature_installed_capacity=self.Installed_refrigeration_capacity*(1/(self.LT_ratio+1))/(CONFIG.ts_per_hour)
+        open_or_close=self._Open
+        hour=(t/CONFIG.ts_per_hour)-((t/CONFIG.ts_per_hour)//24)+CONFIG.start_date.hour+CONFIG.start_date.minute/60
         k_T_MT_open=1.75
         k_T_LT_open=1.18
         k_T_MT=1.75 if open_or_close else 1.7
