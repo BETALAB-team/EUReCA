@@ -45,6 +45,7 @@ Betalab - DII, University of Padua
 
 import pandas as pd
 import numpy as np
+import math
 from scipy.ndimage import shift
 import pvlib
 from eureca_building.weather import WeatherFile
@@ -61,7 +62,7 @@ class PV_system():
                  weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
-                 coverage_factor=0.9): #Coverage factor for the area that is covered by the PV
+                 coverage_factor=0.6): #Coverage factor for the area that is covered by the PV
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
@@ -167,22 +168,23 @@ class PV_system():
         solar_save_window=days_of_solar_save*24*CONFIG.ts_per_hour
 
         pv_prod=pv_prod
-        electricity=electricity
+        electricity=np.nan_to_num(electricity, nan=0)
         state_evolution = -pv_prod + electricity
         solar_save_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+solar_save_window])) for x in range(len(state_evolution))])
         solar_save_window_evolution[solar_save_window_evolution<0]=0
         self.battery_parameters['capacity']=np.quantile(solar_save_window_evolution,0.8)/self.battery_parameters['voltage']
-
+        if math.isnan(self.battery_parameters['capacity']):
+            self.battery_parameters['capacity']=0
         # net_prod = np.clip(state_evolution, None, 0) # Only negative values (surplus production)
         # net_prod_int = -1 * np.array([np.sum(net_prod[x:x+solar_save_window]) for x in range(len(net_prod))]) # Wh
         # self.battery_parameters['capacity'] = np.quantile(net_prod_int, 0.8) / self.battery_parameters[
         #     'voltage'] # Immagino sia in Ah
-
         Generation_Consumption_Balance=pv_prod-electricity
         charger=Generation_Consumption_Balance.copy()
         discharger=Generation_Consumption_Balance.copy()
         charger[charger<0]=0
         discharger[discharger>0]=0
+
         State=np.zeros_like(discharger)
         State_Change=np.zeros_like(State)
         maxcharge=self.battery_parameters['max_charge']*self.battery_parameters['voltage']*self.battery_parameters['capacity']
@@ -200,20 +202,25 @@ class PV_system():
             else:
 
                 State[i]=State[i-1]+Momentual_Charge_Dischare[i-1]
-                if State[i] > maxcharge:
+                if State[i] >= maxcharge:
                     State[i]=maxcharge
                 if State[i]<mincharge:
                     if State[i]<0:
                         State[i]=0
                     if State[i-1]>=mincharge:
+
                         State[i]=mincharge
                 State_Change[i]=State[i]-State[i-1]
+
         
         State=State/self.battery_parameters['voltage']
         tobattery=np.minimum(Momentual_Charge_Dischare,State_Change)
         tobattery[tobattery<0]=0
+
+            
         frombattery=np.maximum(Momentual_Charge_Dischare,State_Change)
         frombattery[frombattery>0]=0 
+
         frombattery=np.abs(frombattery)
         togrid=charger-tobattery
         fromgrid=np.abs(discharger)-frombattery

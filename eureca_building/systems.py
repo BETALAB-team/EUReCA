@@ -135,7 +135,6 @@ class System(metaclass=abc.ABCMeta):
     
 
     def set_dhw_design_capacity_tank(self, dhw_flow_rate, weather_file):
-
         T_tank = 55
         T_user = 40
         T_tank_max = 80
@@ -189,7 +188,8 @@ class System(metaclass=abc.ABCMeta):
         #     solar_thermal_gain=0
         self.charging_mode = 0
         self.discharging_mode = 0
-        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
+
+        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0 
         solar_gain=self.solar_gain_out
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
@@ -268,7 +268,7 @@ class IdealLoad(System):
         """
         pass
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int, *args):
+    def solve_system(self, heat_flow,dhw_flow, weather, t, T_int, RH_int, *args):
         """Solve the system power for the time step
 
         Parameters
@@ -280,11 +280,12 @@ class IdealLoad(System):
         t : int
             Simulation time step
         T_int : float
-            Zone temperature [°]
+            Zone temperature [°C]
         RH_int : float
             Zone relative humidity [%]
 
         """
+
         pass
 
 
@@ -352,7 +353,6 @@ class CondensingBoiler(System):
         Weather : eureca_building.weather.WeatherFile
             WeatherFile object
         '''
-
         # Choise of system size based on estimated nominal Power
         Size_0 = 0
         self.design_power = design_power  # [W]
@@ -411,7 +411,8 @@ class CondensingBoiler(System):
          RH_int : float
              Zone relative humidity [%]
          '''
-
+        
+ 
         self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
@@ -1554,10 +1555,10 @@ class Refrigerator(System):
         refrigeration_electric_energy_consumed = refrigeration_electric_ratio*total_yearly_electric_consumption
         mean_refrigeration_electric_power = refrigeration_electric_energy_consumed / (8760 * working_hour_ratio)
         self.Installed_refrigeration_capacity=mean_refrigeration_electric_power * EER_mean *1000 #[W]
-        Carnot_multiplier=((self.LT_ratio+1)/((self.LT_ratio)*((T_LT+273+T_MT+273)/((T_LT+273)*(T_MT+273)))-(self.LT_ratio+1)))/(EER_mean)
+        Carnot_multiplier=-((self.LT_ratio+1)/((self.LT_ratio)*((T_LT+273+T_MT+273)/((T_LT+273)*(T_MT+273)))-(self.LT_ratio+1)))/(EER_mean)
         self.EER_LT= Carnot_multiplier*((T_LT+273)/(T_network-T_LT))
         self.EER_MT= Carnot_multiplier*((T_MT+273)/(T_network-T_MT))
-        
+
         
     def solve_system(self, weather,t,T_des=30):
         T_ext = weather.hourly_data["out_air_db_temperature"][t]
@@ -1580,6 +1581,7 @@ class Refrigerator(System):
         self.heat_absorbed=self.Medium_temperature_absorbed_heat+self.Low_temperature_absorbed_heat
         self.Medium_temperature_rejected_heat=self.Medium_temperature_absorbed_heat*(self.EER_MT+1)/(self.EER_MT)
         self.Low_temperature_rejected_heat=self.Low_temperature_absorbed_heat*(self.EER_LT+1)/(self.EER_LT)
+
         self.heat_rejected=self.Medium_temperature_rejected_heat+self.Low_temperature_rejected_heat
         
 
