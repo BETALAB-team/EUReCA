@@ -32,7 +32,8 @@ class WeatherFile():
                  irradiances_calculation: bool = True,
                  azimuth_subdivisions: int = 8,
                  height_subdivisions: int = 3,
-                 urban_shading_tol=[80., 100., 80.]
+                 urban_shading_tol=[80., 100., 80.],
+                 new_weather_data = None
                  ):
         '''Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc......
 
@@ -99,6 +100,14 @@ class WeatherFile():
         self.hourly_data["out_air_relative_humidity"] = self._epw_hourly_data['relative_humidity'].values / 100  # [0-1]
         self.hourly_data["out_air_pressure"] = self._epw_hourly_data['atmospheric_pressure'].values  # Pa
         self.hourly_data["opaque_sky_coverage"] = self._epw_hourly_data['opaque_sky_cover'].values  # [0-10]
+        
+        if new_weather_data is not None:
+            try: 
+                self.replace_weather_data(new_weather_data)  
+            except:
+                logging.warning(f"New weather data has not been overwritten.\n")
+        
+        
         # Average temperature difference between Text and Tsky
         self.general_data['average_dt_air_sky'] = _TskyCalc(self.hourly_data["out_air_db_temperature"],
                                                             self.hourly_data["out_air_dp_temperature"],
@@ -191,6 +200,28 @@ class WeatherFile():
         self.hourly_data_irradiances[0][0]['global'] = POA['POA'].values
         self.hourly_data_irradiances[0][0]['direct'] = POA['POA_B'].values
         self.hourly_data_irradiances[0][0]['AOI'] = POA['AOI'].values
+        
+    def replace_weather_data(self, new_weather_data):
+        '''This method repllaces original epw data with new weather data.
+        
+        Parameters
+        ----------
+        new_weather_data : Pandas DataFrame
+            Dataframe containing new weather data to be overwritten.
+
+        Returns
+        -------
+        None.
+
+        '''
+        self.hourly_data["wind_speed"] = new_weather_data['wind_speed'].values  # [m/s]
+        # self.hourly_data["wind_direction"] = self._epw_hourly_data['wind_direction'].values  # [°]
+        self.hourly_data["out_air_db_temperature"] = new_weather_data['temp_air'].values  # [°C]
+        # self.hourly_data["out_air_dp_temperature"] = self._epw_hourly_data['temp_dew'].values  # [°C]
+        self.hourly_data["out_air_relative_humidity"] = new_weather_data['rel_hum'].values / 100  # [0-1]
+        # self.hourly_data["out_air_pressure"] = self._epw_hourly_data['atmospheric_pressure'].values  # Pa
+        # self.hourly_data["opaque_sky_coverage"] = self._epw_hourly_data['opaque_sky_cover'].values  # [0-10]
+        return
 
     @classmethod
     def from_pvgis(cls,
