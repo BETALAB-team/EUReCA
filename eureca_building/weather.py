@@ -84,14 +84,43 @@ class WeatherFile():
         self._site = pvlib.location.Location(self._epw_general_data['latitude'],
                                              self._epw_general_data['longitude'],
                                              tz=self._epw_general_data['TZ'])  # Creating a location variable
+        
+        # Replace weather data if new data is provided
+        # if new_weather_data is not None:
+        #     try: 
+        #         self.replace_weather_data(new_weather_data)  
+        #     except:
+        #         logging.warning(f"New weather data has not been overwritten.\n")
+                
+        # Resampling weather data
+        self.resample_weather_data()
 
+        # Assign data  
+        self.hourly_data = {}
+        self.general_data = {}
+        self.assign_hourly_data()
+        self.assign_general_data(time_steps, azimuth_subdivisions, height_subdivisions)
+        
+        self.check_data_consistency()
+
+        # Humidity calculation
+        self.humidity_calculation()        
+
+        # Solar radiation processing
+        # if irradiances_calculation:
+        self.irradiances_calculation()
+
+        self.assign_monthly_data()
+        
+        
+    def resample_weather_data(self, time_steps):
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
             self._epw_hourly_data = epw[0].resample(m).bfill()
-
-        # Weather Data and Average temperature difference between Text and Tsky
-        self.hourly_data = {}
-        self.general_data = {}
+        return
+            
+    def assign_hourly_data(self):
+        
         self.hourly_data["time_index"] = self._epw_hourly_data.index
         self.hourly_data["wind_speed"] = self._epw_hourly_data['wind_speed'].values  # [m/s]
         self.hourly_data["wind_direction"] = self._epw_hourly_data['wind_direction'].values  # [°]
@@ -100,14 +129,11 @@ class WeatherFile():
         self.hourly_data["out_air_relative_humidity"] = self._epw_hourly_data['relative_humidity'].values / 100  # [0-1]
         self.hourly_data["out_air_pressure"] = self._epw_hourly_data['atmospheric_pressure'].values  # Pa
         self.hourly_data["opaque_sky_coverage"] = self._epw_hourly_data['opaque_sky_cover'].values  # [0-10]
-        
-        if new_weather_data is not None:
-            try: 
-                self.replace_weather_data(new_weather_data)  
-            except:
-                logging.warning(f"New weather data has not been overwritten.\n")
-        
-        
+        return
+    
+    
+    def assign_general_data(self, time_steps, azimuth_subdivisions, height_subdivisions, urban_shading_tol):
+
         # Average temperature difference between Text and Tsky
         self.general_data['average_dt_air_sky'] = _TskyCalc(self.hourly_data["out_air_db_temperature"],
                                                             self.hourly_data["out_air_dp_temperature"],
@@ -118,7 +144,29 @@ class WeatherFile():
         self.general_data['time_steps_per_hour'] = time_steps
         self.general_data['azimuth_subdivisions'] = azimuth_subdivisions
         self.general_data['height_subdivisions'] = height_subdivisions
+        
+        # Definition of average T_ext during heating season
+        av_t_daily = np.array([np.mean(self.hourly_data["out_air_db_temperature"][i:i+24*time_steps]) for i in range(0,8760 * time_steps, 24*time_steps)])
+        self.general_data['heating_degree_days'] =  np.sum(20-av_t_daily[av_t_daily < 12])
+        self.general_data['average_out_air_db_temperature_heating_season'] = np.mean(np.hstack([
+            self.hourly_data["out_air_db_temperature"][CONFIG.heating_season_start_time_step:],
+            self.hourly_data["out_air_db_temperature"][:CONFIG.heating_season_end_time_step]
+        ]))
+        self.general_data['average_out_air_db_temperature_cooling_season'] = np.mean(self.hourly_data["out_air_db_temperature"][CONFIG.cooling_season_start_time_step:CONFIG.cooling_season_end_time_step])
+        self.general_data['average_out_air_db_temperature'] = np.mean(self.hourly_data["out_air_db_temperature"])
+        self.general_data['urban_shading_tol'] = urban_shading_tol
 
+        return
+    
+    def assign_monthly_data(self):
+        self.monthly_data = {}
+        self.monthly_data["out_air_specific_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_specific_humidity"], method='mean')
+        self.monthly_data["out_air_relative_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_relative_humidity"], method='mean')
+        self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
+        
+        return
+    
+    def check_data_consistency(self):
         # Check some weather data values
         if not np.all(np.greater(self.hourly_data["out_air_db_temperature"], -50.)) or not np.all(
                 np.less(self.hourly_data["out_air_db_temperature"], 60.)):
@@ -129,8 +177,10 @@ class WeatherFile():
         if not np.all(np.greater(self.hourly_data["out_air_relative_humidity"], -0.0001)) or not np.all(
                 np.less(self.hourly_data["out_air_relative_humidity"], 1.)):
             logging.warning(f"WeatherFile, input relative humidity is out of range [-0.001, 1] [-]")
-
-        # Humidity calculation
+        
+        return
+        
+    def humidity_calculation(self):
         self.hourly_data["out_air_saturation_pressure"] = np.zeros(len(self.hourly_data["out_air_db_temperature"]))
         higher_filt = self.hourly_data["out_air_db_temperature"] > 0
         lower_filt = np.logical_not(higher_filt)
@@ -146,26 +196,8 @@ class WeatherFile():
                 self.hourly_data["out_air_pressure"] - (self.hourly_data["out_air_relative_humidity"] *
                                                         self.hourly_data[
                                                             "out_air_saturation_pressure"])))
+        return
 
-        if irradiances_calculation:
-            self.irradiances_calculation()
-
-        self.general_data['urban_shading_tol'] = urban_shading_tol
-
-        # Definition of average T_ext during heating season
-        av_t_daily = np.array([np.mean(self.hourly_data["out_air_db_temperature"][i:i+24*time_steps]) for i in range(0,8760 * time_steps, 24*time_steps)])
-        self.general_data['heating_degree_days'] =  np.sum(20-av_t_daily[av_t_daily < 12])
-        self.general_data['average_out_air_db_temperature_heating_season'] = np.mean(np.hstack([
-            self.hourly_data["out_air_db_temperature"][CONFIG.heating_season_start_time_step:],
-            self.hourly_data["out_air_db_temperature"][:CONFIG.heating_season_end_time_step]
-        ]))
-        self.general_data['average_out_air_db_temperature_cooling_season'] = np.mean(self.hourly_data["out_air_db_temperature"][CONFIG.cooling_season_start_time_step:CONFIG.cooling_season_end_time_step])
-        self.general_data['average_out_air_db_temperature'] = np.mean(self.hourly_data["out_air_db_temperature"])
-
-        self.monthly_data = {}
-        self.monthly_data["out_air_specific_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_specific_humidity"], method='mean')
-        self.monthly_data["out_air_relative_humidity"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_relative_humidity"], method='mean')
-        self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
 
     def irradiances_calculation(self):
         """Internal method to tun the irrandiances calculation
@@ -201,7 +233,11 @@ class WeatherFile():
         self.hourly_data_irradiances[0][0]['direct'] = POA['POA_B'].values
         self.hourly_data_irradiances[0][0]['AOI'] = POA['AOI'].values
         
-    def replace_weather_data(self, new_weather_data):
+    
+    def replace_weather_data(self, 
+                             irradiances_calculation = True,
+                             new_weather_data = None,
+                             ):
         '''This method repllaces original epw data with new weather data.
         
         Parameters
@@ -214,13 +250,32 @@ class WeatherFile():
         None.
 
         '''
-        self.hourly_data["wind_speed"] = new_weather_data['wind_speed'].values  # [m/s]
+        self._epw_hourly_data["wind_speed"] = new_weather_data['wind_vel'].values  # [m/s]
         # self.hourly_data["wind_direction"] = self._epw_hourly_data['wind_direction'].values  # [°]
-        self.hourly_data["out_air_db_temperature"] = new_weather_data['temp_air'].values  # [°C]
-        # self.hourly_data["out_air_dp_temperature"] = self._epw_hourly_data['temp_dew'].values  # [°C]
-        self.hourly_data["out_air_relative_humidity"] = new_weather_data['rel_hum'].values / 100  # [0-1]
-        # self.hourly_data["out_air_pressure"] = self._epw_hourly_data['atmospheric_pressure'].values  # Pa
-        # self.hourly_data["opaque_sky_coverage"] = self._epw_hourly_data['opaque_sky_cover'].values  # [0-10]
+        self._epw_hourly_data["temp_air"] = new_weather_data['air_temp'].values  # [°C]
+        self._epw_hourly_data["relative_humidity"] = new_weather_data['rel_hum'].values / 100  # [0-1]
+        
+        # ----------------------to be completed-------------------------------
+        # self._epw_hourly_data["out_air_dp_temperature"] = calculate based on air_temp and rel_hum # [°C]
+        # self._epw_hourly_data['ghi'] = new_weather_data['sol_ghi'].values  # [W/m2??]
+        # self._epw_hourly_data['dhi'] = new_weather_data['sol_dif'].values  # [W/m2??]
+        # ----------------------to be completed-------------------------------
+        
+        # Assign data         
+        self.assign_hourly_data()
+        # self.assign_general_data(time_steps, azimuth_subdivisions, height_subdivisions)
+        
+        self.check_data_consistency()
+
+        # Humidity calculation
+        self.humidity_calculation()        
+
+        # Solar radiation processing
+        if irradiances_calculation:
+            self.irradiances_calculation()
+
+        self.assign_monthly_data()
+        
         return
 
     @classmethod
@@ -258,6 +313,33 @@ class WeatherFile():
 
         return w
 
+    # @classmethod
+    # def for_grins(csv_cti,lat,long):
+        
+    #     # lat = csv_cti[]
+            
+    #     api_url = f'https://re.jrc.ec.europa.eu/api/v5_2/tmy?lat={lat:.4f}&lon={long:.4f}&outputformat=epw'
+
+    #     response = requests.get(api_url).content.decode()
+    #     loc = "unknown" if city == None else city
+    #     ctr = "unknown" if country == None else country
+    #     response = response.replace("LOCATION,unknown,-,unknown", f"LOCATION,{loc},-,{ctr}")
+    #     # with open("test_epw.epw", 'w') as f:
+    #     #     f.write("\n".join(response.splitlines()))
+
+    #     w = cls(
+    #         io.StringIO(response),
+    #         year=None,
+    #         time_steps= time_steps,
+    #         irradiances_calculation = irradiances_calculation,
+    #         azimuth_subdivisions = azimuth_subdivisions,
+    #         height_subdivisions = height_subdivisions,
+    #         urban_shading_tol = urban_shading_tol
+    #     )
+        
+    #     w.replace_humidity()
+
+    #     return w
 
 
 
