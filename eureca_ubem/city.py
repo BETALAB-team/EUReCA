@@ -341,6 +341,16 @@ class City():
             self.cityjson["Upper End Use"] = ''
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
+            
+            
+        if "Windows S Area" not in self.cityjson.columns:
+            self.cityjson["Windows S Area"] = np.nan
+        if "Windows N Area" not in self.cityjson.columns:
+            self.cityjson["Windows N Area"] = np.nan
+        if "Windows W Area" not in self.cityjson.columns:
+            self.cityjson["Windows W Area"] = np.nan
+        if "Windows E Area" not in self.cityjson.columns:
+            self.cityjson["Windows E Area"] = np.nan
         
         for direct in ["N","S","E","W"]:
             if f"WWR {direct}" not in self.cityjson.columns:
@@ -561,7 +571,7 @@ class City():
                 except ZeroDivisionError:
                     total_wwr[k] = 0.
                 if np.isnan(total_wwr[k]):
-                    total_wwr[k] = 0.
+                    total_wwr[k] = 0.125
 
 
             for s in building_parts_data["single End Use"]["surfaces objs"]:
@@ -849,6 +859,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
+            taken_from_grid = monthly["Taken from the Gird [Wh]"].sum(axis =1)
+            given_to_grid = monthly["Given to Grid [Wh]"].sum(axis =1)
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
@@ -859,6 +871,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption["Total"] = el_consumption.sum()
             oil_consumption["Total"] = oil_consumption.sum()
             wood_consumption["Total"] = wood_consumption.sum()
+            taken_from_grid["Total"] = taken_from_grid.sum()
+            given_to_grid["Total"] = given_to_grid.sum()
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
@@ -867,6 +881,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
                     info[f"{i} Heating Demand [Wh]"] = heat_demand.loc[i]
                     info[f"{i} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i} Taken from grid [Wh]"] = taken_from_grid.loc[i]
+                    info[f"{i} Given to grid [Wh]"] = given_to_grid.loc[i]
                 else:
                     info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                     info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
@@ -874,6 +890,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
                     info[f"{i.month_name()} Heating Demand [Wh]"] = heat_demand.loc[i]
                     info[f"{i.month_name()} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i.month_name()} Taken from grid [Wh]"] = taken_from_grid.loc[i]
+                    info[f"{i.month_name()} Given to grid [Wh]"] = given_to_grid.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
