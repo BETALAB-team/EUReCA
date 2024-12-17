@@ -360,50 +360,6 @@ class WeatherFile():
                     df.to_csv(name)
         
         return monthly_vars
-    
-    
-    def replace_weather_data(self, weather_data):
-        '''Replace 
-        This method replaces the existing input weather data (from epw) with data coming from external dataset 
-
-        Parameters
-        ----------
-        weather_data : pandas.DataFrame
-            pandas DataFrame with the iweather data that will replace the existing epw data 
-
-        Returns
-        -------
-        None.
-
-        '''
-        
-
-        self.hourly_data["wind_speed"] = weather_data['wind_speed'].values  # [m/s]
-        # self.hourly_data["wind_direction"] = weather_data['wind_direction'].values  # [°]
-        self.hourly_data["out_air_db_temperature"] = weather_data['temp_air'].values  # [°C]
-        self.hourly_data["out_air_relative_humidity"] = weather_data['relative_humidity'].values / 100  # [0-1]
-        # self.hourly_data["out_air_pressure"] = weather_data['atmospheric_pressure'].values  # Pa
-        # self.hourly_data["opaque_sky_coverage"] = weather_data['opaque_sky_cover'].values  # [0-10]
-
-        
-        #------------------------- TO BE COMPLETED ---------------------------
-
-        ## 1) CALCULATE T_dp BASED ON T_db and RH
-        # self.hourly_data["out_air_dp_temperature"] = weather_data['temp_dew'].values  # [°C]
-        
-        ## 2) REPLACE ghi inside epw hourly data. This data is prcessed by method _get_irradiance())     
-        # self._epw_hourly_data['ghi'] = weather_data['GHI'].values  # Convert based on input to epw units[?]
-        
-        ## 3) CALCULATE dni and dhi BASED ON ghi USING pvgis     
-        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
-        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
-
-
-        # --------------------------------------------------------------------
-        
-        
-        
-        return
 
 
     # @classmethod
