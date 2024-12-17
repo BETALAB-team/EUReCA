@@ -182,20 +182,35 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         self.pv_system = PV_system(name=f"Bd {self.name} PV system",
                                weatherobject=weather_obj,
                                surface_list=building_surface_list)
+
     def add_solar_thermal(self, weather_obj):
+
+        dhw_flow_rate = 0.
+        try:
+            for tz in self._thermal_zones_list:
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate.sum()*3600*1000/(CONFIG.ts_per_hour*365)
+                
+        except AttributeError:
+            raise SimulationError(f"""
+                                  Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
+                                  Please run thermal zones design_sensible_cooling_load and design_heating_load
+                                  """)
+                      
         building_surface_list=[]
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
                 building_surface_list.append(s)
-        
-        try: 
-            self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+
+        # try: 
+        self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+                                   dhw=dhw_flow_rate,
                                    weatherobject=weather_obj,
                                    surface_list=building_surface_list)
-        except AttributeError:
-            logging.warning(
-                f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
-        
+            
+        # except AttributeError:
+        #     logging.warning(
+        #         f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
+ 
         
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
