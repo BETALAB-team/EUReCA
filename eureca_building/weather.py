@@ -112,7 +112,7 @@ class WeatherFile():
         self.general_data['height_subdivisions'] = height_subdivisions
         
         # summary of epw monthly statistics
-        self.monthly_stats = self.monthly_statistics(printer = True)
+        self.monthly_stats = self.monthly_statistics(printer = False)
 
         # Check some weather data values
         if not np.all(np.greater(self.hourly_data["out_air_db_temperature"], -50.)) or not np.all(
@@ -231,7 +231,7 @@ class WeatherFile():
 
         return w
     
-    def monthly_statistics(self, printer = True):
+    def monthly_statistics(self, printer = False):
         
         epw_df = self._epw_hourly_data
     
@@ -268,10 +268,6 @@ class WeatherFile():
                     df.to_csv(name)
         
         return monthly_vars
-
-
-
-
 
 def _TskyCalc(T_ext, T_dp, P_, n_opaque, time_steps):
     '''Apparent sky temperature calculation procedure
