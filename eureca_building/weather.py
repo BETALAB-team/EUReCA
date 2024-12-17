@@ -9,6 +9,7 @@ __maintainer__ = "Enrico Prataviera"
 
 import logging
 import io
+import os
 
 import pvlib
 import requests
@@ -156,6 +157,15 @@ class WeatherFile():
         self.general_data['average_out_air_db_temperature'] = np.mean(self.hourly_data["out_air_db_temperature"])
         self.general_data['urban_shading_tol'] = urban_shading_tol
 
+        # summary of epw monthly statistics
+        self.monthly_stats = self.monthly_statistics(printer = False)
+        
+        #try: 
+        #    self.replace_weather_data(replacing_data)
+        #except FileNotFoundError:
+        #    raise FileNotFoundError \
+        #        (f"ERROR Replacing weather data not found in the Input folder.")
+
         return
     
     def assign_monthly_data(self):
@@ -200,7 +210,7 @@ class WeatherFile():
 
 
     def irradiances_calculation(self):
-        """Internal method to tun the irrandiances calculation
+        """Internal method to run the irrandiances calculation
         """
         # Get and store solar position arrays
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
@@ -312,6 +322,89 @@ class WeatherFile():
         )
 
         return w
+    
+    def monthly_statistics(self, printer = True):
+        
+        epw_df = self._epw_hourly_data
+    
+        variables = ['temp_air', 'temp_dew', 'relative_humidity','wind_speed']
+        variables_sun = ['ghi', 'dni', 'dhi']
+        monthly_vars_min = pd.DataFrame()
+        monthly_vars_max = pd.DataFrame()
+        monthly_vars_mean = pd.DataFrame()
+        monthly_vars_sum = pd.DataFrame()
+        for v in variables:
+            monthly_vars_min[v] = epw_df.groupby(['month'])[v].min()
+            monthly_vars_max[v] = epw_df.groupby(['month'])[v].max()
+            monthly_vars_mean[v] = epw_df.groupby(['month'])[v].mean()
+        for vs in variables_sun:
+            monthly_vars_sum[vs] = epw_df.groupby(['month'])[vs].sum()
+        
+        monthly_vars = dict()
+        monthly_vars['min'] = monthly_vars_min.T
+        monthly_vars['mean'] = monthly_vars_mean.T
+        monthly_vars['max'] = monthly_vars_max.T
+        monthly_vars['sum'] = monthly_vars_sum.T
+        
+        if printer == True:
+            try:
+                for k, v in enumerate(monthly_vars):
+                    df = monthly_vars[v]
+                    name = 'weather_stats/' + v + '.csv'
+                    df.to_csv(name)
+            except:
+                os.mkdir('weather_stats')
+                for k, v in enumerate(monthly_vars):
+                    df = monthly_vars[v]
+                    name = 'weather_stats/' + v + '.csv'
+                    df.to_csv(name)
+        
+        return monthly_vars
+    
+    
+    def replace_weather_data(self, weather_data):
+        '''Replace 
+        This method replaces the existing input weather data (from epw) with data coming from external dataset 
+
+        Parameters
+        ----------
+        weather_data : pandas.DataFrame
+            pandas DataFrame with the iweather data that will replace the existing epw data 
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+
+        self.hourly_data["wind_speed"] = weather_data['wind_speed'].values  # [m/s]
+        # self.hourly_data["wind_direction"] = weather_data['wind_direction'].values  # [°]
+        self.hourly_data["out_air_db_temperature"] = weather_data['temp_air'].values  # [°C]
+        self.hourly_data["out_air_relative_humidity"] = weather_data['relative_humidity'].values / 100  # [0-1]
+        # self.hourly_data["out_air_pressure"] = weather_data['atmospheric_pressure'].values  # Pa
+        # self.hourly_data["opaque_sky_coverage"] = weather_data['opaque_sky_cover'].values  # [0-10]
+
+        
+        #------------------------- TO BE COMPLETED ---------------------------
+
+        ## 1) CALCULATE T_dp BASED ON T_db and RH
+        # self.hourly_data["out_air_dp_temperature"] = weather_data['temp_dew'].values  # [°C]
+        
+        ## 2) REPLACE ghi inside epw hourly data. This data is prcessed by method _get_irradiance())     
+        # self._epw_hourly_data['ghi'] = weather_data['GHI'].values  # Convert based on input to epw units[?]
+        
+        ## 3) CALCULATE dni and dhi BASED ON ghi USING pvgis     
+        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
+        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
+
+
+        # --------------------------------------------------------------------
+        
+        
+        
+        return
+
 
     # @classmethod
     # def for_grins(csv_cti,lat,long):

@@ -16,8 +16,10 @@ import numpy as np
 import pandas as pd
 
 from eureca_building.config import CONFIG
+from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.pv_system import PV_system
+from eureca_building.solar_thermal_system import SolarThermal_Collector
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -179,6 +181,35 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                                weatherobject=weather_obj,
                                surface_list=building_surface_list)
 
+    def add_solar_thermal(self, weather_obj):
+
+        dhw_flow_rate = 0.
+        try:
+            for tz in self._thermal_zones_list:
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate.sum()*3600*1000/(CONFIG.ts_per_hour*365)
+                
+        except AttributeError:
+            raise SimulationError(f"""
+                                  Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
+                                  Please run thermal zones design_sensible_cooling_load and design_heating_load
+                                  """)
+                      
+        building_surface_list=[]
+        for tz in self._thermal_zones_list:
+            for s in tz._surface_list:
+                building_surface_list.append(s)
+
+        # try: 
+        self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+                                   dhw=dhw_flow_rate,
+                                   weatherobject=weather_obj,
+                                   surface_list=building_surface_list)
+            
+        # except AttributeError:
+        #     logging.warning(
+        #         f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
+ 
+        
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
 
@@ -221,7 +252,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
-
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
 
@@ -257,7 +287,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         """
         for tz in self._thermal_zones_list:
             tz.reset_init_values()
-
+            
+            
+        
         results = {
             'TZ Ta [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ To [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
@@ -272,13 +304,20 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
             'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
 
+            # 'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Thermal Production [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system gasoline consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system pellet consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system LPG consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -287,7 +326,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
+        
+        
+        
+        # # Associate solar thermal to the building
+        # self.add_solar_thermal(weather_object)
 
+        
         electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / CONFIG.ts_per_hour
         results['Appliances electric consumption [Wh]'][:, 0] = electric_consumption[CONFIG.start_time_step:CONFIG.final_time_step]
 
@@ -313,20 +358,28 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
             results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
-            results['DHW tank charging rate [W]'][t - t_start, 0] = self.heating_system.dhw_capacity_to_tank
+            results['DHW tank charge [Wh]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge
+            results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
+            try:
+                results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_gain_out
+            except AttributeError:
+                results['Solar Thermal Production [Wh]'][t - t_start, 0] = 0
 
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system gasoline consumption [L]'][t - t_start,0] = self.heating_system.gasoline_consumption
+            results['Heating system LPG consumption [kg]'][t - t_start,0] = self.heating_system.lpg_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
             results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system pellet consumption [kg]'][t - t_start,0] = self.heating_system.pellet_consumption
             results['Heating system DH consumption [Wh]'][t - t_start,0] = self.heating_system.DH_consumption
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
 
-
-    
+        # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
+        # print((np.max(results['Solar Thermal Production [Wh]'])))
         # Saving results
 
         tz_labels = [res for res in results.keys() if res.startswith("TZ")]
@@ -381,6 +434,98 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             else:
                 raise KeyError(f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
         return total
+
+    def simulate_quasi_steady_state(self,
+                 weather_object: WeatherFile,
+                 output_folder: str = None,
+                 output_type: str = "csv",
+                 ):
+        """Simulate a period and i stores the outputs. Calls solve_timestep method
+
+        Parameters
+        ----------
+        weather_object : eureca_building.weather.WeatherFile
+            WeatherFile object to use to simulate (must be appliad after the calculation of zone loads
+        output_folder : str, default None
+            if not None prints building results in the selected folder
+        output_type : str, default "csv"
+            parquet or csv as output file
+
+        Returns
+        ----------
+        pandas.DataFrame
+            building time step results
+        """
+        for tz in self._thermal_zones_list:
+            tz.reset_init_values()
+
+        results = {}
+
+        electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(
+            axis=0) / CONFIG.ts_per_hour # Wh
+
+        results['Appliances electric consumption [Wh]'] = get_monthly_value_from_annual_vector(electric_consumption,
+        method='sum')
+
+        DHW_Demand = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T.sum(axis = 1) / CONFIG.ts_per_hour
+        DHW_Demand = get_monthly_value_from_annual_vector(DHW_Demand,method='sum')
+
+        heat_demand = np.array([0]*12)
+        cool_demand = np.array([0]*12)
+        for tz in self._thermal_zones_list:
+            tz.solve_quasisteadystate_method(weather_object)
+            shd = np.clip(tz.heat_sensible_zone_demand_qss_method, 0, None)*1000 # Wh
+            lhd = np.clip(tz.heat_latent_zone_demand_qss_method, 0, None)*1000 # Wh
+            sad = np.clip(tz.sensible_AHU_demand_qss_method, 0, None)*1000 # Wh
+            lad = np.clip(tz.latent_AHU_demand_qss_method, 0, None)*1000 # Wh
+            heat_demand = heat_demand + shd + lhd + sad + lad
+
+            shd = np.clip(tz.cool_sensible_zone_demand_qss_method, None, 0)*1000 # Wh
+            lhd = np.clip(tz.cool_latent_zone_demand_qss_method, None, 0)*1000 # Wh
+            sad = np.clip(tz.sensible_AHU_demand_qss_method, None, 0)*1000 # Wh
+            lad = np.clip(tz.latent_AHU_demand_qss_method, None, 0)*1000 # Wh
+            cool_demand = cool_demand + shd + lhd + sad + lad
+
+        try:
+            self.heating_system.solve_quasi_steady_state(heat_demand, DHW_Demand)
+        except AttributeError:
+            raise AttributeError("Heating system not allowed. If solving with quasi steady state, heating system must have a quasi steady state method solution... ")
+        try:
+            self.cooling_system.solve_quasi_steady_state(cool_demand)
+        except AttributeError:
+            raise AttributeError("Cooling system not allowed. If solving with quasi steady state, cooling system must have a quasi steady state method solution... ")
+
+        results['TZ heating demand [Wh]'] = heat_demand
+        results['TZ cooling demand [Wh]'] = cool_demand
+        results['TZ DHW demand [Wh]'] = DHW_Demand
+
+        results['Heating system gas consumption [Nm3]'] = self.heating_system.gas_consumption
+        results['Heating system oil consumption [L]'] = self.heating_system.oil_consumption
+        results['Heating system coal consumption [kg]'] = self.heating_system.coal_consumption
+        results['Heating system wood consumption [kg]'] = self.heating_system.wood_consumption
+        results['Heating system pellet consumption [kg]'] = self.heating_system.pellet_consumption
+        results['Heating system DH consumption [Wh]'] = self.heating_system.DH_consumption
+        results['Heating system electric consumption [Wh]'] = self.heating_system.electric_consumption
+        results['Cooling system electric consumption [Wh]'] = self.cooling_system.electric_consumption
+
+        results = pd.DataFrame(results)
+
+        # total = pd.concat([total, pv_production], axis=1)
+        # pv_production=tz.pv_production.interpolate(method="time")
+        if output_folder != None:
+            if not os.path.isdir(output_folder):
+                os.mkdir(output_folder)
+            if output_type == 'csv':
+                results.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index=False,
+                             sep=";")
+            elif output_type == 'parquet':
+                results.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow",
+                                 compression="snappy")
+            else:
+                raise KeyError(
+                    f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
+
+        return results
 
     def get_geojson_feature_parser(self):
         """Function to get the json dictionary of building properties to stamp the output geojson

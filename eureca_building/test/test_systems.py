@@ -64,8 +64,9 @@ class TestSystem:
         heating_system = hvac_heating_systems_classes["TraditionalBoiler"]()
         for pw in range(1,500000,10000):
             heating_system.set_system_capacity(design_power=float(pw), weather = weather)
+            heating_system.set_dhw_design_capacity_tank( np.array([1]*364*96), weather)
             for heat in np.linspace(pw*0.2, pw, 5):
-                heating_system.solve_system(heat, weather, 50, 20, 50)
+                heating_system.solve_system(heat,heat,  weather, 50, 20, 50)
 
 
     def test_condensing_boiler(self):
@@ -79,8 +80,9 @@ class TestSystem:
         heating_system = hvac_heating_systems_classes["CondensingBoiler"]()
         for pw in range(1,500000,10000):
             heating_system.set_system_capacity(design_power=float(pw), weather = weather)
+            heating_system.set_dhw_design_capacity_tank( np.array([1]*364*96), weather)
             for heat in np.linspace(pw*0.2, pw, 5):
-                heating_system.solve_system(heat, weather, 50, 20, 50)
+                heating_system.solve_system(heat, heat, weather, 50, 20, 50)
 
     def test_air_cooler(self):
         path = os.path.join(
@@ -144,7 +146,8 @@ class TestSystem:
             for pw in range(1,500000,10000):
                 heating_system.set_system_capacity(design_power=float(pw), weather = weather)
                 for heat in np.linspace(pw*0.2, pw, 5):
-                    heating_system.solve_system(heat, weather, 10000, 20, 50)
+                    heating_system.set_dhw_design_capacity_tank(np.array([1]*364*96), weather)
+                    heating_system.solve_system(heat, heat, weather, 10000, 20, 50)
                     results = np.vstack([results,np.array([pw,heat,heating_system.total_efficiency])])
 
             # results = results[1:]

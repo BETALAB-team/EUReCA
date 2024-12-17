@@ -342,7 +342,6 @@ class City():
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
-
         self.output_geojson = self.cityjson
         self.json_buildings= {}
         self.buildings_objects = {}
@@ -354,11 +353,17 @@ class City():
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
-            n_floors = int(self.cityjson.loc[i]['Floors'])
+            try:
+                n_floors = int(self.cityjson.loc[i]['Floors'])
+            except ValueError:
+                n_floors = 1
             floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
-            building_parts = list(self.cityjson.loc[i].geometry.geoms)
+            try:
+                building_parts = list(self.cityjson.loc[i].geometry.geoms)
+            except AttributeError:
+                building_parts = [self.cityjson.loc[i].geometry] # Case for polygon geometry
             surf_counter = 0
             footprint_area = 0.
 
@@ -445,13 +450,13 @@ class City():
                                             tuple(coords_int[n-1]+[z_pav]),\
                                             tuple(coords_int[n]+[z_pav]),\
                                             tuple(coords_int[n]+[z_soff]),]))
-                        lower_build_surf.append(tuple([tuple(coords_int[n-1]+[floor_height]),\
+                        lower_build_surf.append(tuple([tuple(coords_int[n-1]+[first_floor_z]),\
                                             tuple(coords_int[n-1]+[z_pav]),\
                                             tuple(coords_int[n]+[z_pav]),\
-                                            tuple(coords_int[n]+[floor_height]),]))
+                                            tuple(coords_int[n]+[first_floor_z]),]))
                         upper_build_surf.append(tuple([tuple(coords_int[n-1]+[z_soff]),\
-                                            tuple(coords_int[n-1]+[z_pav + floor_height]),\
-                                            tuple(coords_int[n]+[z_pav + floor_height]),\
+                                            tuple(coords_int[n-1]+[z_pav + first_floor_z]),\
+                                            tuple(coords_int[n]+[z_pav + first_floor_z]),\
                                             tuple(coords_int[n]+[z_soff]),]))
 
                 build_surf.append(tuple(pavimento))
@@ -470,6 +475,7 @@ class City():
                 if bd_data["Simulate"]:
                     envelope = self.envelopes_dict[bd_data['Envelope']]  # Age-class of the building
 
+                maximum_footprint_area = 0.
                 for part_k, part_v in building_parts_data.items():
                     for vertices in part_v["surfaces coord"]:
                         surface = Surface(
@@ -507,7 +513,7 @@ class City():
                             part_v["footprint area"] += surface._area
                             
                         part_v["subpart counter"] += 1
-            
+                    maximum_footprint_area = np.max([maximum_footprint_area, part_v["footprint area"]])
 
             if bd_data["Simulate"]:
                 # Add internal walls and ceilings 3.3 m height
@@ -545,14 +551,14 @@ class City():
                         )
                     )
 
-                    n_units = int(np.around(part_v["footprint area"] * part_v["number of floors"] / 77.))
+                    n_units = int(np.around(maximum_footprint_area * part_v["number of floors"] / 77.))
                     if n_units == 0: n_units = 1
 
                     part_v["tz"] = ThermalZone(
                         name=f"Bd {name} thermal zone {part_k}",
                         surface_list= part_v["surfaces objs"],
-                        net_floor_area=part_v["footprint area"] * part_v["number of floors"],
-                        volume=part_v["footprint area"] * part_v["number of floors"] * floor_height * bd_data["VolCoeff"],
+                        net_floor_area=maximum_footprint_area * part_v["number of floors"],
+                        volume=maximum_footprint_area * part_v["number of floors"] * floor_height * bd_data["VolCoeff"],
                         number_of_units=n_units, # 77 average flor area of an appartment according to ISTAT
                     )
 
@@ -673,7 +679,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
-
+            if "ST" in building_info["Solar technologies"]:
+                building_obj.add_solar_thermal(weather_obj=self.weather_file)
+               
 
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
@@ -723,8 +731,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             counter += 1
 
             info = {}
+            info["TZ info"] = {}
             for tz in self.buildings_objects[bd_id]._thermal_zones_list:
-                info[f"TZ {tz.name}"] = tz.get_zone_info()
+                info["TZ info"][f"TZ {tz.name}"] = tz.get_zone_info()
+            info["TZ info"] = pd.DataFrame(info["TZ info"])
+            info["TZ info"]["Total"] = info["TZ info"].sum(axis = 1)
+            for i in info["TZ info"].index:
+                info[i] = info["TZ info"].loc[i]["Total"]
+            info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)

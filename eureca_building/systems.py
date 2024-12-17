@@ -20,6 +20,7 @@ import numpy as np
 from eureca_building.systems_info import systems_info
 from eureca_building.fluids_properties import fuels_pci, water_properties
 from eureca_building.config import CONFIG
+from eureca_building.solar_thermal_system import SolarThermal_Collector
 
 # including Systems info from system_info json
 global systems_info_dict
@@ -39,6 +40,9 @@ class System(metaclass=abc.ABCMeta):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -95,6 +99,11 @@ class System(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def oil_consumption(self):
         pass
+    
+    # @property
+    # @abc.abstractmethod
+    # def solar_gain(self):
+    #     pass
 
     @property
     def system_type(self):
@@ -107,11 +116,30 @@ class System(metaclass=abc.ABCMeta):
                 f"HVAC System, system type not string: {type(value)}"
             )
         self._system_type = value
+        
+    @property
+    def solar_thermal_system(self):
+        return self._solar_thermal_system
+
+    @solar_thermal_system.setter
+    def solar_thermal_system(self, value: SolarThermal_Collector):
+        if not isinstance(value, SolarThermal_Collector):
+            raise TypeError(
+                f"Solar thermal needs to be defined as a SolarThermal_Collector class"
+            )
+        self._solar_thermal_system = value
+        self.set_solar_gain()
+        # print(np.max(self.solar_gain))
+        
+    
+    
 
     def set_dhw_design_capacity_tank(self, dhw_flow_rate, weather_file):
 
         T_tank = 55
         T_user = 40
+        T_tank_max = 80
+        T_tank_min= 45
         T_ground = weather_file.general_data['average_out_air_db_temperature']
 
         pre_heating_time = 2 # [h]
@@ -136,34 +164,61 @@ class System(metaclass=abc.ABCMeta):
                                water_properties["density"] * \
                                water_properties["specific_heat"] * \
                                self.dhw_tank_design_delta_T / 3600    # [Wh]
+        self.dhw_tank_maximum_charge=self.dhw_tank_volume * \
+                               water_properties["density"] * \
+                               water_properties["specific_heat"] * \
+                               (T_tank_max-T_user) / 3600          
+        self.dhw_tank_minimum_charge=self.dhw_tank_volume * \
+                               water_properties["density"] * \
+                               water_properties["specific_heat"] * \
+                               (T_tank_min-T_user) / 3600          
         self.dhw_tank_design_charge  = 1e-10 if self.dhw_tank_design_charge  < 1e-10 else self.dhw_tank_design_charge
 
         self.dhw_tank_current_charge = self.dhw_tank_design_charge / 2
         self.dhw_tank_current_charge_perc = 0.5
         self.charging_mode = 0.
+        # self.discharging_mode =0.
         self.dhw_capacity_to_tank = 0.
+        self.dhw_tank_current_charge_perc=self.dhw_tank_minimum_charge/self.dhw_tank_design_charge
         self.losses_discharging_rate = 0.02 # %/h
 
-    def dhw_tank_solver(self, dhw_demand):
+    def dhw_tank_solver(self, dhw_demand, weather,timestep,**kwargs):
+        # if hasattr(self,"solar_gain"):
+        #     solar_thermal_gain=self.solar_gain[timestep]/CONFIG.ts_per_hour
+        # else:
+        #     solar_thermal_gain=0
+        self.charging_mode = 0
+        self.discharging_mode = 0
+        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
+        solar_gain=self.solar_gain_out
+        self.tank_discharge=0
+        self.dhw_capacity_to_tank=0
+        loss_rate=self.losses_discharging_rate*max(1,self.dhw_tank_current_charge_perc)
+        self.storage_tank_loss=self.dhw_tank_design_charge * loss_rate/CONFIG.ts_per_hour/100
 
-        # if ST exists:
-        #     ST_prodction = ST prod[t]
-        # else
-        #     ST_prodction = 0 # Wh
+        self.dhw_tank_current_charge=self.dhw_tank_current_charge+solar_gain-dhw_demand/CONFIG.ts_per_hour
+        self.dhw_tank_current_charge=self.dhw_tank_current_charge-self.storage_tank_loss
+        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100
+        if (self.dhw_tank_current_charge<self.dhw_tank_minimum_charge):
+            self.charging_mode = 1
+            self.dhw_capacity_to_tank=min(self.dhw_tank_design_charge-self.dhw_tank_current_charge,self.dhw_design_load/CONFIG.ts_per_hour)
+            self.dhw_tank_current_charge=self.dhw_tank_current_charge+self.dhw_capacity_to_tank
+        if (self.dhw_tank_current_charge>self.dhw_tank_maximum_charge):
+            self.discharging_mode = 1
+            # self.charging_mode = 0
+            self.tank_discharge=self.dhw_tank_current_charge-self.dhw_tank_maximum_charge
+            self.dhw_tank_current_charge=self.dhw_tank_current_charge-self.tank_discharge
+            
 
-        if self.dhw_tank_current_charge < 0:
-            self.charging_mode = 1 # Turn on  system
-            self.dhw_capacity_to_tank = self.dhw_design_load
-        elif self.dhw_tank_current_charge > self.dhw_tank_design_charge:
-            self.charging_mode = 0 # Turn off  system
-            self.dhw_capacity_to_tank = 0.
+        # self.dhw_capacity_from_tank =  dhw_demand+ self.dhw_tank_design_charge * self.losses_discharging_rate/CONFIG.ts_per_hour
+        # self.dhw_tank_current_charge=min(1.1*self.dhw_tank_design_charge,self.dhw_tank_current_charge+self.dhw_capacity_to_tank-self.dhw_capacity_from_tank)
+        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge *100 
+        # self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge
 
-        self.dhw_tank_current_charge = self.dhw_tank_current_charge + \
-                                           (self.dhw_capacity_to_tank - \
-                                        dhw_demand - \
-                                        self.dhw_tank_design_charge * self.losses_discharging_rate) \
-                                       / CONFIG.ts_per_hour
-        self.dhw_tank_current_charge_perc = self.dhw_tank_current_charge / self.dhw_tank_design_charge
+    def set_solar_gain(self):
+        if hasattr(self,"solar_thermal_system"):
+            self.solar_gain = self.solar_thermal_system.gained_heat
+
 
 
 # %%---------------------------------------------------------------------------------------------------
@@ -179,6 +234,9 @@ class IdealLoad(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -243,6 +301,9 @@ class CondensingBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -351,7 +412,7 @@ class CondensingBoiler(System):
              Zone relative humidity [%]
          '''
 
-        self.dhw_tank_solver(dhw_flow)
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -416,6 +477,9 @@ class TraditionalBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -520,7 +584,7 @@ class TraditionalBoiler(System):
 
         '''
 
-        self.dhw_tank_solver(dhw_flow)
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         # Corrected efficiency and losses at nominal power
@@ -1006,6 +1070,7 @@ class SplitAirConditioner(System):
     coal_consumption = 0
     DH_consumption = 0
 
+
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
 
@@ -1134,6 +1199,9 @@ class Heating_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1204,7 +1272,7 @@ class Heating_EN15316(System):
 
         self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
 
-    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int,**kwargs):
         '''This method allows to calculate the system power for each time step
 
         Parameters
@@ -1219,10 +1287,11 @@ class Heating_EN15316(System):
             Zone temperature [°]
         RH_int : float
             Zone relative humidity [%]
+        kwargs
         '''
-        # Corrected efficiency and losses at nominal power
 
-        self.dhw_tank_solver(dhw_flow)
+
+        self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
         total_energy = heat_flow / self.total_efficiency
@@ -1246,6 +1315,46 @@ class Heating_EN15316(System):
             self.electric_consumption = self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
         elif "Electric Heater" in self.generation_type:
             self.electric_consumption = total_energy / CONFIG.ts_per_hour + self.generation_auxiliary_electric_load / CONFIG.ts_per_hour
+
+    def solve_quasi_steady_state(self, heat_flow, dhw_flow):
+        '''This method allows to calculate the system power for each time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        dhw_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        total_energy = (heat_flow + dhw_flow) / self.total_efficiency # Wh
+
+        if "Oil" in self.generation_type:
+            self.oil_consumption = total_energy / fuels_pci["Oil"]
+        elif "Coal" in self.generation_type:
+            self.coal_consumption = total_energy / fuels_pci["Coal"]
+        elif "District Heating" in self.generation_type:
+            self.DH_consumption = total_energy
+        elif "Stove" in self.generation_type:
+            self.wood_consumption = total_energy / fuels_pci["Wood"]
+        elif "Heat Pump" in self.generation_type:
+            self.electric_consumption = total_energy
+        elif "Gas" in self.generation_type:
+            self.gas_consumption = total_energy / fuels_pci["Natural Gas"]
+        elif "Electric Heater" in self.generation_type:
+            self.electric_consumption = total_energy
+
 
 class Cooling_EN15316(System):
     '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
@@ -1331,6 +1440,20 @@ class Cooling_EN15316(System):
 
         total_energy = abs(heat_flow) / self.total_efficiency
         self.electric_consumption = total_energy / CONFIG.ts_per_hour
+
+    def solve_quasi_steady_state(self, heat_flow):
+        '''This method allows to calculate the system power for each month
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        total_energy = abs(heat_flow) / self.total_efficiency
+
+        self.electric_consumption = total_energy
 
 hvac_heating_systems_classes = {
     "IdealLoad":IdealLoad,

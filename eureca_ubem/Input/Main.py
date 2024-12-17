@@ -18,9 +18,11 @@ load_config("config.json")
 from eureca_ubem.city import City
 
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
+
 schedules_file = os.path.join(".","Schedules_total.xlsx")
-materials_file = os.path.join(".","total envelope types.xlsx")
+materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef.geojson")
+
 
 city_geojson = City(
     city_model=city_model_file, 
@@ -34,7 +36,8 @@ city_geojson = City(
 city_geojson.loads_calculation(region="Veneto")
 city_geojson.simulate(print_single_building_results=True, output_type="csv")
 
-# #
+
+
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
 #
