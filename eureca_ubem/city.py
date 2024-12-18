@@ -25,6 +25,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -50,6 +51,7 @@ class City():
                  output_folder: str,
                  building_model = "2C",
                  shading_calculation = False,
+                 systems_templates_file = None,
                  ):
         """Creates the city from all the input files
 
@@ -86,6 +88,7 @@ class City():
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
         self.end_uses_dict = load_schedules(end_uses_types_file)
+        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
         self.shading_calculation = shading_calculation
@@ -672,8 +675,24 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 tz.design_heating_load(-5.)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
+
+
+            hs_params = None
+            cs_params = None
+
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
+
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
             building_obj.set_hvac_system_capacity(self.weather_file)
 
             if "PV" in building_info["Solar technologies"]:
