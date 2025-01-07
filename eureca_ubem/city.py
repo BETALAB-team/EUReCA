@@ -519,7 +519,14 @@ class City():
                         # TODO: Update wwr calculation
 
                         if surface.surface_type == "ExtWall":
-                            surface._wwr = 0.125
+                            if surface._azimuth_round == 0:
+                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                            elif surface._azimuth_round == 90:
+                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                            elif surface._azimuth_round == -90:
+                                surface._wwr = self.cityjson.loc[i]["WWR E"]
+                            elif surface._azimuth_round == -180:
+                                surface._wwr = self.cityjson.loc[i]["WWR N"]
 
                         if bd_data["Simulate"]:
                             if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
@@ -558,36 +565,36 @@ class City():
             self.output_geojson["Total wall area N"].loc[i] = total_areas["N"]
             self.output_geojson["Total wall area S"].loc[i] = total_areas["S"]
 
-            total_wwr = {
-                "S": 0.,
-                "N": 0.,
-                "E": 0.,
-                "W": 0.,
-            }
+            # total_wwr = {
+            #     "S": 0.,
+            #     "N": 0.,
+            #     "E": 0.,
+            #     "W": 0.,
+            # }
             
-            for k, v in total_wwr.items():
-                try:
-                    total_wwr[k] = bd_data[f'Windows {k} Area'] / total_areas[k]
-                except ZeroDivisionError:
-                    total_wwr[k] = 0.
-                if np.isnan(total_wwr[k]):
-                    total_wwr[k] = 0.125
+            # for k, v in total_wwr.items():
+            #     try:
+            #         total_wwr[k] = bd_data[f'Windows {k} Area'] / total_areas[k]
+            #     except ZeroDivisionError:
+            #         total_wwr[k] = 0.
+            #     if np.isnan(total_wwr[k]):
+            #         total_wwr[k] = 0.125
 
 
-            for s in building_parts_data["single End Use"]["surfaces objs"]:
-                if s.surface_type == "ExtWall":
-                    if s._azimuth_round == 0:
-                        s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
-                        self.output_geojson["WWR S"].loc[i] = s._wwr
-                    elif s._azimuth_round == 90:
-                        s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
-                        self.output_geojson["WWR W"].loc[i] = s._wwr
-                    elif s._azimuth_round == -90:
-                        s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
-                        self.output_geojson["WWR E"].loc[i] = s._wwr
-                    elif s._azimuth_round == -180:
-                        s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
-                        self.output_geojson["WWR N"].loc[i] = s._wwr
+            # for s in building_parts_data["single End Use"]["surfaces objs"]:
+            #     if s.surface_type == "ExtWall":
+            #         if s._azimuth_round == 0:
+            #             s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
+            #             self.output_geojson["WWR S"].loc[i] = s._wwr
+            #         elif s._azimuth_round == 90:
+            #             s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
+            #             self.output_geojson["WWR W"].loc[i] = s._wwr
+            #         elif s._azimuth_round == -90:
+            #             s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
+            #             self.output_geojson["WWR E"].loc[i] = s._wwr
+            #         elif s._azimuth_round == -180:
+            #             s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
+            #             self.output_geojson["WWR N"].loc[i] = s._wwr
 
 
             if bd_data["Simulate"]:
