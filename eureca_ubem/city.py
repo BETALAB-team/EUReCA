@@ -25,6 +25,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -50,6 +51,7 @@ class City():
                  output_folder: str,
                  building_model = "2C",
                  shading_calculation = False,
+                 systems_templates_file = None,
                  ):
         """Creates the city from all the input files
 
@@ -86,6 +88,7 @@ class City():
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
         self.end_uses_dict = load_schedules(end_uses_types_file)
+        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
         self.shading_calculation = shading_calculation
@@ -749,36 +752,30 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 )
                 
 
-            np.replace = use.zone_system['temperature_setpoint'].schedule_lower
+                tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+                
+                tz.design_heating_load(-5.)
+                
+                tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
 
-            tz.add_temperature_setpoint(use.zone_system['temperature_setpoint'])
-            tz.add_humidity_setpoint(use.zone_system['humidity_setpoint'])
 
-            tz.add_infiltration(use.infiltration['infiltration'])
-            tz.calc_infiltration(self.weather_file)
+            hs_params = None
+            cs_params = None
 
-            ahu = AirHandlingUnit(
-                name = f"ahu Bd {building_info['Name']}",
-                mechanical_vent = use.air_handling_unit_system['ventilation_flow_rate'],
-                supply_temperature = use.air_handling_unit_system['ahu_supply_temperature'],
-                supply_specific_humidity = use.air_handling_unit_system['ahu_supply_humidity'],
-                ahu_operation = use.air_handling_unit_system['ahu_availability'],
-                humidity_control = use.air_handling_unit_system['ahu_humidity_control'],
-                sensible_heat_recovery_eff = use.air_handling_unit_system['ahu_sensible_heat_recovery'],
-                latent_heat_recovery_eff = use.air_handling_unit_system['ahu_latent_heat_recovery'],
-                outdoor_air_ratio = use.air_handling_unit_system['outdoor_air_ratio'],
-                weather = self.weather_file,
-                thermal_zone = tz,
-            )
-            
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
 
-            tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
             
-            tz.design_heating_load(-5.)
-            
-            tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-            
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
             building_obj.set_hvac_system_capacity(self.weather_file)
             # print(f"{int(100*iiii/jjjj)} %: load calc")
 

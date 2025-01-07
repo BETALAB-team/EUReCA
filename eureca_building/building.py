@@ -98,7 +98,7 @@ class Building:
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
     
-    def set_hvac_system(self, heating_system, cooling_system):
+    def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
 
         Available heating systems: {hvac_heating_systems_classes.keys()}
@@ -120,13 +120,13 @@ class Building:
 
         """
         try:
-            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system)
+            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, heating system not allowed: current heating system {heating_system}. Available heating systems:\n{hvac_heating_systems_classes.keys()}")
         if not isinstance(self.heating_system, System):
             raise TypeError((f"Building {self.name}, heating system does not comply with System class. The heating system class must be created using System interface"))
         try:
-            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system)
+            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, cooling system not allowed: current cooling system {cooling_system}. Available cooling systems:\n{hvac_cooling_systems_classes.keys()}")
         if not isinstance(self.cooling_system, System):

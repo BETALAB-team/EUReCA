@@ -26,7 +26,7 @@ city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef.geojs
 
 
 city_geojson = City(
-    city_model=city_model_file, 
+    city_model=city_model_file,
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
@@ -36,6 +36,23 @@ city_geojson = City(
 )
 city_geojson.loads_calculation(region="Veneto")
 city_geojson.simulate(print_single_building_results=True, output_type="csv")
+
+city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef_sysmod.geojson")
+systems_file = os.path.join(".","systems.xlsx")
+
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    systems_templates_file=systems_file,
+    shading_calculation=True,
+    building_model = "2C",
+    output_folder=os.path.join(".","geojson_corr_sysmod")
+)
+city_geojson.loads_calculation(region="Veneto")
+city_geojson.simulate(print_single_building_results=True, output_type="csv")
+
 
 
 
