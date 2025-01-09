@@ -51,6 +51,7 @@ eureca_building/example_scripts/VDI_bestests.py
 eureca_building/example_scripts/logging.log
 eureca_building.egg-info/
 eureca_building/test/__pycache__/
+eureca_ubem/Input/geojson_corr/
 .idea/
 build/
 dist/
@@ -70,3 +71,8 @@ logging.log
 /eureca_modelica_classes/__pycache__/
 /eureca_ubem/Input/EURECA_input_CagliariStudyArea_V3_2.geojson
 /eureca_ubem/Input/AB_ANACI/
+<<<<<<< HEAD
+/eureca_ubem/InputBelzoniPerCoolingDown/
+=======
+/eureca_ubem/Input/geojson_corr_sysmod/
+>>>>>>> new_systems

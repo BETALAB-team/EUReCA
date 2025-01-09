@@ -14,12 +14,14 @@ import os
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import least_squares
 
 from eureca_building.config import CONFIG
 from eureca_building._auxiliary_function_for_monthly_calc import get_monthly_value_from_annual_vector
 from eureca_building.thermal_zone import ThermalZone
 from eureca_building.pv_system import PV_system
 from eureca_building.solar_thermal_system import SolarThermal_Collector
+from eureca_building.surface import Surface
 from eureca_building.weather import WeatherFile
 from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
 from eureca_building.exceptions import SimulationError
@@ -96,7 +98,7 @@ class Building:
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
     
-    def set_hvac_system(self, heating_system, cooling_system):
+    def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
 
         Available heating systems: {hvac_heating_systems_classes.keys()}
@@ -118,13 +120,13 @@ class Building:
 
         """
         try:
-            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system)
+            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, heating system not allowed: current heating system {heating_system}. Available heating systems:\n{hvac_heating_systems_classes.keys()}")
         if not isinstance(self.heating_system, System):
             raise TypeError((f"Building {self.name}, heating system does not comply with System class. The heating system class must be created using System interface"))
         try:
-            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system)
+            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, cooling system not allowed: current cooling system {cooling_system}. Available cooling systems:\n{hvac_cooling_systems_classes.keys()}")
         if not isinstance(self.cooling_system, System):
@@ -180,20 +182,35 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         self.pv_system = PV_system(name=f"Bd {self.name} PV system",
                                weatherobject=weather_obj,
                                surface_list=building_surface_list)
+
     def add_solar_thermal(self, weather_obj):
+
+        dhw_flow_rate = 0.
+        try:
+            for tz in self._thermal_zones_list:
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate.sum()*3600*1000/(CONFIG.ts_per_hour*365)
+                
+        except AttributeError:
+            raise SimulationError(f"""
+                                  Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
+                                  Please run thermal zones design_sensible_cooling_load and design_heating_load
+                                  """)
+                      
         building_surface_list=[]
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
                 building_surface_list.append(s)
-        
-        try: 
-            self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+
+        # try: 
+        self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+                                   dhw=dhw_flow_rate,
                                    weatherobject=weather_obj,
                                    surface_list=building_surface_list)
-        except AttributeError:
-            logging.warning(
-                f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
-        
+            
+        # except AttributeError:
+        #     logging.warning(
+        #         f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
+ 
         
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
@@ -542,5 +559,76 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             }
         }
     
+
+
+    def update_wall_factor_and_setpoint(self, ext_wall_coef, t_set, weather):
+        for s in self._thermal_zones_list[0]._surface_list:
+            if isinstance(s, Surface):
+                if s.surface_type in ["ExtWall", "Roof"]:
+                    s.apply_ext_surf_coeff(ext_wall_coef)
+        # self._thermal_zones_list[0].number_of_units = int(ext_wall_coef * self._thermal_zones_list[0].number_of_units)
+        # self._thermal_zones_list[0]._net_floor_area = ext_wall_coef * self._thermal_zones_list[0]._net_floor_area
+        # self._thermal_zones_list[0]._volume = ext_wall_coef * self._thermal_zones_list[0]._volume
+
+        {
+            "1C": self._thermal_zones_list[0]._ISO13790_params,
+            "2C": self._thermal_zones_list[0]._VDI6007_params,
+        }[self._model]()
+
+        {
+            "1C": self._thermal_zones_list[0].calculate_zone_loads_ISO13790,
+            "2C": self._thermal_zones_list[0].calculate_zone_loads_VDI6007,
+        }[self._model](weather)
+
+
+
+        delta_T = t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule.max()
+        setp = copy.deepcopy(self._thermal_zones_list[0].temperature_setpoint)
+        self._thermal_zones_list[0].temperature_setpoint = setp
+        self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule = self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule + delta_T
+
+        self._thermal_zones_list[0].design_sensible_cooling_load(weather, model=self._model)
+        self._thermal_zones_list[0].design_heating_load(-5.)
+        self.set_hvac_system_capacity(weather)
+
+    def costfun(self, data, weather = None, gas_meas = None):
+        ext_wall_coef, t_set = data
+        self.update_wall_factor_and_setpoint(ext_wall_coef, t_set, weather)
+        results = self.simulate(weather, output_folder=None)
+        gas_cons = results["Heating system gas consumption [Nm3]"][f"Bd {self.name}"].sum()
+        self.update_wall_factor_and_setpoint(1/ext_wall_coef, 20., weather)
+        print("One function eval")
+        return (gas_cons - gas_meas)
+
+    def calibrate(self, c_gas_meas, weather,
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]
+                  ):
+
+        T_sp_init = 20.
+        f_w_init = 1.
+        x0 = [f_w_init, T_sp_init]
+        lb = limits_fwalls[0], limits_setpoint[0]
+        ub = limits_fwalls[1], limits_setpoint[1]
+        opt = least_squares(self.costfun,
+                            x0,
+                            # ftol=1e-04,
+                            xtol=1e-04,
+                            bounds = (lb,ub),
+                            method = 'trf',
+                            max_nfev = 50,
+                            kwargs={"weather":weather,"gas_meas":c_gas_meas})
+
+
+        # Read the solution
+        x_opt = opt.x
+        fmin = opt.cost
+        residuals = opt.fun
+        nfev = opt.nfev
+
+        # Verbal description of the termination reason.
+        print(opt.message)
+
+        return x_opt, fmin, residuals, nfev, opt.message, opt.status
 
 

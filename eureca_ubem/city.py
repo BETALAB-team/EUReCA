@@ -25,6 +25,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -50,6 +51,7 @@ class City():
                  output_folder: str,
                  building_model = "2C",
                  shading_calculation = False,
+                 systems_templates_file = None,
                  ):
         """Creates the city from all the input files
 
@@ -86,6 +88,7 @@ class City():
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
         self.end_uses_dict = load_schedules(end_uses_types_file)
+        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
         self.shading_calculation = shading_calculation
@@ -341,6 +344,23 @@ class City():
             self.cityjson["Upper End Use"] = ''
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
+            
+            
+        if "Windows S Area" not in self.cityjson.columns:
+            self.cityjson["Windows S Area"] = np.nan
+        if "Windows N Area" not in self.cityjson.columns:
+            self.cityjson["Windows N Area"] = np.nan
+        if "Windows W Area" not in self.cityjson.columns:
+            self.cityjson["Windows W Area"] = np.nan
+        if "Windows E Area" not in self.cityjson.columns:
+            self.cityjson["Windows E Area"] = np.nan
+        
+        for direct in ["N","S","E","W"]:
+            if f"WWR {direct}" not in self.cityjson.columns:
+                self.cityjson[f"WWR {direct}"] = np.nan
+            if f"Total wall area {direct}" not in self.cityjson.columns:
+                self.cityjson[f"Total wall area {direct}"] = np.nan
+        
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
         self.output_geojson = self.cityjson
         self.json_buildings= {}
@@ -353,7 +373,10 @@ class City():
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
-            n_floors = int(self.cityjson.loc[i]['Floors'])
+            try:
+                n_floors = int(self.cityjson.loc[i]['Floors'])
+            except ValueError:
+                n_floors = 1
             floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
@@ -499,7 +522,14 @@ class City():
                         # TODO: Update wwr calculation
 
                         if surface.surface_type == "ExtWall":
-                            surface._wwr = 0.125
+                            if surface._azimuth_round == 0:
+                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                            elif surface._azimuth_round == 90:
+                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                            elif surface._azimuth_round == -90:
+                                surface._wwr = self.cityjson.loc[i]["WWR E"]
+                            elif surface._azimuth_round == -180:
+                                surface._wwr = self.cityjson.loc[i]["WWR N"]
 
                         if bd_data["Simulate"]:
                             if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
@@ -532,24 +562,42 @@ class City():
                         total_areas["E"] += s._area
                     elif s._azimuth_round == -180:
                         total_areas["N"] += s._area
+                        
+            self.output_geojson["Total wall area E"].loc[i] = total_areas["E"]
+            self.output_geojson["Total wall area W"].loc[i] = total_areas["W"]
+            self.output_geojson["Total wall area N"].loc[i] = total_areas["N"]
+            self.output_geojson["Total wall area S"].loc[i] = total_areas["S"]
 
-            total_wwr = {
-                "S": bd_data['Windows S Area'] / total_areas["S"],
-                "N": bd_data['Windows N Area'] / total_areas["N"],
-                "E": bd_data['Windows E Area'] / total_areas["E"],
-                "W": bd_data['Windows W Area'] / total_areas["W"],
-            }
+            # total_wwr = {
+            #     "S": 0.,
+            #     "N": 0.,
+            #     "E": 0.,
+            #     "W": 0.,
+            # }
+            
+            # for k, v in total_wwr.items():
+            #     try:
+            #         total_wwr[k] = bd_data[f'Windows {k} Area'] / total_areas[k]
+            #     except ZeroDivisionError:
+            #         total_wwr[k] = 0.
+            #     if np.isnan(total_wwr[k]):
+            #         total_wwr[k] = 0.125
 
-            for s in building_parts_data["single End Use"]["surfaces objs"]:
-                if s.surface_type == "ExtWall":
-                    if s._azimuth_round == 0:
-                        s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
-                    elif s._azimuth_round == 90:
-                        s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
-                    elif s._azimuth_round == -90:
-                        s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
-                    elif s._azimuth_round == -180:
-                        s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
+
+            # for s in building_parts_data["single End Use"]["surfaces objs"]:
+            #     if s.surface_type == "ExtWall":
+            #         if s._azimuth_round == 0:
+            #             s._wwr = total_wwr["S"] if total_wwr["S"] < 0.9 else 0.9
+            #             self.output_geojson["WWR S"].loc[i] = s._wwr
+            #         elif s._azimuth_round == 90:
+            #             s._wwr = total_wwr["W"] if total_wwr["W"] < 0.9 else 0.9
+            #             self.output_geojson["WWR W"].loc[i] = s._wwr
+            #         elif s._azimuth_round == -90:
+            #             s._wwr = total_wwr["E"] if total_wwr["E"] < 0.9 else 0.9
+            #             self.output_geojson["WWR E"].loc[i] = s._wwr
+            #         elif s._azimuth_round == -180:
+            #             s._wwr = total_wwr["N"] if total_wwr["N"] < 0.9 else 0.9
+            #             self.output_geojson["WWR N"].loc[i] = s._wwr
 
 
             if bd_data["Simulate"]:
@@ -621,7 +669,7 @@ class City():
                     "2C": thermal_zone._VDI6007_params,
                 }[self.building_model]()
 
-    def loads_calculation(self, region = None):
+    def loads_calculation(self, region = None,  ext_wall_coef = None, t_set = None):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
         
@@ -709,16 +757,36 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 tz.design_heating_load(-5.)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
-            building_obj.set_hvac_system_capacity(self.weather_file)
 
+
+            hs_params = None
+            cs_params = None
+
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
+
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
+            
+            building_obj.set_hvac_system_capacity(self.weather_file)
+            # print(f"{int(100*iiii/jjjj)} %: load calc")
+
+            if t_set is not None and ext_wall_coef is not None:
+                building_obj.update_wall_factor_and_setpoint(ext_wall_coef[bd_id], t_set[bd_id], self.weather_file)
+            
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
             if "ST" in building_info["Solar technologies"]:
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
-               
 
     def simulate(self, print_single_building_results = False, output_type = "parquet"):
         """Simulation of the whole city, and memorization and stamp of results.
@@ -798,6 +866,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
             dhw_demand = monthly["DHW Demand [Wh]"]
+            taken_from_grid = monthly["Taken from the Gird [Wh]"].sum(axis =1)
+            given_to_grid = monthly["Given to Grid [Wh]"].sum(axis =1)
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
@@ -809,6 +879,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption["Total"] = el_consumption.sum()
             oil_consumption["Total"] = oil_consumption.sum()
             wood_consumption["Total"] = wood_consumption.sum()
+            taken_from_grid["Total"] = taken_from_grid.sum()
+            given_to_grid["Total"] = given_to_grid.sum()
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
@@ -818,6 +890,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i} Heating Demand [Wh]"] = heat_demand.loc[i]
                     info[f"{i} DHW Demand [Wh]"] = dhw_demand.loc[i]
                     info[f"{i} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i} Taken from grid [Wh]"] = taken_from_grid.loc[i]
+                    info[f"{i} Given to grid [Wh]"] = given_to_grid.loc[i]
                 else:
                     info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
                     info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
@@ -826,6 +900,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     info[f"{i.month_name()} Heating Demand [Wh]"] = heat_demand.loc[i]
                     info[f"{i.month_name()} DHW Demand [Wh]"] = dhw_demand.loc[i]
                     info[f"{i.month_name()} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i.month_name()} Taken from grid [Wh]"] = taken_from_grid.loc[i]
+                    info[f"{i.month_name()} Given to grid [Wh]"] = given_to_grid.loc[i]
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
@@ -1429,3 +1505,137 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     #                 self.complexes[self.city.loc[i]['nome']].AHUDemand_sensC += self.buildings[self.city.loc[x]['id']].AHUDemand_sensBD
     #         i = i + 1
     #         x = x + 1
+
+    def calibrate(self, print_single_building_results=False, output_type="parquet",
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]):
+        """Simulation of the whole city, and memorization and stamp of results.
+
+        Parameters
+        ----------
+        print_single_building_results : bool, default False
+            If True, the prints a file with time step results for each building.
+            USE CAREFULLY: It might fill a lot of disk space
+        output_type : str, default 'parquet'
+            It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
+        """
+
+        import time
+        start = time.time()
+        # parallel simulation commented
+        # bd_parallel_list = [[bd, self.weather_file, self.output_folder] for bd in self.buildings_objects.values()]
+        # def bd_parallel_solve(x):
+        #     bd, weather, out_fold = x
+        #     bd.simulate(weather, output_folder=out_fold)
+        # with concurrent.futures.ThreadPoolExecutor() as executor:
+        #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+        #
+        # print(f"Parallel simulation : {(time.time() - start)/60:0.2f} min")
+        # start = time.time()
+
+        final_results = {}
+
+        index = pd.date_range(start=CONFIG.start_date, periods=CONFIG.number_of_time_steps, freq=f"{CONFIG.time_step}s")
+        district_hourly_results = pd.DataFrame(0., index=index, columns=[
+            "Gas consumption [Nm3]",
+            "Electric consumption [Wh]",
+            "Oil consumption [L]",
+            "Wood consumption [kg]",
+            "TZ sensible load [W]",
+            "TZ latent load [W]",
+            "TZ AHU pre heater load [W]",
+            "TZ AHU post heater load [W]",
+            "TZ DHW demand [W]",
+        ])
+        n_buildings = len(self.buildings_objects)
+        counter = 0
+        for bd_id, building_info in self.buildings_info.items():
+            if counter % 10 == 0:
+                print(f"{counter} buildings simulated out of {n_buildings}")
+            counter += 1
+
+            info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+            info["Name"] = self.buildings_objects[bd_id].name
+            if print_single_building_results:
+                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"],
+                                                                  self.weather_file,
+                                                                  limits_setpoint=limits_setpoint,
+                                                                  limits_fwalls=limits_fwalls
+                                                                  )
+                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0],cal_res[0][1], self.weather_file)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder,
+                                                                  output_type=output_type)
+                info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+                info["Name"] = self.buildings_objects[bd_id].name
+                info["ExtWallCoef_cal"] = cal_res[0][0]
+                info["TSet_cal"] = cal_res[0][1]
+                info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
+            else:
+                cal_res = self.buildings_objects[bd_id].calibrate(self.buildings_info[bd_id]["STDMC_2021"], self.weather_file,
+                                                                limits_setpoint = limits_setpoint,
+                                                              limits_fwalls = limits_fwalls
+                                                                )
+                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0], cal_res[0][1],
+                                                                              self.weather_file)
+                results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
+                info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
+                info["Name"] = self.buildings_objects[bd_id].name
+                info["ExtWallCoef_cal"] = cal_res[0][0]
+                info["TSet_cal"] = cal_res[0][1]
+                info["Calibration output"] = cal_res[4]
+                info["Calibration iterations"] = cal_res[3]
+                info["Calibration status"] = cal_res[5]
+            results.index = index
+            monthly = results.resample("M").sum()
+            gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
+            el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
+            oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
+            wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
+            gas_consumption["Total"] = gas_consumption.sum()
+            el_consumption["Total"] = el_consumption.sum()
+            oil_consumption["Total"] = oil_consumption.sum()
+            wood_consumption["Total"] = wood_consumption.sum()
+            for i in gas_consumption.index:
+                if i == "Total":
+                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
+                else:
+                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
+                    info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
+            final_results[bd_id] = info
+            district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,
+                                                                0]
+            district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:, 0]
+            district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,
+                                                                0]
+            district_hourly_results["Electric consumption [Wh]"] += results[
+                                                                        "Heating system electric consumption [Wh]"].iloc[
+                                                                    :, 0] \
+                                                                    + results[
+                                                                          "Cooling system electric consumption [Wh]"].iloc[
+                                                                      :, 0] \
+                                                                    + results[
+                                                                          "Appliances electric consumption [Wh]"].iloc[
+                                                                      :, 0]
+            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:, 0]
+            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:, 0]
+            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:, 0]
+            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:, 0]
+            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:, 0]
+
+        district_hourly_results.to_csv(os.path.join(self.output_folder, "District_hourly_summary.csv"), sep=";")
+        bd_summary = pd.DataFrame.from_dict(final_results, orient="index")
+        # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
+        bd_summary.drop(["Name"], axis=1, inplace=True)
+        self.output_geojson.set_index("new_id", drop=True, inplace=True)
+        new_geojson = pd.concat([self.output_geojson.loc[bd_summary.index],bd_summary],axis=1)
+        new_geojson.to_file(os.path.join(self.output_folder, "Buildings_summary.geojson"), driver="GeoJSON")
+        new_geojson.drop("geometry", axis=1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep=";")
+
+        print(f"Standard simulation : {(time.time() - start) / 60:0.2f} min")
