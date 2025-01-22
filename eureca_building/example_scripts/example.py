@@ -361,7 +361,7 @@ for i in range(1):
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
     bd = Building("Bd 1", thermal_zones_list=[tz1], model="2C")
-    bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
+    bd.set_hvac_system("A-W HP Staffel, Centralized, Fan coil",
                        "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
     start = time.time()
@@ -386,7 +386,7 @@ for i in range(1):
     tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
     bd = Building("Bd 1", thermal_zones_list=[tz2], model="2C")
-    bd.set_hvac_system("Traditional Gas Boiler, Centralized, Low Temp Radiator",
+    bd.set_hvac_system("A-W HP Staffel, Centralized, Fan coil",
                        "A-W chiller, Centralized, Radiant surface")
     bd.set_hvac_system_capacity(weather_file)
     start = time.time()
