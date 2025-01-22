@@ -1504,7 +1504,7 @@ class HP_Staffell(System):
             self.convective_fraction = 0.5
 
         self.T_emitter = {
-            "Low Temp Radiator":60.,
+            "Low Temp Radiator":50.,
             "High Temp Radiator":70.,
             "Radiant surface":35.,
             "Fan coil":40,
