@@ -12,11 +12,13 @@ __maintainer__ = "Enrico Prataviera"
 import os
 import logging
 
+from eureca_building.config import CONFIG
+
 # Logging file
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.WARNING)  # or whatever
+root_logger.setLevel(logging.ERROR)  # or whatever
 handler = logging.FileHandler(
-    os.path.join(".", "logging.log"), "w", "utf-8"
+    os.path.join(CONFIG.output_path, "logging.log"), "w", "utf-8"
 )  # or whatever
 formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

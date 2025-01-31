@@ -12,12 +12,10 @@ import json
 import io
 import os
 import configparser
-import logging
 from datetime import datetime, timedelta
-import eureca_building.logs
 
 global DEFAULTCONFIG_FILE
-DEFAULTCONFIG_FILE = os.path.join(".", "eureca_building", "default_config.ini")
+DEFAULTCONFIG_FILE = os.path.join(".", "eureca_building", "config.json")
 
 def load_config(file: str = None):
     """Function to load the config file, json file suggested
@@ -39,7 +37,7 @@ def load_config(file: str = None):
     "cooling season end": "09-30 23:00"
     },
     "solar radiation settings": {
-    "do solar radiation calculation": "False",
+    "do solar shading calculation": "False",
     "height subdivisions": "4",
     "azimuth subdivisions": "8",
     "urban shading tolerances": "80.,100.,80."
@@ -71,9 +69,9 @@ def load_config(file: str = None):
         else:
             message = "Config file not found: Trying to load default config"
             print(message)
-            logging.warning(message)
-            CONFIG = Config()
-            CONFIG.read(DEFAULTCONFIG_FILE)
+            # CONFIG = Config()
+            # CONFIG.read(DEFAULTCONFIG_FILE)
+            CONFIG = Config.from_json(DEFAULTCONFIG_FILE)
             message = "Default config loaded"
             print(message)
 
@@ -90,6 +88,13 @@ class Config(configparser.ConfigParser):
         super().__init__()
 
         # Default Values
+        self.name = "Project1"
+        self.output_path = os.path.join(".","output")
+        self.region = None
+        self.building_energy_model = "2C"
+        self.print_single_building_results = True
+        self.output_file_format = "parquet"
+
         self.ts_per_hour = 1
         self.start_date = datetime.strptime(
             "2023 01-01 00:00",
@@ -143,7 +148,7 @@ class Config(configparser.ConfigParser):
         self.azimuth_subdivisions = 8
         self.height_subdivisions = 4
 
-        self.do_solar_radiation_calculation = True
+        self.do_solar_shading_calculation = True
         self.urban_shading_tolerances = [80.,100.,80]
 
     @property
@@ -169,52 +174,54 @@ class Config(configparser.ConfigParser):
             file to load the config from
 
         """
-        super().read(file)
-        # Generic config settings
-        self.ts_per_hour = int(self['simulation settings']['time steps per hour'])
-        self.start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' + self['simulation settings']['start date'], "%Y %m-%d %H:%M")
-        self.final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['final date'], "%Y %m-%d %H:%M")
-        self.heating_start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['heating season start'], "%Y %m-%d %H:%M")
-        self.heating_final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['heating season end'], "%Y %m-%d %H:%M")
-        self.cooling_start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['cooling season start'], "%Y %m-%d %H:%M")
-        self.cooling_final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['cooling season end'], "%Y %m-%d %H:%M")
-        self.time_step = int(3600 / self.ts_per_hour)  # s
-        self.number_of_time_steps = int((self.final_date - self.start_date) / timedelta(
-            minutes=self.time_step / 60)) + 1
-        start_time_step = int(
-            (self.start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
-                minutes=self.time_step / 60))
-        self.start_time_step = start_time_step
-        self.final_time_step = start_time_step + self.number_of_time_steps
+        raise TypeError("ini config files are no longer mantained, use json instead")
 
-        # Heating/cooling season time steps
-        self.heating_season_start_time_step = int(
-            (self.heating_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
-                minutes=self.time_step / 60))
-        self.heating_season_end_time_step = int(
-            (self.heating_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
-                minutes=self.time_step / 60))
-
-        self.cooling_season_start_time_step = int(
-            (self.cooling_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
-                minutes=self.time_step / 60))
-        self.cooling_season_end_time_step = int(
-            (self.cooling_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
-                minutes=self.time_step / 60))
-
-        self.number_of_time_steps_year = int(8760 * 60 / (self.time_step / 60))
-        if self.ts_per_hour > 1:
-            self.number_of_time_steps_year -= (self.ts_per_hour - 1)
-
-        self.simulation_reference_year = int(self['simulation settings']['simulation reference year'])
-
-        # Radiation
-        self.azimuth_subdivisions = int(self['solar radiation settings']["azimuth subdivisions"])
-        self.height_subdivisions = int(self['solar radiation settings']["height subdivisions"])
-
-        self.do_solar_radiation_calculation = False if str.lower(self['solar radiation settings']["do solar radiation calculation"]) == "false" else True
-        self.urban_shading_tolerances = [float(i) for i in
-                                                self['solar radiation settings']["urban shading tolerances"].split(",")]
+        # super().read(file)
+        # # Generic config settings
+        # self.ts_per_hour = int(self['simulation settings']['time steps per hour'])
+        # self.start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' + self['simulation settings']['start date'], "%Y %m-%d %H:%M")
+        # self.final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['final date'], "%Y %m-%d %H:%M")
+        # self.heating_start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['heating season start'], "%Y %m-%d %H:%M")
+        # self.heating_final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['heating season end'], "%Y %m-%d %H:%M")
+        # self.cooling_start_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['cooling season start'], "%Y %m-%d %H:%M")
+        # self.cooling_final_date = datetime.strptime(self['simulation settings']['simulation reference year'] + ' ' +self['simulation settings']['cooling season end'], "%Y %m-%d %H:%M")
+        # self.time_step = int(3600 / self.ts_per_hour)  # s
+        # self.number_of_time_steps = int((self.final_date - self.start_date) / timedelta(
+        #     minutes=self.time_step / 60)) + 1
+        # start_time_step = int(
+        #     (self.start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+        #         minutes=self.time_step / 60))
+        # self.start_time_step = start_time_step
+        # self.final_time_step = start_time_step + self.number_of_time_steps
+        #
+        # # Heating/cooling season time steps
+        # self.heating_season_start_time_step = int(
+        #     (self.heating_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+        #         minutes=self.time_step / 60))
+        # self.heating_season_end_time_step = int(
+        #     (self.heating_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+        #         minutes=self.time_step / 60))
+        #
+        # self.cooling_season_start_time_step = int(
+        #     (self.cooling_start_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+        #         minutes=self.time_step / 60))
+        # self.cooling_season_end_time_step = int(
+        #     (self.cooling_final_date - datetime(self.start_date.year, 1, 1, 00, 00, 00)) / timedelta(
+        #         minutes=self.time_step / 60))
+        #
+        # self.number_of_time_steps_year = int(8760 * 60 / (self.time_step / 60))
+        # if self.ts_per_hour > 1:
+        #     self.number_of_time_steps_year -= (self.ts_per_hour - 1)
+        #
+        # self.simulation_reference_year = int(self['simulation settings']['simulation reference year'])
+        #
+        # # Radiation
+        # self.azimuth_subdivisions = int(self['solar radiation settings']["azimuth subdivisions"])
+        # self.height_subdivisions = int(self['solar radiation settings']["height subdivisions"])
+        #
+        # self.do_solar_shading_calculation = False if str.lower(self['solar radiation settings']["do solar shading calculation"]) == "false" else True
+        # self.urban_shading_tolerances = [float(i) for i in
+        #                     self['solar radiation settings']["urban shading tolerances"].split(",")]
 
     @classmethod
     def from_json(cls, file_path):
@@ -240,6 +247,15 @@ class Config(configparser.ConfigParser):
                     config_dict.read_dict(json.load(json_data_file))
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file {file_path} not found")
+
+        config_dict.name = config_dict['model']['name']
+        config_dict.output_path = config_dict['model']['Output path']
+        config_dict.region = config_dict['model']['Region']
+        config_dict.building_energy_model = config_dict['simulation settings']["Building energy model"]
+        config_dict.print_single_building_results = False if str.lower(
+            config_dict['simulation settings']["Print single building results"]) == "false" else True
+        config_dict.output_file_format = config_dict['simulation settings']["Output file format"]
+
         # Generic config settings
         config_dict.ts_per_hour = int(config_dict['simulation settings']['time steps per hour'])
         config_dict.start_date = datetime.strptime(config_dict['simulation settings']['simulation reference year'] + ' ' +config_dict['simulation settings']['start date'], "%Y %m-%d %H:%M")
@@ -282,8 +298,8 @@ class Config(configparser.ConfigParser):
         config_dict.azimuth_subdivisions = int(config_dict['solar radiation settings']["azimuth subdivisions"])
         config_dict.height_subdivisions = int(config_dict['solar radiation settings']["height subdivisions"])
 
-        config_dict.do_solar_radiation_calculation = False if str.lower(
-            config_dict['solar radiation settings']["do solar radiation calculation"]) == "false" else True
+        config_dict.do_solar_shading_calculation = False if str.lower(
+            config_dict['solar radiation settings']["do solar shading calculation"]) == "false" else True
         config_dict.urban_shading_tolerances = [float(i) for i in
                                                 config_dict['solar radiation settings']["urban shading tolerances"].split(",")]
 
@@ -299,7 +315,7 @@ class Config(configparser.ConfigParser):
 
         """
         with open(file_path, "w") as outfile:
-            json.dump(self, outfile, indent=4, )
+            json.dump(self, outfile, indent=4)
 
 global CONFIG
 CONFIG = Config()

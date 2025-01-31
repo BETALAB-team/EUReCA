@@ -6,6 +6,7 @@ RCenv.yml
 /eureca_ubem/Input_qgis/
 /eureca_ubem/Input/Belzoni/
 /eureca_ubem/Input/geojson/
+/eureca_ubem/Input/output/
 /eureca_ubem/Input/geojson_numba/
 /eureca_ubem/Input/logging.log
 /eureca_ubem/Input/total envelope types.xlsx
