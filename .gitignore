@@ -40,6 +40,7 @@ logging.log
 eureca_building/__pycache__/
 eureca_building/test/__pycache__/
 eureca_building/test/hvac_plots/
+eureca_building/old/
 eureca_building/example_scripts/__pycache__/
 eureca_building/example_scripts/eureca_example.py
 eureca_building/example_scripts/logging.log
