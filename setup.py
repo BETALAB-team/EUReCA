@@ -34,4 +34,7 @@ setup(
         "cjio",
         # "matplotlib",
     ],
+    extras_require={
+            "dev":'matplotlib',
+    },
 )
