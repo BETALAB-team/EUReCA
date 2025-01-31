@@ -30,7 +30,7 @@ load_config(config_path)
 from eureca_building.config import CONFIG
 
 #########################################################
-
+import eureca_building.logs
 from eureca_building.weather import WeatherFile
 from eureca_building.material import Material
 from eureca_building.surface import Surface, SurfaceInternalMass

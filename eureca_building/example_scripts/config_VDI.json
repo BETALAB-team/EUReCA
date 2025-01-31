@@ -1,9 +1,12 @@
 {
   "DEFAULT": {},
   "model": {
-    "name": "VDI_config"
+    "name": "VDI_config",
+    "Output path": ".//output",
+    "Region":"Veneto"
   },
   "simulation settings": {
+    "Building energy model": "2C",
     "time steps per hour": "1",
     "simulation reference year" : "2023",
     "start date": "01-01 00:00",
@@ -11,7 +14,9 @@
     "heating season start": "11-15 23:00",
     "heating season end": "04-15 23:00",
     "cooling season start": "06-01 23:00",
-    "cooling season end": "09-30 23:00"
+    "cooling season end": "09-30 23:00",
+    "Print single building results": "False",
+    "Output file format": "parquet"
   },
   "solar radiation settings": {
     "do solar radiation calculation": "False",

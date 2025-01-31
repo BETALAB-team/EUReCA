@@ -248,6 +248,7 @@ class Config(configparser.ConfigParser):
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file {file_path} not found")
 
+
         config_dict.name = config_dict['model']['name']
         config_dict.output_path = config_dict['model']['Output path']
         config_dict.region = config_dict['model']['Region']
@@ -256,6 +257,8 @@ class Config(configparser.ConfigParser):
             config_dict['simulation settings']["Print single building results"]) == "false" else True
         config_dict.output_file_format = config_dict['simulation settings']["Output file format"]
 
+        if not os.path.isdir(config_dict.output_path):
+            os.mkdir(config_dict.output_path)
         # Generic config settings
         config_dict.ts_per_hour = int(config_dict['simulation settings']['time steps per hour'])
         config_dict.start_date = datetime.strptime(config_dict['simulation settings']['simulation reference year'] + ' ' +config_dict['simulation settings']['start date'], "%Y %m-%d %H:%M")
