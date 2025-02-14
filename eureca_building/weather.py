@@ -100,7 +100,7 @@ class WeatherFile():
         self.hourly_data = {}
         self.general_data = {}
         self.assign_hourly_data()
-        self.assign_general_data(time_steps, azimuth_subdivisions, height_subdivisions)
+        self.assign_general_data(time_steps, azimuth_subdivisions, height_subdivisions, urban_shading_tol)
         
         self.check_data_consistency()
 
