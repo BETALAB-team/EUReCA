@@ -114,7 +114,7 @@ class WeatherFile():
         self.assign_monthly_data()
         
         
-    def resample_weather_data(self, time_steps):
+    def resample_weather_data(self, time_steps = 1):
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
             self._epw_hourly_data = epw[0].resample(m).bfill()
