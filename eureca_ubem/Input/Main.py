@@ -2,11 +2,7 @@
 
 import os
 import time as tm
-import logging
-import warnings
-warnings.filterwarnings("ignore")
 import pandas as pd
-
 
 # import matplotlib
 # matplotlib.use('TkAgg')
@@ -23,20 +19,30 @@ schedules_file = os.path.join(".","Schedules_total.xlsx")
 materials_file = os.path.join(".","materials_and_construction_test.xlsx")
 city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef.geojson")
 
-
 city_geojson = City(
-    city_model=city_model_file, 
+    city_model=city_model_file,
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
+)
+city_geojson.loads_calculation()
+city_geojson.simulate()
+
+city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef_sysmod.geojson")
+systems_file = os.path.join(".","systems.xlsx")
+
+city_geojson = City(
+    city_model=city_model_file,
+    epw_weather_file=weather_file,
+    end_uses_types_file=schedules_file,
+    envelope_types_file=materials_file,
+    systems_templates_file=systems_file,
     shading_calculation=True,
     building_model = "2C",
-    output_folder=os.path.join(".","geojson_corr")
+    output_folder=os.path.join(".","geojson_corr_sysmod")
 )
 city_geojson.loads_calculation(region="Veneto")
-city_geojson.simulate(print_single_building_results=True, output_type="csv")
-
-
+city_geojson.simulate(print_single_building_results=False, output_type="csv")
 
 # materials_file = os.path.join(".","total envelope types.xlsx")
 # city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")

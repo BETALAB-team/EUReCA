@@ -6,6 +6,7 @@ RCenv.yml
 /eureca_ubem/Input_qgis/
 /eureca_ubem/Input/Belzoni/
 /eureca_ubem/Input/geojson/
+/eureca_ubem/Input/output/
 /eureca_ubem/Input/geojson_numba/
 /eureca_ubem/Input/logging.log
 /eureca_ubem/Input/total envelope types.xlsx
@@ -40,10 +41,13 @@ logging.log
 eureca_building/__pycache__/
 eureca_building/test/__pycache__/
 eureca_building/test/hvac_plots/
+eureca_building/old/
 eureca_building/example_scripts/__pycache__/
 eureca_building/example_scripts/eureca_example.py
 eureca_building/example_scripts/logging.log
 eureca_building/example_scripts/Results/
+eureca_building/example_scripts/VDI_tests_results/
+eureca_building/old/
 eureca_building/Ventilation_CPH/
 eureca_building/example_scripts/Results/Results Bd 1.csv
 eureca_building/example_scripts/domestic_hotwater_example.py
@@ -70,3 +74,9 @@ logging.log
 /eureca_modelica_classes/__pycache__/
 /eureca_ubem/Input/EURECA_input_CagliariStudyArea_V3_2.geojson
 /eureca_ubem/Input/AB_ANACI/
+/eureca_ubem/Input/.idea/
+/eureca_ubem/Input/cityjson/
+/eureca_ubem/Input/geojson_corr/
+/eureca_ubem/Input/geojson_corr_sysmod/
+/eureca_ubem/InputBelzoniPerCoolingDown/
+

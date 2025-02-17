@@ -113,13 +113,7 @@ class WeatherFile():
         self.general_data['height_subdivisions'] = height_subdivisions
         
         # summary of epw monthly statistics
-        self.monthly_stats = self.monthly_statistics(printer = True)
-        
-        try: 
-            self.replace_weather_data(replacing_data)
-        except FileNotFoundError:
-            raise FileNotFoundError \
-                (f"ERROR Replacing weather data not found in the Input folder.")
+        self.monthly_stats = self.monthly_statistics(printer = False)
 
         # Check some weather data values
         if not np.all(np.greater(self.hourly_data["out_air_db_temperature"], -50.)) or not np.all(

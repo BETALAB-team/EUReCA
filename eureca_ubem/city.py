@@ -16,6 +16,7 @@ from scipy.spatial import cKDTree
 from shapely.validation import make_valid
 from shapely.geometry import MultiPolygon
 from eureca_building.config import CONFIG
+import eureca_building.logs
 from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
@@ -25,6 +26,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -47,9 +49,10 @@ class City():
                  envelope_types_file:str,
                  end_uses_types_file:str,
                  epw_weather_file:str,
-                 output_folder: str,
-                 building_model = "2C",
-                 shading_calculation = False,
+                 output_folder = CONFIG.output_path,
+                 building_model = CONFIG.building_energy_model,
+                 shading_calculation = CONFIG.do_solar_shading_calculation,
+                 systems_templates_file = None,
                  ):
         """Creates the city from all the input files
 
@@ -77,7 +80,7 @@ class City():
             epw_weather_file,
             year = CONFIG.simulation_reference_year,
             time_steps = CONFIG.ts_per_hour,
-            irradiances_calculation = CONFIG.do_solar_radiation_calculation,
+            irradiances_calculation = True,
             azimuth_subdivisions = CONFIG.azimuth_subdivisions,
             height_subdivisions = CONFIG.height_subdivisions,
             urban_shading_tol = CONFIG.urban_shading_tolerances
@@ -86,6 +89,7 @@ class City():
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
         self.end_uses_dict = load_schedules(end_uses_types_file)
+        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
         self.shading_calculation = shading_calculation
@@ -584,7 +588,7 @@ class City():
                     "2C": thermal_zone._VDI6007_params,
                 }[self.building_model]()
 
-    def loads_calculation(self, region = None):
+    def loads_calculation(self, region = CONFIG.region):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
         
@@ -672,8 +676,24 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 tz.design_heating_load(-5.)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
+
+
+            hs_params = None
+            cs_params = None
+
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
+
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
             building_obj.set_hvac_system_capacity(self.weather_file)
 
             if "PV" in building_info["Solar technologies"]:
@@ -683,7 +703,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
                
 
-    def simulate(self, print_single_building_results = False, output_type = "parquet"):
+    def simulate(self,
+                 print_single_building_results = CONFIG.print_single_building_results,
+                 output_type = CONFIG.output_file_format):
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -754,7 +776,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
-            monthly = results.resample("M").sum()
+            monthly = results.resample("ME").sum()
 
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
@@ -762,12 +784,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
-            heat_demand["Total"] = heat_demand.sum()
-            cooling_demand["Total"] = cooling_demand.sum()
-            gas_consumption["Total"] = gas_consumption.sum()
-            el_consumption["Total"] = el_consumption.sum()
-            oil_consumption["Total"] = oil_consumption.sum()
-            wood_consumption["Total"] = wood_consumption.sum()
+            heat_demand = pd.concat([heat_demand, pd.Series([heat_demand.sum()], index = ["Total"])])
+            cooling_demand = pd.concat([cooling_demand, pd.Series([cooling_demand.sum()], index = ["Total"])])
+            gas_consumption = pd.concat([gas_consumption, pd.Series([gas_consumption.sum()], index = ["Total"])])
+            el_consumption = pd.concat([el_consumption, pd.Series([el_consumption.sum()], index = ["Total"])])
+            oil_consumption = pd.concat([oil_consumption, pd.Series([oil_consumption.sum()], index = ["Total"])])
+            wood_consumption = pd.concat([wood_consumption, pd.Series([wood_consumption.sum()], index = ["Total"])])
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]

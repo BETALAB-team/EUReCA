@@ -140,8 +140,32 @@ class TestSystem:
             "TraditionalBoiler"
         ]
                          ]
+
+        heating_system_params = {
+            "name":"s1",
+            "description":"s1",
+
+            "SH emission system": "Radiators",
+            "SH emission target temperature [°C]": 80,
+            "SH emission convective fraction [-]": 0.89,
+            "SH emission efficiency [-]": 0.89,
+            "SH distribution efficiency [-]": 0.85,
+            "SH regulation efficiency [-]": 0.52,
+            "SH generation efficiency [-]": 0.99,
+            "SH COP [-]": 3.1,
+            "SH fuel": "Electric",
+
+            "DHW emission efficiency [-]": 0.99,
+            "DHW distribution efficiency [-]": 0.98,
+            "DHW regulation efficiency [-]": 0.97,
+            "DHW generation efficiency [-]": 0.95,
+            "DHW COP [-]": 2.9,
+            "DHW fuel": "Electric",
+        }
+
+
         for hvac in relevant_hvac:
-            heating_system = hvac_heating_systems_classes[hvac](heating_system_key = hvac)
+            heating_system = hvac_heating_systems_classes[hvac](heating_system_key = hvac, heating_system_params = heating_system_params)
             results = np.array([[0.,0.,0]])
             for pw in range(1,500000,10000):
                 heating_system.set_system_capacity(design_power=float(pw), weather = weather)
@@ -189,9 +213,24 @@ class TestSystem:
             "SplitAirConditioner"
         ]
                          ]
+
+        cooling_system_params = {
+            "name": "s1",
+            "description": "s1",
+
+            "SC emission system": "Radiators",
+            "SC emission target temperature [°C]": 80,
+            "SC emission convective fraction [-]": 0.89,
+            "SC emission efficiency [-]": 0.89,
+            "SC distribution efficiency [-]": 0.85,
+            "SC regulation efficiency [-]": 0.52,
+            "SC generation efficiency [-]": 0.99,
+            "SC fuel": "Electric",
+        }
+
         for hvac in relevant_hvac:
             results = np.array([[0., 0., 0]])
-            cooling_system = hvac_cooling_systems_classes[hvac](cooling_system_key=hvac)
+            cooling_system = hvac_cooling_systems_classes[hvac](cooling_system_key=hvac, cooling_system_params = cooling_system_params)
             for pw in range(-1, -500000, -10000):
                 cooling_system.set_system_capacity(design_power=float(pw), weather=weather)
                 for heat in np.linspace(pw * 0.2, pw, 5):

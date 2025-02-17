@@ -32,6 +32,9 @@ setup(
         "shapely",
         "geopandas",
         "cjio",
-        # "pyogrio",
+        # "matplotlib",
     ],
+    extras_require={
+            "dev":'matplotlib',
+    },
 )
