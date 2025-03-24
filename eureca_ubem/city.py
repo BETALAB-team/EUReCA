@@ -523,13 +523,25 @@ class City():
 
                         if surface.surface_type == "ExtWall":
                             if surface._azimuth_round == 0:
-                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                                try:
+                                    surface._wwr = self.cityjson.loc[i]["WWR S"]
+                                except TypeError:
+                                    surface._wwr = 0.125
                             elif surface._azimuth_round == 90:
-                                surface._wwr = self.cityjson.loc[i]["WWR S"]
+                                try:
+                                    surface._wwr = self.cityjson.loc[i]["WWR W"]
+                                except TypeError:
+                                    surface._wwr = 0.125
                             elif surface._azimuth_round == -90:
-                                surface._wwr = self.cityjson.loc[i]["WWR E"]
+                                try:
+                                    surface._wwr = self.cityjson.loc[i]["WWR E"]
+                                except TypeError:
+                                    surface._wwr = 0.125
                             elif surface._azimuth_round == -180:
-                                surface._wwr = self.cityjson.loc[i]["WWR N"]
+                                try:
+                                    surface._wwr = self.cityjson.loc[i]["WWR N"]
+                                except TypeError:
+                                    surface._wwr = 0.125
 
                         if bd_data["Simulate"]:
                             if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
