@@ -88,7 +88,7 @@ domestic_hot_water_prop = {
     "tags": [],
     "total_days": 365,  # number of days for the simulation
     "nuses" : 4,  # number of uses
-    "target temperature [°C]": 45.,
+    "target temperature [°C]": 40.,
 
     # Data from DHW calc
     "DHWcalc_uses" :{

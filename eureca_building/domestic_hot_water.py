@@ -252,7 +252,8 @@ class DomesticHotWater:
                 volume = dhw_calc_calculation(Vw_single, number_of_units)[:CONFIG.number_of_time_steps_year] / 1000 / CONFIG.time_step # to m3/ts to m3/s
 
         Cw = water_properties["specific_heat"]      # [J/(kg K)]
-        DTw = domestic_hot_water_prop["target temperature [°C]"] - weather.general_data["average_out_air_db_temperature"]       # [°C]
+        # DTw = domestic_hot_water_prop["target temperature [°C]"] - weather.general_data["average_out_air_db_temperature"]       # [°C]
+        DTw = domestic_hot_water_prop["target temperature [°C]"] - 18     # [°C]
         rho = water_properties["density"] # [kg/m3]
 
         demand = volume *  rho * Cw * DTw # W
