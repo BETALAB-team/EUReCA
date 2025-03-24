@@ -236,14 +236,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 heat_load += tz.air_handling_unit.preh_deu_Dem
             else:
                 cool_load += tz.air_handling_unit.preh_deu_Dem
+            
             heat_load += tz.air_handling_unit.posth_Dem
+            
 
             # For the moment not latent
-            if tz.latent_zone_load > 0.:
-                heat_load += tz.latent_zone_load
-            else:
-                cool_load += tz.latent_zone_load
-
             if tz.latent_zone_load > 0.:
                 heat_load += tz.latent_zone_load
             else:
@@ -561,14 +558,18 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
     
 
 
-    def update_wall_factor_and_setpoint(self, ext_wall_coef, t_set, weather):
+    def update_calibration_params(self, weather, ext_wall_coef = 1., h_t_set = 20., c_t_set = 26., wwr = 0.125, mfr_m = 1., elec_loads_m = 1.):
         for s in self._thermal_zones_list[0]._surface_list:
             if isinstance(s, Surface):
                 if s.surface_type in ["ExtWall", "Roof"]:
                     s.apply_ext_surf_coeff(ext_wall_coef)
+                    if s.surface_type in ["ExtWall"]:
+                        s._calc_glazed_and_opaque_areas(wwr)
         # self._thermal_zones_list[0].number_of_units = int(ext_wall_coef * self._thermal_zones_list[0].number_of_units)
         # self._thermal_zones_list[0]._net_floor_area = ext_wall_coef * self._thermal_zones_list[0]._net_floor_area
         # self._thermal_zones_list[0]._volume = ext_wall_coef * self._thermal_zones_list[0]._volume
+        
+        
 
         {
             "1C": self._thermal_zones_list[0]._ISO13790_params,
@@ -582,14 +583,181 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
 
 
-        delta_T = t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule.max()
+        delta_T_h = h_t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule.max()        
+        delta_T_c = c_t_set - self._thermal_zones_list[0].temperature_setpoint.schedule_upper.schedule.min()
         setp = copy.deepcopy(self._thermal_zones_list[0].temperature_setpoint)
+        
         self._thermal_zones_list[0].temperature_setpoint = setp
-        self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule = self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule + delta_T
+        self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule = self._thermal_zones_list[0].temperature_setpoint.schedule_lower.schedule + delta_T_h
+        self._thermal_zones_list[0].temperature_setpoint.schedule_upper.schedule = self._thermal_zones_list[0].temperature_setpoint.schedule_upper.schedule + delta_T_c
 
+        ahu = copy.deepcopy(self._thermal_zones_list[0].air_handling_unit)
+        
+        
+        # Change ahu supply according to setpoint
+        filt_h = ahu._ahu_operation.schedule == 1        
+        filt_c = ahu._ahu_operation.schedule == -1
+        ahu.supply_temperature.schedule[filt_h] = ahu.supply_temperature.schedule[filt_h]+delta_T_h
+        ahu.supply_temperature.schedule[filt_c] = ahu.supply_temperature.schedule[filt_c]+delta_T_c 
+
+
+          
+        self._thermal_zones_list[0].air_handling_unit = ahu
+        self._thermal_zones_list[0].air_handling_unit.air_flow_rate_kg_S = self._thermal_zones_list[0].air_handling_unit.air_flow_rate_kg_S * mfr_m
+        self._thermal_zones_list[0].air_handling_unit.vapour_flow_rate_kg_S = self._thermal_zones_list[0].air_handling_unit.vapour_flow_rate_kg_S * mfr_m
+
+        
+        self._thermal_zones_list[0].air_handling_unit.electric_consumption_W = self._thermal_zones_list[0].air_handling_unit.electric_consumption_based_on_mass_flow_rate(self._thermal_zones_list[0].air_handling_unit.air_flow_rate_kg_S)
+
+        self._thermal_zones_list[0].electric_load = self._thermal_zones_list[0].electric_load * elec_loads_m
+        
         self._thermal_zones_list[0].design_sensible_cooling_load(weather, model=self._model)
         self._thermal_zones_list[0].design_heating_load(-5.)
         self.set_hvac_system_capacity(weather)
+      
+    def costfun_el_load_wint(self, x0, weather = None, elec_meas_winter = None):
+        ele_loads = x0
+        self.update_calibration_params(weather, elec_loads_m=ele_loads)
+        results = self.simulate(weather, output_folder=None)
+        elec_sim_measure = results["Appliances electric consumption [Wh]"][f"Bd {self.name}"][0:2880].sum() + results["Electric consumption [Wh]"][f"Bd {self.name}"][6552:].sum()
+        #elec_sim_measure = results["Electric consumption [Wh]"][f"Bd {self.name}"][0:2880].sum() + results["Electric consumption [Wh]"][f"Bd {self.name}"][6552:].sum()
+        self.update_calibration_params(weather, elec_loads_m=1/ele_loads)
+        print("One function eval")
+        return np.abs(elec_meas_winter - elec_sim_measure/1000)
+
+    def calibrate_el_load_wint(self, elec_meas_winter, weather,
+                  limits_ele_loads = [0.5,1.5],
+                  ):
+
+        ele_load_init = 1.
+        x0 = [ele_load_init]
+        lb = limits_ele_loads[0], 
+        ub = limits_ele_loads[1], 
+        opt = least_squares(self.costfun_el_load_wint, 
+                            x0,
+                            # ftol=1e-04,
+                            xtol=1e-02,
+                            bounds = (lb,ub),
+                            method = 'trf',
+                            max_nfev = 50,
+                            kwargs={"weather":weather,"elec_meas_winter":elec_meas_winter})
+
+
+        # Read the solution
+        x_opt = opt.x
+        fmin = opt.cost
+        residuals = opt.fun
+        nfev = opt.nfev
+
+        # Verbal description of the termination reason.
+        print(opt.message)
+
+        return x_opt, fmin, residuals, nfev, opt.message, opt.status
+  
+    def costfun_summer_mfr_c_setp(self, x0, weather = None, elec_meas_summer = None):
+        mfr, c_t_set = x0
+        
+        if self.info_geojson["ElLoad_cal"] != 1.:
+            el_load_m = self.info_geojson["ElLoad_cal"]
+        else:
+            el_load_m = 1.
+                
+        self.update_calibration_params(weather, mfr_m = mfr, c_t_set=c_t_set, elec_loads_m=el_load_m)
+        results = self.simulate(weather, output_folder=None)
+        elec_sim_summer = results["Electric consumption [Wh]"][f"Bd {self.name}"][2880:6552].sum()
+        self.update_calibration_params(weather, mfr_m = 1/mfr, c_t_set=26., elec_loads_m=1/el_load_m)
+        print("One function eval")
+        return np.abs(elec_meas_summer - elec_sim_summer/1000)
+
+    def calibrate_summer_mfr_c_setp(self, elec_meas_summer, weather,
+                  limits_setpoint = [24,28],
+                  limits_mfr_m = [0.3,1.]
+                  ):
+
+        T_sp_init = 26.
+        mfr_m_init = 0.6
+        x0 = [mfr_m_init, T_sp_init]
+        lb = limits_mfr_m[0], limits_setpoint[0]
+        ub = limits_mfr_m[1], limits_setpoint[1]
+        opt = least_squares(self.costfun_summer_mfr_c_setp,
+                            x0,
+                            #ftol=1e-04,
+                            xtol=1e-04,
+                            bounds = (lb,ub),
+                            method = 'trf',
+                            max_nfev = 50,
+                            kwargs={"weather":weather,"elec_meas_summer":elec_meas_summer})
+
+
+        # Read the solution
+        x_opt = opt.x
+        fmin = opt.cost
+        residuals = opt.fun
+        nfev = opt.nfev
+
+        # Verbal description of the termination reason.
+        print(opt.message)
+
+        return x_opt, fmin, residuals, nfev, opt.message, opt.status
+
+    def costfun_winter(self, data, weather = None, gas_meas = None):
+        ext_wall_coef, t_set = data
+        
+        if self.info_geojson["ElLoad_cal"] != 1.:
+            el_load_m = self.info_geojson["ElLoad_cal"]
+        else:
+            el_load_m = 1.
+        if self.info_geojson["MFR_M_cal"] != 1.:
+            mfr = self.info_geojson["MFR_M_cal"]
+        else:
+            mfr = 1.
+        if self.info_geojson["TSetC_cal"] != 26.:
+            c_t_set = self.info_geojson["TSetC_cal"]
+        else:
+            c_t_set = 26.
+        
+        self.update_calibration_params(weather, ext_wall_coef = ext_wall_coef, h_t_set = t_set, mfr_m = mfr, c_t_set=c_t_set, elec_loads_m=el_load_m)
+        results = self.simulate(weather, output_folder=None)
+        gas_cons = results["Heating system gas consumption [Nm3]"][f"Bd {self.name}"].sum()
+        self.update_calibration_params(weather, 
+                                             ext_wall_coef = 1/ext_wall_coef, 
+                                             h_t_set = 20., 
+                                             mfr_m = 1/ mfr, 
+                                             c_t_set = 26,
+                                             elec_loads_m = 1/ el_load_m)
+        print("One function eval")
+        return np.abs(gas_cons - gas_meas)
+
+    def calibrate_winter(self, c_gas_meas, weather,
+                  limits_setpoint = [18,22],
+                  limits_fwalls = [0.75,1.25]
+                  ):
+
+        T_sp_init = 20.
+        f_w_init = 1.
+        x0 = [f_w_init, T_sp_init]
+        lb = limits_fwalls[0], limits_setpoint[0]
+        ub = limits_fwalls[1], limits_setpoint[1]
+        opt = least_squares(self.costfun_winter,
+                            x0,
+                            ftol=1e-04,
+                            #xtol=1e-04,
+                            bounds = (lb,ub),
+                            method = 'trf',
+                            max_nfev = 50,
+                            kwargs={"weather":weather,"gas_meas":c_gas_meas})
+
+
+        # Read the solution
+        x_opt = opt.x
+        fmin = opt.cost
+        residuals = opt.fun
+        nfev = opt.nfev
+
+        # Verbal description of the termination reason.
+        print(opt.message)
+
+        return x_opt, fmin, residuals, nfev, opt.message, opt.status
 
     def costfun(self, data, weather = None, gas_meas = None):
         ext_wall_coef, t_set = data
