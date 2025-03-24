@@ -61,7 +61,7 @@ class PV_system():
                  weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
-                 coverage_factor=0.9): #Coverage factor for the area that is covered by the PV
+                 coverage_factor=0.45): #Coverage factor for the area that is covered by the PV
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
@@ -114,7 +114,7 @@ class PV_system():
         
 
         '''
-        Module_Power_STC_condition=100 #Module Power at STC
+        Module_Power_STC_condition=400 #Module Power at STC
         Single_Module_Surface_Area=1.7 #Module Area
         for Surface,v in self._pv_efficiencies.items():
             Installed_PV_area=Surface._area*self.coverage_factor
