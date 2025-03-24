@@ -33,7 +33,8 @@ class WeatherFile():
                  irradiances_calculation: bool = True,
                  azimuth_subdivisions: int = 8,
                  height_subdivisions: int = 3,
-                 urban_shading_tol=[80., 100., 80.]
+                 urban_shading_tol=[80., 100., 80.],
+                 replacing_data = None 
                  ):
         '''Initialize weather obj. It processes the epw file to extract arrays of temperature, wind, humidity etc......
 
@@ -147,9 +148,12 @@ class WeatherFile():
 
         self.general_data['urban_shading_tol'] = urban_shading_tol
         self.general_data['yearly_solar_irradiation'] = self._epw_hourly_data["ghi"].sum()/2 #Wh
+
         # Definition of average T_ext during heating season
         av_t_daily = np.array([np.mean(self.hourly_data["out_air_db_temperature"][i:i+24*time_steps]) for i in range(0,8760 * time_steps, 24*time_steps)])
         self.general_data['heating_degree_days'] =  np.sum(20-av_t_daily[av_t_daily < 12])
+        self.general_data['heating_oa_design_temperature'] = np.min(self.hourly_data["out_air_db_temperature"])
+
         self.general_data['average_out_air_db_temperature_heating_season'] = np.mean(np.hstack([
             self.hourly_data["out_air_db_temperature"][CONFIG.heating_season_start_time_step:],
             self.hourly_data["out_air_db_temperature"][:CONFIG.heating_season_end_time_step]
@@ -163,7 +167,7 @@ class WeatherFile():
         self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
 
     def irradiances_calculation(self):
-        """Internal method to tun the irrandiances calculation
+        """Internal method to run the irrandiances calculation
         """
         # Get and store solar position arrays
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
@@ -268,6 +272,50 @@ class WeatherFile():
                     df.to_csv(name)
         
         return monthly_vars
+    
+    
+    def replace_weather_data(self, weather_data):
+        '''Replace 
+        This method replaces the existing input weather data (from epw) with data coming from external dataset 
+
+        Parameters
+        ----------
+        weather_data : pandas.DataFrame
+            pandas DataFrame with the iweather data that will replace the existing epw data 
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+
+        self.hourly_data["wind_speed"] = weather_data['wind_speed'].values  # [m/s]
+        # self.hourly_data["wind_direction"] = weather_data['wind_direction'].values  # [°]
+        self.hourly_data["out_air_db_temperature"] = weather_data['temp_air'].values  # [°C]
+        self.hourly_data["out_air_relative_humidity"] = weather_data['relative_humidity'].values / 100  # [0-1]
+        # self.hourly_data["out_air_pressure"] = weather_data['atmospheric_pressure'].values  # Pa
+        # self.hourly_data["opaque_sky_coverage"] = weather_data['opaque_sky_cover'].values  # [0-10]
+
+        
+        #------------------------- TO BE COMPLETED ---------------------------
+
+        ## 1) CALCULATE T_dp BASED ON T_db and RH
+        # self.hourly_data["out_air_dp_temperature"] = weather_data['temp_dew'].values  # [°C]
+        
+        ## 2) REPLACE ghi inside epw hourly data. This data is prcessed by method _get_irradiance())     
+        # self._epw_hourly_data['ghi'] = weather_data['GHI'].values  # Convert based on input to epw units[?]
+        
+        ## 3) CALCULATE dni and dhi BASED ON ghi USING pvgis     
+        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
+        # self._epw_hourly_data['dhi'] = pvgis/eureca function?  # Convert based on input to epw units[?]
+
+
+        # --------------------------------------------------------------------
+        
+        
+        
+        return
 
 
 

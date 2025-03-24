@@ -673,7 +673,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
                 tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
                 
-                tz.design_heating_load(-5.)
+                tz.design_heating_load(self.weather_file)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
 

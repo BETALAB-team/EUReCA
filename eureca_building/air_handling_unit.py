@@ -748,8 +748,8 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
                 # Conditions for chart
                 self._chart_T_hr,       self._chart_x_hr =          self.T_hr, self.x_hr
                 self._chart_T_mix,      self._chart_x_mix =         self.T_mix, self.x_mix
-                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_de, self.x_de
-                self._chart_T_as,       self._chart_x_as =          self.T_de, self.x_de
+                self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_ph, self.x_ph
+                self._chart_T_as,       self._chart_x_as =          self.T_as, self.x_as
                 self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
                 
                 

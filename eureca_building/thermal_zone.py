@@ -1762,7 +1762,7 @@ Thermal zone {self.name} 2C params:
         self.sensible_AHU_demand_qss_method = (Q_h_mec_sens)/3600000 # [kWh]
         self.latent_AHU_demand_qss_method = (Q_h_mec_lat)/3600000 # [kWh]
 
-    def design_heating_load(self, t_ext_design):
+    def design_heating_load(self, weather):
         """Preliminary calculation to calculate the heating design temperature.
         Static calculation considering the product UA of all surfaces, the maximum infiltration flow rate, and the outdoor design temperature
 
@@ -1771,6 +1771,8 @@ Thermal zone {self.name} 2C params:
         t_ext_design : float
             outdoor design temperature [°C]
         """
+        t_ext_design = weather.general_data['heating_oa_design_temperature']
+
         m_ve = self.infiltration_air_flow_rate.max()
         self.design_heating_system_power = 1.3 * (self.Htr_op + self.Htr_w) * (20. - t_ext_design) + m_ve * air_properties['specific_heat'] * (20. - t_ext_design)
         return self.design_heating_system_power
