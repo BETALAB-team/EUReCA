@@ -1737,7 +1737,7 @@ class HeatingFromParams(System):
             self.coal_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Coal"]
         elif "LPG" in self.fuel_type:
             self.lpg_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["LPG"]
-        elif "NaturalGas" in self.fuel_type:
+        elif "Natural" in self.fuel_type and "Gas" in self.fuel_type :
             self.gas_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Natural Gas"]
         elif "Wood" in self.fuel_type:
             self.wood_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Wood"]
@@ -1756,7 +1756,7 @@ class HeatingFromParams(System):
             self.coal_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Coal"]
         elif "LPG" in self.dhw_fuel_type:
             self.lpg_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["LPG"]
-        elif "NaturalGas" in self.dhw_fuel_type:
+        elif "Natural" in self.dhw_fuel_type and "Gas" in self.dhw_fuel_type:
             self.gas_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Natural Gas"]
         elif "Wood" in self.dhw_fuel_type:
             self.wood_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Wood"]
