@@ -761,10 +761,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
     def costfun(self, data, weather = None, gas_meas = None):
         ext_wall_coef, t_set = data
-        self.update_wall_factor_and_setpoint(ext_wall_coef, t_set, weather)
+        self.update_calibration_params(weather, ext_wall_coef = ext_wall_coef, h_t_set = t_set)
         results = self.simulate(weather, output_folder=None)
         gas_cons = results["Heating system gas consumption [Nm3]"][f"Bd {self.name}"].sum()
-        self.update_wall_factor_and_setpoint(1/ext_wall_coef, 20., weather)
+        self.update_calibration_params(weather, ext_wall_coef = 1/ext_wall_coef, h_t_set=20.)
         print("One function eval")
         return (gas_cons - gas_meas)
 

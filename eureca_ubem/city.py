@@ -792,7 +792,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # print(f"{int(100*iiii/jjjj)} %: load calc")
 
             if t_set is not None and ext_wall_coef is not None:
-                building_obj.update_wall_factor_and_setpoint(ext_wall_coef[bd_id], t_set[bd_id], self.weather_file)
+                building_obj.update_calibration_params(self.weather_file, ext_wall_coef = ext_wall_coef[bd_id],  h_t_set=t_set[bd_id])
             
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
@@ -1889,7 +1889,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                                                                   limits_setpoint=limits_setpoint,
                                                                   limits_fwalls=limits_fwalls
                                                                   )
-                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0],cal_res[0][1], self.weather_file)
+                self.buildings_objects[bd_id].update_calibration_params(self.weather_file, ext_wall_coef = cal_res[0][0], h_t_set = cal_res[0][1])
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder,
                                                                   output_type=output_type)
                 info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
@@ -1904,8 +1904,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                                                                 limits_setpoint = limits_setpoint,
                                                               limits_fwalls = limits_fwalls
                                                                 )
-                self.buildings_objects[bd_id].update_wall_factor_and_setpoint(cal_res[0][0], cal_res[0][1],
-                                                                              self.weather_file)
+                self.buildings_objects[bd_id].update_calibration_params(self.weather_file, ext_wall_coef = cal_res[0][0], h_t_set = cal_res[0][1])
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
                 info = self.buildings_objects[bd_id]._thermal_zones_list[0].get_zone_info()
                 info["Name"] = self.buildings_objects[bd_id].name
@@ -1962,6 +1961,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         bd_summary.drop(["Name"], axis=1, inplace=True)
         self.output_geojson.set_index("new_id", drop=True, inplace=True)
         new_geojson = pd.concat([self.output_geojson.loc[bd_summary.index],bd_summary],axis=1)
+        if 'level_0' in new_geojson.columns:
+            new_geojson.drop('level_0', axis = 1, inplace = True)
         new_geojson.to_file(os.path.join(self.output_folder, "Buildings_summary.geojson"), driver="GeoJSON")
         new_geojson.drop("geometry", axis=1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep=";")
 
