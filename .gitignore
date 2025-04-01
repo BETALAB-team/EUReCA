@@ -79,4 +79,5 @@ logging.log
 /eureca_ubem/Input/geojson_corr/
 /eureca_ubem/Input/geojson_corr_sysmod/
 /eureca_ubem/InputBelzoniPerCoolingDown/
+EUReCA.egg-info
 
