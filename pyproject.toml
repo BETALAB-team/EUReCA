@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "EUReCA"
+name = "eureca"
 version = "1.0.0"
 authors = [
   { name="Enrico Prataviera", email="enrico.prataviera@unipd.it" },
@@ -44,8 +44,7 @@ dev = [
 Homepage = 'https://github.com/BETALAB-team/EUReCA'
 
 [tool.setuptools]
-py-modules = [
-"funcs",
-"classes",
-"resources"
+packages  = [
+"eureca_building",
+"eureca_ubem",
 ]
