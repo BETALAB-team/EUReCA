@@ -841,6 +841,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
+    def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path):
+        geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
+
+
+
+
     def geometric_preprocessing(self):
         '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
         Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
