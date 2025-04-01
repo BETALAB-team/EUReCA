@@ -24,6 +24,7 @@ pip install git+https://github.com/BETALAB-team/EUReCA
 This will install the latest version. 
 
 To install a specific version the user can type something like this:
+
 ``
 pip install git+https://github.com/BETALAB-team/EUReCA@v1.0.0-beta
 ``
