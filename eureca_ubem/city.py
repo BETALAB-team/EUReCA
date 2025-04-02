@@ -841,9 +841,98 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
+    @staticmethod
+    def calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW):
+
+        demand_SH_H = np.clip(demand_SH,a_min = 0, a_max = None)
+        demand_SH_C = np.clip(demand_SH,a_min = None, a_max = 0)
+
+        delivered_demand = demand_Other.sum(axis = 1) + demand_SH_H.sum(axis = 1) + demand_DHW.sum(axis=1)
+
+        rejected_demand = -1*rejected_ST.sum(axis = 1) + -1*rejected_Other.sum(axis = 1) + demand_SH_C.sum(axis = 1)
+
+        TSI = np.sum(delivered_demand+rejected_demand)/(
+            np.sum(np.abs(delivered_demand)) + np.sum(np.abs(rejected_demand))
+            )
+
+        return TSI
+
     def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path):
+
+        # TODO: to be checheck!!! This is just a trial!!
+
+        print("####################################################")
+        print("####################################################")
+        print("####################################################")
+        print("")
+        print("Function find_best_5GDHC_clusters to be checheck!!! This is just a trial!!")
+        print("")
+        print("####################################################")
+        print("####################################################")
+        print("####################################################")
+
         geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
 
+        centroid = geojson.centroid
+        buffers = centroid.buffer(150)
+
+        results = pd.DataFrame(index=geojson.index, columns=["TSI", "Belonging BDs"])
+
+        for bd in geojson.index[:]:
+            intersect_filter = buffers.loc[bd].intersects(geojson.geometry)
+            filtered_bds = geojson.loc[intersect_filter]
+
+            rejected_ST = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            rejected_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_SH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DHW = np.zeros([CONFIG.number_of_time_steps_year, 1])
+
+            for i in filtered_bds.index:
+                # TODO: Change to parquet files to be more fast
+                results_file = f"Results Bd {filtered_bds['Name'].loc[i]}.csv"
+                df = pd.read_csv(os.path.join(output_folder, results_file), delimiter=";", header=[0, 1])
+
+                if "Solar surplus [Wh]" in df.columns.get_level_values(0):
+                    rejected_ST = np.hstack([
+                        rejected_ST,
+                        df["Solar surplus [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Rejected [Wh]" in df.columns.get_level_values(0):
+                    rejected_Other = np.hstack([
+                        rejected_Other,
+                        df["Refrigerator Heat Rejected [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Absorbed [Wh]" in df.columns.get_level_values(0):
+                    demand_Other = np.hstack([
+                        demand_Other,
+                        df["Refrigerator Heat Absorbed [Wh]"].values
+                    ])
+
+                demand_DH = np.hstack([
+                    demand_DH,
+                    df["Heating system DH consumption [Wh]"].values
+                ])
+
+                demand_SH = np.hstack([
+                    demand_SH,
+                    df["TZ sensible load [W]"].values +
+                    df["TZ AHU pre heater load [W]"].values +
+                    df["TZ AHU post heater load [W]"].values
+                ])
+
+                demand_DHW = np.hstack([
+                    demand_DHW,
+                    df["TZ DHW demand [W]"].values
+                ])
+
+            TSI = self.calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW)
+
+            results.loc[bd]["TSI"] = TSI
+            results.loc[bd]["Belonging BDs"] = filtered_bds.id.to_list()
 
 
 
