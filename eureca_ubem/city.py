@@ -857,7 +857,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
         return TSI
 
-    def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path):
+    def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
 
         # TODO: to be checheck!!! This is just a trial!!
 
@@ -874,7 +874,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
 
         centroid = geojson.centroid
-        buffers = centroid.buffer(150)
+        buffers = centroid.buffer(distance_buffer)
 
         results = pd.DataFrame(index=geojson.index, columns=["TSI", "Belonging BDs"])
 
