@@ -723,7 +723,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         n_buildings = len(self.buildings_objects)
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
-            if counter%10 == 0:
+            if counter%1 == 0:
                 print(f"{counter} buildings simulated out of {n_buildings}")
             counter += 1
 
