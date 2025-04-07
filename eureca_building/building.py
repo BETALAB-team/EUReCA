@@ -96,7 +96,7 @@ class Building:
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
     
-    def set_hvac_system(self, heating_system, cooling_system):
+    def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
 
         Available heating systems: {hvac_heating_systems_classes.keys()}
@@ -118,13 +118,13 @@ class Building:
 
         """
         try:
-            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system)
+            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, heating system not allowed: current heating system {heating_system}. Available heating systems:\n{hvac_heating_systems_classes.keys()}")
         if not isinstance(self.heating_system, System):
             raise TypeError((f"Building {self.name}, heating system does not comply with System class. The heating system class must be created using System interface"))
         try:
-            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system)
+            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, cooling system not allowed: current cooling system {cooling_system}. Available cooling systems:\n{hvac_cooling_systems_classes.keys()}")
         if not isinstance(self.cooling_system, System):
@@ -180,20 +180,35 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         self.pv_system = PV_system(name=f"Bd {self.name} PV system",
                                weatherobject=weather_obj,
                                surface_list=building_surface_list)
+
     def add_solar_thermal(self, weather_obj):
+
+        dhw_flow_rate = 0.
+        try:
+            for tz in self._thermal_zones_list:
+                dhw_flow_rate += tz.domestic_hot_water_volume_flow_rate.sum()*3600*1000/(CONFIG.ts_per_hour*365)
+                
+        except AttributeError:
+            raise SimulationError(f"""
+                                  Building {self.name}: set_hvac_system_capacity method can run only after ThermalZones design load is calculated. 
+                                  Please run thermal zones design_sensible_cooling_load and design_heating_load
+                                  """)
+                      
         building_surface_list=[]
         for tz in self._thermal_zones_list:
             for s in tz._surface_list:
                 building_surface_list.append(s)
-        
-        try: 
-            self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+
+        # try: 
+        self.heating_system.solar_thermal_system=SolarThermal_Collector(name=f"Bd {self.name} ST system",
+                                   dhw=dhw_flow_rate,
                                    weatherobject=weather_obj,
                                    surface_list=building_surface_list)
-        except AttributeError:
-            logging.warning(
-                f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
-        
+            
+        # except AttributeError:
+        #     logging.warning(
+        #         f"Bd {self.name} : Add solar thermal should be called after a heating system is created. The simulation will neglect the solar thermal")
+ 
         
     def solve_timestep(self, t: int, weather: WeatherFile):
         """Runs the thermal zone and hvac systems simulation for the timestep t
@@ -298,8 +313,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system gasoline consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system pellet consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system LPG consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -353,8 +371,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
+            results['Heating system gasoline consumption [L]'][t - t_start,0] = self.heating_system.gasoline_consumption
+            results['Heating system LPG consumption [kg]'][t - t_start,0] = self.heating_system.lpg_consumption
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
             results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
+            results['Heating system pellet consumption [kg]'][t - t_start,0] = self.heating_system.pellet_consumption
             results['Heating system DH consumption [Wh]'][t - t_start,0] = self.heating_system.DH_consumption
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
@@ -485,14 +506,14 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         cool_demand = np.array([0]*12)
         for tz in self._thermal_zones_list:
             tz.solve_quasisteadystate_method(weather_object)
-            shd = np.clip(tz.sensible_zone_demand_qss_method, 0, None)*1000 # Wh
-            lhd = np.clip(tz.latent_zone_demand_qss_method, 0, None)*1000 # Wh
+            shd = np.clip(tz.heat_sensible_zone_demand_qss_method, 0, None)*1000 # Wh
+            lhd = np.clip(tz.heat_latent_zone_demand_qss_method, 0, None)*1000 # Wh
             sad = np.clip(tz.sensible_AHU_demand_qss_method, 0, None)*1000 # Wh
             lad = np.clip(tz.latent_AHU_demand_qss_method, 0, None)*1000 # Wh
             heat_demand = heat_demand + shd + lhd + sad + lad
 
-            shd = np.clip(tz.sensible_zone_demand_qss_method, None, 0)*1000 # Wh
-            lhd = np.clip(tz.latent_zone_demand_qss_method, None, 0)*1000 # Wh
+            shd = np.clip(tz.cool_sensible_zone_demand_qss_method, None, 0)*1000 # Wh
+            lhd = np.clip(tz.cool_latent_zone_demand_qss_method, None, 0)*1000 # Wh
             sad = np.clip(tz.sensible_AHU_demand_qss_method, None, 0)*1000 # Wh
             lad = np.clip(tz.latent_AHU_demand_qss_method, None, 0)*1000 # Wh
             cool_demand = cool_demand + shd + lhd + sad + lad
@@ -514,6 +535,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['Heating system oil consumption [L]'] = self.heating_system.oil_consumption
         results['Heating system coal consumption [kg]'] = self.heating_system.coal_consumption
         results['Heating system wood consumption [kg]'] = self.heating_system.wood_consumption
+        results['Heating system pellet consumption [kg]'] = self.heating_system.pellet_consumption
         results['Heating system DH consumption [Wh]'] = self.heating_system.DH_consumption
         results['Heating system electric consumption [Wh]'] = self.heating_system.electric_consumption
         results['Cooling system electric consumption [Wh]'] = self.cooling_system.electric_consumption

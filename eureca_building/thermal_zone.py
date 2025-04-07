@@ -519,6 +519,7 @@ class ThermalZone(object):
         self.Htr_op = 0.
         self.ext_wall_opaque_area = 0.
         self.ext_wall_glazed_area = 0.
+        self.ext_roof_area = 0.
 
         # list all surface to extract the window and opeque area and other thermo physical prop
 
@@ -536,6 +537,9 @@ class ThermalZone(object):
                     self.Htr_op += surface._opaque_area * surface.construction._u_value
                     if surface._glazed_area > 0.:
                         self.Htr_w += surface._glazed_area * surface.window._u_value
+                        
+                if surface.surface_type == "Roof":
+                    self.ext_roof_area += surface._area
 
                 if surface.surface_type == "ExtWall":
                     self.ext_wall_opaque_area += surface._opaque_area
@@ -619,6 +623,7 @@ Thermal zone {self.name} 1C params:
         self.Aaw_opaque = 0
         self.ext_wall_opaque_area = 0.
         self.ext_wall_glazed_area = 0.
+        self.ext_roof_area = 0.
 
         # Cycling surface to calculates the Resistance and capacitance of the vdi 6007
 
@@ -628,6 +633,8 @@ Thermal zone {self.name} 1C params:
             if surface.surface_type == "ExtWall":
                 self.ext_wall_opaque_area += surface._opaque_area
                 self.ext_wall_glazed_area += surface._glazed_area
+            if surface.surface_type == "Roof":
+                self.ext_roof_area += surface._area
             if surface.surface_type in ["ExtWall", "GroundFloor", "Roof"]:
                 self.Aaw_tot += surface._area
                 self.Aaw_opaque += surface._opaque_area
@@ -1660,6 +1667,8 @@ Thermal zone {self.name} 2C params:
             h_av_sp = self._temperature_setpoint.schedule_lower.schedule[heating_timesteps > 0.5].mean()
             c_av_sp = self._temperature_setpoint.schedule_upper.schedule[cooling_timesteps > 0.5].mean()
 
+        h_av_sp = h_av_sp if monthly_heating_timesteps.sum() > 0 else 20
+        c_av_sp = c_av_sp if monthly_cooling_timesteps.sum() > 0 else 26
         # [J] = [W/K] * ([°C] - [°C]) * [-] * [s]
         Q_h_tr_monthly = self.UA_tot * (h_av_sp - weather.monthly_data["out_air_db_temperature"]) * monthly_heating_timesteps * CONFIG.time_step
         # Q_h_tr_monthly[Q_h_tr_monthly < 0.] = 0.
@@ -1669,16 +1678,16 @@ Thermal zone {self.name} 2C params:
         # Infiltration
         # [W/K] = [kg/s] * [J/kgK]
         H_ve_inf = self.infiltration_air_flow_rate * air_properties['specific_heat']
-        Q_h_inf = H_ve_inf * (h_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
-        Q_c_inf = H_ve_inf * (c_av_sp - weather.hourly_data["out_air_db_temperature"]) # [W]
+        Q_h_inf = H_ve_inf * (h_av_sp - weather.hourly_data["out_air_db_temperature"]) * heating_timesteps # [W]
+        Q_c_inf = H_ve_inf * (c_av_sp - weather.hourly_data["out_air_db_temperature"]) * cooling_timesteps # [W]
         Q_h_inf_monthly = get_monthly_value_from_annual_vector(Q_h_inf, method = 'integral') # [J]
         Q_c_inf_monthly = get_monthly_value_from_annual_vector(Q_c_inf, method = 'integral') # [J]
 
         # Effect of Mech Ventilation in zone
         # [W/K] = [kg/s] * [J/kgK]
         H_ve_mec = self.air_handling_unit.air_flow_rate_kg_S * air_properties['specific_heat']
-        Q_h_ve = H_ve_mec * (h_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
-        Q_c_ve = H_ve_mec * (c_av_sp - self.air_handling_unit.supply_temperature.schedule) # [W]
+        Q_h_ve = H_ve_mec * (h_av_sp - self.air_handling_unit.supply_temperature.schedule) * heating_timesteps # [W]
+        Q_c_ve = H_ve_mec * (c_av_sp - self.air_handling_unit.supply_temperature.schedule) * cooling_timesteps # [W]
         Q_h_ve_monthly = get_monthly_value_from_annual_vector(Q_h_ve, method = 'integral') # [J]
         Q_c_ve_monthly = get_monthly_value_from_annual_vector(Q_c_ve, method = 'integral') # [J]
 
@@ -1695,6 +1704,7 @@ Thermal zone {self.name} 2C params:
         tau_0 = 15.
         a_h = a_0 + tau/tau_0
         gamma_h = Q_h_gn/Q_h_ht
+        gamma_h[gamma_h>1e15] = 1e15
         eta_h_gn = np.zeros(12)
         eta_h_gn[gamma_h > 0.] = (1-gamma_h[gamma_h > 0.] ** a_h)/(1-gamma_h[gamma_h > 0.] ** (a_h+1))
         eta_h_gn[gamma_h == 1.] = (a_h)/(a_h+1)
@@ -1702,14 +1712,15 @@ Thermal zone {self.name} 2C params:
         # Cooling
         a_c = a_0 + tau/tau_0
         gamma_c = Q_c_gn / Q_c_ht
+        gamma_c[gamma_c>1e15] = 1e15
         eta_c_is = np.zeros(12)
         eta_c_is[gamma_c > 0.] = (1 - gamma_c[gamma_c > 0.] ** (-1*a_c)) / (1 - gamma_c[gamma_c > 0.] ** (-1*a_c - 1))
         eta_c_is[gamma_c == 1.] = (a_c) / (a_c + 1)
         eta_c_is[gamma_c <= 0.] = 1
 
         # Final monthly calc
-        Q_h_sens = Q_h_ht - eta_h_gn * Q_h_gn
-        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht)
+        Q_h_sens = (Q_h_ht - eta_h_gn * Q_h_gn) * (monthly_heating_timesteps > 0)
+        Q_c_sens = -1*(Q_c_gn - eta_c_is * Q_c_ht) * (monthly_cooling_timesteps > 0)
         Q_h_sens[Q_h_sens<0.] = 0.
         Q_c_sens[Q_c_sens>0.] = 0.
 
@@ -1744,12 +1755,14 @@ Thermal zone {self.name} 2C params:
         Q_h_mec_lat = H_ve_mec * (self.air_handling_unit.supply_specific_humidity.schedule - weather.hourly_data['out_air_specific_humidity']) # [W]
         Q_h_mec_lat = get_monthly_value_from_annual_vector(Q_h_mec_lat, method = 'integral') # [J]
 
-        self.sensible_zone_demand_qss_method = (Q_h_sens + Q_c_sens)/3600000 # [kWh]
-        self.latent_zone_demand_qss_method = (Q_h_lat + Q_c_lat)/3600000 # [kWh]
+        self.heat_sensible_zone_demand_qss_method = (Q_h_sens)/3600000 # [kWh]
+        self.heat_latent_zone_demand_qss_method = (Q_h_lat)/3600000 # [kWh]
+        self.cool_sensible_zone_demand_qss_method = (Q_c_sens)/3600000 # [kWh]
+        self.cool_latent_zone_demand_qss_method = (Q_c_lat)/3600000 # [kWh]
         self.sensible_AHU_demand_qss_method = (Q_h_mec_sens)/3600000 # [kWh]
         self.latent_AHU_demand_qss_method = (Q_h_mec_lat)/3600000 # [kWh]
 
-    def design_heating_load(self, t_ext_design):
+    def design_heating_load(self, weather):
         """Preliminary calculation to calculate the heating design temperature.
         Static calculation considering the product UA of all surfaces, the maximum infiltration flow rate, and the outdoor design temperature
 
@@ -1758,6 +1771,8 @@ Thermal zone {self.name} 2C params:
         t_ext_design : float
             outdoor design temperature [°C]
         """
+        t_ext_design = weather.general_data['heating_oa_design_temperature']
+
         m_ve = self.infiltration_air_flow_rate.max()
         self.design_heating_system_power = 1.3 * (self.Htr_op + self.Htr_w) * (20. - t_ext_design) + m_ve * air_properties['specific_heat'] * (20. - t_ext_design)
         return self.design_heating_system_power

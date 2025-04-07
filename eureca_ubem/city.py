@@ -16,6 +16,7 @@ from scipy.spatial import cKDTree
 from shapely.validation import make_valid
 from shapely.geometry import MultiPolygon
 from eureca_building.config import CONFIG
+import eureca_building.logs
 from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
@@ -25,6 +26,7 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -47,9 +49,10 @@ class City():
                  envelope_types_file:str,
                  end_uses_types_file:str,
                  epw_weather_file:str,
-                 output_folder: str,
-                 building_model = "2C",
-                 shading_calculation = False,
+                 output_folder = CONFIG.output_path,
+                 building_model = CONFIG.building_energy_model,
+                 shading_calculation = CONFIG.do_solar_shading_calculation,
+                 systems_templates_file = None,
                  ):
         """Creates the city from all the input files
 
@@ -77,7 +80,7 @@ class City():
             epw_weather_file,
             year = CONFIG.simulation_reference_year,
             time_steps = CONFIG.ts_per_hour,
-            irradiances_calculation = CONFIG.do_solar_radiation_calculation,
+            irradiances_calculation = True,
             azimuth_subdivisions = CONFIG.azimuth_subdivisions,
             height_subdivisions = CONFIG.height_subdivisions,
             urban_shading_tol = CONFIG.urban_shading_tolerances
@@ -86,6 +89,7 @@ class City():
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
         self.end_uses_dict = load_schedules(end_uses_types_file)
+        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
         self.shading_calculation = shading_calculation
@@ -353,7 +357,10 @@ class City():
             self.cityjson.loc[i,"new_id"] = id
             self.json_buildings[id] = self.cityjson.loc[i].to_dict()
             bd_data = self.json_buildings[id]
-            n_floors = int(self.cityjson.loc[i]['Floors'])
+            try:
+                n_floors = int(self.cityjson.loc[i]['Floors'])
+            except ValueError:
+                n_floors = 1
             floor_height = self.cityjson.loc[i]['Height'] / n_floors
             # https://gis.stackexchange.com/questions/287306/list-all-polygon-vertices-coordinates-using-geopandas
             name = str(bd_data["Name"])#  + "_" + str(i[1])
@@ -581,7 +588,7 @@ class City():
                     "2C": thermal_zone._VDI6007_params,
                 }[self.building_model]()
 
-    def loads_calculation(self, region = None):
+    def loads_calculation(self, region = CONFIG.region):
         '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
         '''
         
@@ -666,11 +673,27 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
                 tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
                 
-                tz.design_heating_load(-5.)
+                tz.design_heating_load(self.weather_file)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
+
+
+            hs_params = None
+            cs_params = None
+
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
+
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
             building_obj.set_hvac_system_capacity(self.weather_file)
 
             if "PV" in building_info["Solar technologies"]:
@@ -680,7 +703,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
                
 
-    def simulate(self, print_single_building_results = False, output_type = "parquet"):
+    def simulate(self,
+                 print_single_building_results = CONFIG.print_single_building_results,
+                 output_type = CONFIG.output_file_format):
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -751,7 +776,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
-            monthly = results.resample("M").sum()
+            monthly = results.resample("ME").sum()
 
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
@@ -759,12 +784,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
-            heat_demand["Total"] = heat_demand.sum()
-            cooling_demand["Total"] = cooling_demand.sum()
-            gas_consumption["Total"] = gas_consumption.sum()
-            el_consumption["Total"] = el_consumption.sum()
-            oil_consumption["Total"] = oil_consumption.sum()
-            wood_consumption["Total"] = wood_consumption.sum()
+            heat_demand = pd.concat([heat_demand, pd.Series([heat_demand.sum()], index = ["Total"])])
+            cooling_demand = pd.concat([cooling_demand, pd.Series([cooling_demand.sum()], index = ["Total"])])
+            gas_consumption = pd.concat([gas_consumption, pd.Series([gas_consumption.sum()], index = ["Total"])])
+            el_consumption = pd.concat([el_consumption, pd.Series([el_consumption.sum()], index = ["Total"])])
+            oil_consumption = pd.concat([oil_consumption, pd.Series([oil_consumption.sum()], index = ["Total"])])
+            wood_consumption = pd.concat([wood_consumption, pd.Series([wood_consumption.sum()], index = ["Total"])])
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
@@ -815,6 +840,101 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+
+    @staticmethod
+    def calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW):
+
+        demand_SH_H = np.clip(demand_SH,a_min = 0, a_max = None)
+        demand_SH_C = np.clip(demand_SH,a_min = None, a_max = 0)
+
+        delivered_demand = demand_Other.sum(axis = 1) + demand_SH_H.sum(axis = 1) + demand_DHW.sum(axis=1)
+
+        rejected_demand = -1*rejected_ST.sum(axis = 1) + -1*rejected_Other.sum(axis = 1) + demand_SH_C.sum(axis = 1)
+
+        TSI = np.sum(delivered_demand+rejected_demand)/(
+            np.sum(np.abs(delivered_demand)) + np.sum(np.abs(rejected_demand))
+            )
+
+        return TSI
+
+    def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
+
+        # TODO: to be checheck!!! This is just a trial!!
+
+        print("####################################################")
+        print("####################################################")
+        print("####################################################")
+        print("")
+        print("Function find_best_5GDHC_clusters to be checheck!!! This is just a trial!!")
+        print("")
+        print("####################################################")
+        print("####################################################")
+        print("####################################################")
+
+        geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
+
+        centroid = geojson.centroid
+        buffers = centroid.buffer(distance_buffer)
+
+        results = pd.DataFrame(index=geojson.index, columns=["TSI", "Belonging BDs"])
+
+        for bd in geojson.index[:]:
+            intersect_filter = buffers.loc[bd].intersects(geojson.geometry)
+            filtered_bds = geojson.loc[intersect_filter]
+
+            rejected_ST = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            rejected_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_SH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DHW = np.zeros([CONFIG.number_of_time_steps_year, 1])
+
+            for i in filtered_bds.index:
+                # TODO: Change to parquet files to be more fast
+                results_file = f"Results Bd {filtered_bds['Name'].loc[i]}.csv"
+                df = pd.read_csv(os.path.join(output_folder, results_file), delimiter=";", header=[0, 1])
+
+                if "Solar surplus [Wh]" in df.columns.get_level_values(0):
+                    rejected_ST = np.hstack([
+                        rejected_ST,
+                        df["Solar surplus [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Rejected [Wh]" in df.columns.get_level_values(0):
+                    rejected_Other = np.hstack([
+                        rejected_Other,
+                        df["Refrigerator Heat Rejected [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Absorbed [Wh]" in df.columns.get_level_values(0):
+                    demand_Other = np.hstack([
+                        demand_Other,
+                        df["Refrigerator Heat Absorbed [Wh]"].values
+                    ])
+
+                demand_DH = np.hstack([
+                    demand_DH,
+                    df["Heating system DH consumption [Wh]"].values
+                ])
+
+                demand_SH = np.hstack([
+                    demand_SH,
+                    df["TZ sensible load [W]"].values +
+                    df["TZ AHU pre heater load [W]"].values +
+                    df["TZ AHU post heater load [W]"].values
+                ])
+
+                demand_DHW = np.hstack([
+                    demand_DHW,
+                    df["TZ DHW demand [W]"].values
+                ])
+
+            TSI = self.calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW)
+
+            results.loc[bd]["TSI"] = TSI
+            results.loc[bd]["Belonging BDs"] = filtered_bds.id.to_list()
+
+
 
     def geometric_preprocessing(self):
         '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results

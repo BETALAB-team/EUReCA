@@ -4,7 +4,7 @@ Solar Thermal Calculation
 Created by: Mohamad
 Betalab - DII, University of Padua
 ---
-
+the collector is sized based on the BOSCH manual for albany, NY
 """
 from eureca_building.weather import WeatherFile
 import numpy as np
@@ -18,10 +18,11 @@ class SolarThermal_Collector():
     def __init__(self,
                  name: str,
                  surface_list: list,
+                 dhw:float,
                  weatherobject: WeatherFile,
                  Fluid_inlet_temperature=12,
                  Fluid_design_max_outlet_temperature=90,
-                 coverage_factor=0.05,
+                 max_coverage_factor=0.05,
                  mount_surfaces=["Roof"],
                  Collector_parameters={'efficiency_slope':-0.013,
                                        'efficiency_intercept':0.8}
@@ -29,16 +30,26 @@ class SolarThermal_Collector():
         
         
         self.name=name
-        self.coverage_factor=coverage_factor
+        self.max_coverage_factor=max_coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
         self.weather=weatherobject._epw_hourly_data
         self.weather_md=weatherobject._epw_general_data
         self.Collector_parameters=Collector_parameters
- 
+        city_irrad= weatherobject.general_data['yearly_solar_irradiation']/1000
         Air_temperature=self.weather['temp_air']
-     
-        self.gained_heat=0
+        Albany_city_convert=1569/city_irrad
+        dhw=dhw
+        slope_sizing=0.0104*Albany_city_convert
+        sized_area=slope_sizing*dhw
 
+
+
+        self.gained_heat=0
+        tot_area=0
+        for Surface in self._surfaces:
+            tot_area=tot_area+Surface._area
+        self.sized_coverage_factor=sized_area/tot_area
+        coverage_factor=min(self.sized_coverage_factor,max_coverage_factor)
         for Surface in self._surfaces: 
             tilt=Surface._height_round
             orient=Surface._azimuth_round
@@ -66,8 +77,8 @@ class SolarThermal_Collector():
 
 
             
-            Area=Surface._area*coverage_factor
-            Absorbed_heat=Area*poa_global*Efficiency # W 
+            max_Area=Surface._area*coverage_factor
+            Absorbed_heat=max_Area*poa_global*Efficiency # W 
             
             self.gained_heat+=Absorbed_heat
             

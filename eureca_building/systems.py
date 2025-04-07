@@ -40,6 +40,9 @@ class System(metaclass=abc.ABCMeta):
     electric_consumption = 0
     wood_consumption = 0
     oil_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     @classmethod
     def __subclasshook__(cls, C):
@@ -186,7 +189,7 @@ class System(metaclass=abc.ABCMeta):
         #     solar_thermal_gain=0
         self.charging_mode = 0
         self.discharging_mode = 0
-        self.solar_gain_out = self.solar_gain[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
+        self.solar_gain_out = self.solar_gain.iloc[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
         solar_gain=self.solar_gain_out
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
@@ -231,6 +234,9 @@ class IdealLoad(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         """IdealLoad init method. No input needed
@@ -295,6 +301,9 @@ class CondensingBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method are initialized
@@ -468,6 +477,9 @@ class TraditionalBoiler(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
@@ -1058,6 +1070,7 @@ class SplitAirConditioner(System):
     coal_consumption = 0
     DH_consumption = 0
 
+
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes for the method
 
@@ -1186,6 +1199,9 @@ class Heating_EN15316(System):
     oil_consumption = 0
     coal_consumption = 0
     DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
 
     def __init__(self, *args, **kwargs):
         '''init method. Set some attributes are set
@@ -1439,10 +1455,523 @@ class Cooling_EN15316(System):
 
         self.electric_consumption = total_energy
 
+class HP_Staffell(System):
+    '''Class Heating HP Staffel.
+    '''
+
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
+    pellet_consumption = 0
+    lpg_consumption = 0
+    gasoline_consumption = 0
+
+    def __init__(self, *args, **kwargs):
+        '''init method. Set some attributes are set
+        The heating_system_key label must be passed as kwargs. Example:
+        Heating_EN15316(heating_system_key = "Traditional Gas Boiler, Single, Low Temp Radiator")
+
+        Parameters
+        ----------
+        args : list
+            list of optional arguments
+        kwargs : dict
+            kwargs must include {heating_system_key : string_of_heating_system}
+
+        '''
+
+        self.system_type = kwargs["heating_system_key"]
+        info_heating = kwargs["heating_system_key"].split(", ")
+
+        self.generation_type = info_heating[0]
+        try:
+            self.distribution_type = info_heating[1]
+            self.emitter_type = info_heating[2]
+            self.emission_control_efficiency = systems_info_dict["EN_15316_emission_control_heating_efficiency"]["Efficiency [-]"][self.emitter_type]
+            self.distribution_efficiency = systems_info_dict["EN_15316_distribution_heating_efficiency"]["Efficiency [-]"][self.distribution_type]
+            self.convective_fraction = systems_info_dict["EN_15316_emission_control_heating_efficiency"]["Convective fraction [-]"][self.emitter_type]
+        except IndexError:
+            # Stove
+            self.distribution_type = None
+            self.emitter_type = None
+            self.emission_control_efficiency = 1.
+            self.distribution_efficiency = 1.
+            self.convective_fraction = 0.5
+
+        self.T_emitter = {
+            "Low Temp Radiator":60.,
+            "High Temp Radiator":70.,
+            "Radiant surface":35.,
+            "Fan coil":40,
+        }[self.emitter_type]
+
+        self.COP_fun = {
+            "A-W HP Staffel":lambda t_ext : 6.81 - 0.121 * (self.T_emitter - t_ext) + 0.000630 * (self.T_emitter - t_ext)**2,
+            "G-W HP Staffel":lambda t_g : 8.77 - 0.150 * (self.T_emitter - t_g) + 0.000734 * (self.T_emitter - t_g)**2,
+        }[self.generation_type]
+
+        self.sigma = {
+            "1C" : (1-self.convective_fraction, self.convective_fraction),
+            "2C" : (
+            (1-self.convective_fraction)/2, # Radiative IW
+            (1-self.convective_fraction)/2, # Radiative AW
+            self.convective_fraction)       # Convective
+        }
+
+        self.dhw_tank_volume = 0.2 # [m3]
+
+        # Input Data
+        # self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
+
+    def set_system_capacity(self, design_power, weather):
+        self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency
+
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int,**kwargs):
+        '''This method allows to calculate the system power for each time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
+        kwargs
+        '''
+
+        self.dhw_tank_solver(dhw_flow, weather, t)
+        heat_flow += self.dhw_capacity_to_tank
+
+        T_source = {
+            "A-W HP Staffel": weather.hourly_data["out_air_db_temperature"][t],
+            "G-W HP Staffel": weather.general_data['average_out_air_db_temperature'] - 2,
+        }[self.generation_type]
+
+        COP_ts = self.COP_fun(T_source)
+
+        total_energy = heat_flow / self.total_efficiency / COP_ts
+
+        self.electric_consumption = total_energy / CONFIG.ts_per_hour
+
+    # def solve_quasi_steady_state(self, heat_flow, dhw_flow):
+    #     '''This method allows to calculate the system power for each time step
+    #
+    #     Parameters
+    #     ----------
+    #     heat_flow : float
+    #         required power  [Wh]
+    #     dhw_flow : float
+    #         required power  [Wh]
+    #     '''
+    #     # Corrected efficiency and losses at nominal power
+    #
+    #     self.oil_consumption = 0
+    #     self.coal_consumption = 0
+    #     self.DH_consumption = 0
+    #     self.wood_consumption = 0
+    #     self.pellet_consumption = 0
+    #     self.electric_consumption = 0
+    #     self.gas_consumption = 0
+    #     self.gasoline_consumption = 0
+    #     self.lpg_consumption = 0
+    #
+    #     total_energy = (heat_flow + dhw_flow) / self.total_efficiency # Wh
+    #
+    #     if "Oil" in self.generation_type:
+    #         self.oil_consumption = total_energy / fuels_pci["Oil"]
+    #     elif "Coal" in self.generation_type:
+    #         self.coal_consumption = total_energy / fuels_pci["Coal"]
+    #     elif "District Heating" in self.generation_type:
+    #         self.DH_consumption = total_energy
+    #     elif "Stove" in self.generation_type:
+    #         self.wood_consumption = total_energy / fuels_pci["Wood"]
+    #     elif "Heat Pump" in self.generation_type:
+    #         self.electric_consumption = total_energy
+    #     elif "Gas" in self.generation_type:
+    #         self.gas_consumption = total_energy / fuels_pci["Natural Gas"]
+    #     elif "Electric Heater" in self.generation_type:
+    #         self.electric_consumption = total_energy
+
+
+class HeatingFromParams(System):
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
+    pellet_consumption = 0
+
+    def __init__(self, *args, **kwargs):
+
+        # kwargs =
+        #       heating_system_params = {
+        #     "name":...,
+        #     "description":....,
+        #
+        #     "SH emission system": ...,
+        #     "SH emission target temperature [°C]": ...,
+        #     "SH emission convective fraction [-]": ...,
+        #     "SH emission efficiency [-]": ...,
+        #     "SH distribution efficiency [-]": ...,
+        #     "SH regulation efficiency [-]": ...,
+        #     "SH generation efficiency [-]": ...,
+        #     "SH COP [-]": ...,
+        #     "SH fuel": ...,
+        #
+        #     "DHW emission efficiency [-]": ...,
+        #     "DHW distribution efficiency [-]": ...,
+        #     "DHW regulation efficiency [-]": ...,
+        #     "DHW generation efficiency [-]": ...,
+        #     "DHW COP [-]": ...,
+        #     "DHW fuel": ...,
+        # }
+
+        try:
+            self.system_info = kwargs["heating_system_params"]
+        except KeyError:
+            raise KeyError(
+                "When using HeatingFromParams system class, a heating_system_params dict must be provided, with heating system performance parameters")
+
+        self.name = self.system_info["name"]
+        self.description = self.system_info["description"]
+
+        self.emission_control_efficiency = self.system_info["SH emission efficiency [-]"] * self.system_info[
+            "SH regulation efficiency [-]"]
+        self.emission_temp = self.system_info["SH emission target temperature [°C]"]
+        self.distribution_efficiency = self.system_info["SH distribution efficiency [-]"]
+        self.convective_fraction = self.system_info["SH emission convective fraction [-]"]
+        self.generation_efficiency = self.system_info["SH generation efficiency [-]"]
+
+        self.sigma = {
+            "1C": (1 - self.convective_fraction, self.convective_fraction),
+            "2C": (
+                (1 - self.convective_fraction) / 2,  # Radiative IW
+                (1 - self.convective_fraction) / 2,  # Radiative AW
+                self.convective_fraction)  # Convective
+        }
+
+        self.dhw_emission_control_efficiency = self.system_info["DHW emission efficiency [-]"] * self.system_info[
+            "DHW regulation efficiency [-]"]
+        self.dhw_distribution_efficiency = self.system_info["DHW distribution efficiency [-]"]
+        self.dhw_generation_efficiency = self.system_info["DHW generation efficiency [-]"]
+
+        self.fuel_type = self.system_info["SH fuel"]
+        self.dhw_fuel_type = self.system_info["DHW fuel"]
+
+        # In case of HP needs to be changed
+        self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
+        self.dhw_total_efficiency = self.dhw_emission_control_efficiency * self.dhw_distribution_efficiency * self.dhw_generation_efficiency
+
+        # Input Data
+        # self.PCI_natural_gas = fuels_pci["Natural Gas"]  # [Wh/Nm3]
+
+        self.charging_mode = np.nan
+        self.dhw_tank_current_charge_perc = np.nan
+        self.dhw_capacity_to_tank = np.nan
+
+        if "Electric" in self.fuel_type:
+            self.COP = 1 if np.isnan(self.system_info["SH COP [-]"]) else self.system_info["SH COP [-]"]
+        if "Electric" in self.dhw_fuel_type:
+            self.dhw_COP = 1 if np.isnan(self.system_info["DHW COP [-]"]) else self.system_info["DHW COP [-]"]
+
+    def set_system_capacity(self, design_power, weather):
+        ''''Choice of system size based on estimated nominal Power
+
+        Parameters
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        '''
+
+        pass
+
+    def solve_system(self, heat_flow, dhw_flow, weather, t, T_int, RH_int):
+        '''This method allows to calculate the system power for each time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        self.dhw_tank_solver(dhw_flow, weather, t)
+
+        total_energy = heat_flow / self.total_efficiency
+        dhw_total_energy = self.dhw_capacity_to_tank / self.dhw_total_efficiency
+
+        if "Oil" in self.fuel_type:
+            self.oil_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Oil"]
+        elif "Gasoline" in self.fuel_type:
+            self.gasoline_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Gasoline"]
+        elif "Coal" in self.fuel_type:
+            self.coal_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Coal"]
+        elif "LPG" in self.fuel_type:
+            self.lpg_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["LPG"]
+        elif "Natural" in self.fuel_type and "Gas" in self.fuel_type :
+            self.gas_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Natural Gas"]
+        elif "Wood" in self.fuel_type:
+            self.wood_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Wood"]
+        elif "Pellet" in self.fuel_type:
+            self.pellet_consumption = total_energy / CONFIG.ts_per_hour / fuels_pci["Pellets"]
+        elif "Electric" in self.fuel_type:
+            self.electric_consumption = total_energy / CONFIG.ts_per_hour / self.COP
+        elif "DH" in self.fuel_type:
+            self.DH_consumption = total_energy / CONFIG.ts_per_hour
+
+        if "Oil" in self.dhw_fuel_type:
+            self.oil_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Oil"]
+        elif "Gasoline" in self.dhw_fuel_type:
+            self.gasoline_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Gasoline"]
+        elif "Coal" in self.dhw_fuel_type:
+            self.coal_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Coal"]
+        elif "LPG" in self.dhw_fuel_type:
+            self.lpg_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["LPG"]
+        elif "Natural" in self.dhw_fuel_type and "Gas" in self.dhw_fuel_type:
+            self.gas_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Natural Gas"]
+        elif "Wood" in self.dhw_fuel_type:
+            self.wood_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Wood"]
+        elif "Wood" in self.dhw_fuel_type:
+            self.pellet_consumption += dhw_total_energy / CONFIG.ts_per_hour / fuels_pci["Pellets"]
+        elif "Electric" in self.dhw_fuel_type:
+            self.electric_consumption += dhw_total_energy / CONFIG.ts_per_hour / self.dhw_COP
+        elif "DH" in self.dhw_fuel_type:
+            self.DH_consumption += dhw_total_energy / CONFIG.ts_per_hour
+
+    def solve_quasi_steady_state(self, heat_flow, dhw_flow):
+        '''This method allows to calculate the system power for each month
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        dhw_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        total_energy = heat_flow / self.total_efficiency  # Wh
+
+        if "Oil" in self.fuel_type:
+            self.oil_consumption = total_energy / fuels_pci["Oil"]
+        elif "Gasoline" in self.fuel_type:
+            self.gasoline_consumption = total_energy / fuels_pci["Gasoline"]
+        elif "Coal" in self.fuel_type:
+            self.coal_consumption = total_energy / fuels_pci["Coal"]
+        elif "LPG" in self.fuel_type:
+            self.lpg_consumption = total_energy / fuels_pci["LPG"]
+        elif "NaturalGas" in self.fuel_type:
+            self.gas_consumption = total_energy / fuels_pci["Natural Gas"]
+        elif "Wood" in self.fuel_type:
+            self.wood_consumption = total_energy / fuels_pci["Wood"]
+        elif "Pellet" in self.fuel_type:
+            self.pellet_consumption = total_energy / fuels_pci["Pellets"]
+        elif "Electric" in self.fuel_type:
+            self.electric_consumption = total_energy / self.COP
+        elif "DH" in self.fuel_type:
+            self.DH_consumption = total_energy / CONFIG.ts_per_hour
+
+        dhw_total_energy = dhw_flow / self.dhw_total_efficiency
+
+        if "Oil" in self.dhw_fuel_type:
+            self.oil_consumption += dhw_total_energy / fuels_pci["Oil"]
+        elif "Gasoline" in self.dhw_fuel_type:
+            self.gasoline_consumption += dhw_total_energy / fuels_pci["Gasoline"]
+        elif "Coal" in self.dhw_fuel_type:
+            self.coal_consumption += dhw_total_energy / fuels_pci["Coal"]
+        elif "LPG" in self.dhw_fuel_type:
+            self.lpg_consumption += dhw_total_energy / fuels_pci["LPG"]
+        elif "NaturalGas" in self.dhw_fuel_type:
+            self.gas_consumption += dhw_total_energy / fuels_pci["Natural Gas"]
+        elif "Wood" in self.dhw_fuel_type:
+            self.wood_consumption += dhw_total_energy / fuels_pci["Wood"]
+        elif "Pellet" in self.dhw_fuel_type:
+            self.pellet_consumption += dhw_total_energy / fuels_pci["Pellets"]
+        elif "Electric" in self.dhw_fuel_type:
+            self.electric_consumption += dhw_total_energy / self.dhw_COP
+        elif "DH" in self.dhw_fuel_type:
+            self.DH_consumption += dhw_total_energy / CONFIG.ts_per_hour
+
+
+class CoolingFromParams(System):
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
+    pellet_consumption = 0
+
+    def __init__(self, *args, **kwargs):
+
+        # kwargs =
+        #       cooling_system_params = {
+        #     "name":...,
+        #     "description":....,
+        #
+        #     "SC emission system": ...,
+        #     "SC emission target temperature [°C]": ...,
+        #     "SC emission convective fraction [-]": ...,
+        #     "SC emission efficiency [-]": ...,
+        #     "SC distribution efficiency [-]": ...,
+        #     "SC regulation efficiency [-]": ...,
+        #     "SC generation efficiency [-]": ...,
+        #     "SC fuel": ...,
+        # }
+
+        # try:
+        self.system_info = kwargs["cooling_system_params"]
+        # except KeyError:
+        #     raise KeyError("When using CoolingFromParams system class, a cooling_system_params dict must be provided, with cooling system performance parameters")
+
+        self.emission_temp = self.system_info["SC emission target temperature [°C]"]
+
+        self.convective_fraction = self.system_info["SC emission convective fraction [-]"]
+
+        self.emission_control_efficiency = self.system_info["SC emission efficiency [-]"] * self.system_info[
+            "SC regulation efficiency [-]"]
+        self.distribution_efficiency = self.system_info["SC distribution efficiency [-]"]
+        self.convective_fraction = self.system_info["SC emission convective fraction [-]"]
+        self.generation_efficiency = self.system_info["SC generation efficiency [-]"]
+
+        self.total_efficiency = self.emission_control_efficiency * self.distribution_efficiency * self.generation_efficiency
+
+        self.sigma = {
+            "1C": (1 - self.convective_fraction, self.convective_fraction),
+            "2C": (
+                (1 - self.convective_fraction) / 2,  # Radiative IW
+                (1 - self.convective_fraction) / 2,  # Radiative AW
+                self.convective_fraction)  # Convective
+        }
+
+        self.fuel_type = self.system_info["SC fuel"]
+
+    def set_system_capacity(self, design_power, weather):
+        ''''Choice of system size based on estimated nominal Power
+
+        Parameters
+        ----------
+        design_power : float
+            Design Heating power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        '''
+
+        pass
+
+    def solve_system(self, heat_flow, weather, t, T_int, RH_int):
+        '''This method allows to calculate the system power for each time step
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [W]
+        Weather : eureca_building.weather.WeatherFile
+            WeatherFile object
+        t : int
+            Simulation time step
+        T_int : float
+            Zone temperature [°]
+        RH_int : float
+            Zone relative humidity [%]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        total_energy = heat_flow / self.total_efficiency
+
+        if "Electric" in self.fuel_type:
+            self.electric_consumption = -1 * total_energy / CONFIG.ts_per_hour
+        elif "DH" in self.fuel_type:
+            self.DH_consumption = total_energy / CONFIG.ts_per_hour
+
+    def solve_quasi_steady_state(self, heat_flow):
+        '''This method allows to calculate the system power for each month
+
+        Parameters
+        ----------
+        heat_flow : float
+            required power  [Wh]
+        '''
+        # Corrected efficiency and losses at nominal power
+
+        self.oil_consumption = 0
+        self.coal_consumption = 0
+        self.DH_consumption = 0
+        self.wood_consumption = 0
+        self.pellet_consumption = 0
+        self.electric_consumption = 0
+        self.gas_consumption = 0
+        self.gasoline_consumption = 0
+        self.lpg_consumption = 0
+
+        total_energy = heat_flow / self.total_efficiency  # Wh
+
+        if "Electric" in self.fuel_type:
+            self.electric_consumption = -1 * total_energy
+        elif "DH" in self.fuel_type:
+            self.DH_consumption = total_energy
+
 hvac_heating_systems_classes = {
     "IdealLoad":IdealLoad,
     "CondensingBoiler":CondensingBoiler,
     "TraditionalBoiler":TraditionalBoiler,
+    "A-W HP Staffel, Centralized, Low Temp Radiator":HP_Staffell,
+    "G-W HP Staffel, Centralized, Low Temp Radiator":HP_Staffell,
+    "A-W HP Staffel, Centralized, High Temp Radiator":HP_Staffell,
+    "G-W HP Staffel, Centralized, High Temp Radiator":HP_Staffell,
+    "A-W HP Staffel, Centralized, Fan coil":HP_Staffell,
+    "G-W HP Staffel, Centralized, Fan coil":HP_Staffell,
+    "A-W HP Staffel, Centralized, Radiant surface":HP_Staffell,
+    "G-W HP Staffel, Centralized, Radiant surface":HP_Staffell,
     "Traditional Gas Boiler, Centralized, Low Temp Radiator":Heating_EN15316,
     "Traditional Gas Boiler, Single, Low Temp Radiator":Heating_EN15316,
     "Traditional Gas Boiler, Centralized, High Temp Radiator":Heating_EN15316,
@@ -1475,6 +2004,7 @@ hvac_heating_systems_classes = {
     "A-W Heat Pump, Centralized, Radiant surface":Heating_EN15316,
     "A-W Heat Pump, Single, Radiant surface":Heating_EN15316,
     "Electric Heater":Heating_EN15316,
+    "From manual parameters":HeatingFromParams,
 }
 hvac_cooling_systems_classes = {
     "IdealLoad":IdealLoad,
@@ -1486,4 +2016,5 @@ hvac_cooling_systems_classes = {
     "A-W chiller, Centralized, Radiant surface":Cooling_EN15316,
     "A-W chiller, Single, Fan coil":Cooling_EN15316,
     "A-W chiller, Single, Radiant surface":Cooling_EN15316,
+    "From manual parameters":CoolingFromParams,
 }

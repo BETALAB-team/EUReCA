@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eureca"
+version = "v1.0.0-beta"
+authors = [
+  { name="Enrico Prataviera", email="enrico.prataviera@unipd.it" },
+  { name="Jacopo Vivian", email="jacopo.vivian@hotmail.com" },
+]
+dependencies = [
+        "numpy",
+        "pandas",
+        "pyclipper",
+        "scipy",
+        "openpyxl",
+        "requests",
+        "pyarrow",
+        "xlrd",
+        "pvlib",
+        "shapely",
+        "geopandas",
+        "cjio",
+    ]
+
+description = "Package to simulate urban building energy performace with lumped capacitance models"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    'License :: OSI Approved :: MIT License',
+]
+
+[project.optional-dependencies]
+dev = [
+    "matplotlib",
+    "setuptools",
+    "pytest",
+]
+
+[project.urls]
+Homepage = 'https://github.com/BETALAB-team/EUReCA'
+
+[tool.setuptools]
+packages  = [
+"eureca_building",
+"eureca_ubem",
+]
