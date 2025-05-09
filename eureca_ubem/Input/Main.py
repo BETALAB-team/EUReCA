@@ -9,7 +9,7 @@ import pandas as pd
 # matplotlib.interactive(True)
 
 from eureca_building.config import load_config
-load_config("config.json")
+load_config(os.path.join(".","config.json"))
 
 from eureca_ubem.city import City
 
