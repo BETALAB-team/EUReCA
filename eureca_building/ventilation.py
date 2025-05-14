@@ -533,7 +533,7 @@ class MechanicalVentilation(Ventilation):
             )
         self._unit = value
 
-    def _get_absolute_value_nominal(self, area=None, volume=None):
+    def _get_absolute_value_nominal(self, area=0, volume=0):
         """Calcs ventilation nominal value in kg/s. This method overrides the parent class method
 
         Parameters
