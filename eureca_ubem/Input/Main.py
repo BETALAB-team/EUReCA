@@ -33,6 +33,6 @@ city_geojson = City(
     output_folder=os.path.join(".","geojson_corr_sysmod")
 )
 city_geojson.loads_calculation(region="Veneto")
-# city_geojson.simulate( output_type="csv")
-city_geojson.simulate_quasi_steady_state()
+city_geojson.simulate( output_type="csv")
+# city_geojson.simulate_quasi_steady_state()
 
