@@ -711,6 +711,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
                           output_folder= os.path.join(self.output_folder,"qss"),
                           output_type= "csv")
+            counter += 1
         
     def simulate(self,
                  print_single_building_results = CONFIG.print_single_building_results,
