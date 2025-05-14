@@ -1,127 +1,31 @@
-''' IMPORTING MODULES '''
-
+##% Import Necessary Modules of Main.py 
 import os
-import time as tm
-import pandas as pd
-
-# import matplotlib
-# matplotlib.use('TkAgg')
-# matplotlib.interactive(True)
-
 from eureca_building.config import load_config
-load_config("config.json")
-
 from eureca_ubem.city import City
 
-weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")
 
-schedules_file = os.path.join(".","C:/Works/PNRR/8.4.7/Eureca/EUReCA/eureca_ubem/Input/Sup_schedule.xlsx")
-materials_file = os.path.join(".","C:/Works/PNRR/8.4.7/Eureca/EUReCA/eureca_ubem/Input/total envelope types.xlsx")
-city_model_file = os.path.join(".","Buildings_case_study_one2.geojson")
+#%%  Load Inputs 
+load_config(os.path.join(".","Example_District_Config.json"))                   #Simulation Settings Given as JSON file 
+weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")          #Path to weatherfile in epw energyplus format
+schedules_file = os.path.join(".","Schedules_total.xlsx")                       #Path to the schedules for the end use
+materials_file = os.path.join(".","materials_and_construction_test.xlsx")       #Path to the construction material information
+city_model_file = os.path.join(".","Example_District.geojson")                  #Path to the geoindexed file of the footprints of buildings
+systems_file = os.path.join(".","systems.xlsx")                                 #Path to the HVAC systems specifications
 
-city_geojson = City(
-    city_model=city_model_file,
-    epw_weather_file=weather_file,
-    end_uses_types_file=schedules_file,
-    envelope_types_file=materials_file,
-)
-city_geojson.loads_calculation()
-city_geojson.simulate()
 
-city_model_file = os.path.join(".","PiovegoRestricted_with_holes_corr_coef_sysmod.geojson")
-systems_file = os.path.join(".","systems.xlsx")
-
+#%% Generation of the City Object 
 city_geojson = City(
     city_model=city_model_file,
     epw_weather_file=weather_file,
     end_uses_types_file=schedules_file,
     envelope_types_file=materials_file,
     systems_templates_file=systems_file,
-    shading_calculation=True,
-    building_model = "2C",
-    output_folder=os.path.join(".","geojson_corr_sysmod")
+    shading_calculation=True,                                                   #Shading Calculation Requires Preprocessing Time
+    building_model = "2C",                                                      #1C for 5R1C (ISO 13790), 2C for 7R2C (VDI6007)
+    output_folder=os.path.join(".","Output_folder")                             
 )
-city_geojson.loads_calculation(region="Veneto")
-city_geojson.simulate(print_single_building_results=False, output_type="csv")
 
-# materials_file = os.path.join(".","total envelope types.xlsx")
-# city_model_file = os.path.join(".","Belzoni_2023_July_Update.json")
-#
-# start = tm.time()
-# # Creation of the City object exit
-# belzoni = City(
-#     city_model=city_model_file,
-#     epw_weather_file=weather_file,
-#     end_uses_types_file=schedules_file,
-#     envelope_types_file=materials_file,
-#
-#     output_folder=os.path.join(".","belzoni_new_hvac_DHW_calc")
-#
-# )
-# print(f"Belzoni creation : {(tm.time() - start)/60:.2f} min")
-# start = tm.time()
-# belzoni.loads_calculation(region="Veneto")
-# print(f"Belzoni loads calc : {(tm.time() - start)/60:0.2f} min")
-# start = tm.time()
-# belzoni.simulate(print_single_building_results=True)
-# print(f"Belzoni simulation : {(tm.time() - start)/60:0.2f} min")
-
-# city_model_file = os.path.join(".","PaduaRestricted.json")
-#
-# # Creation of the City object exit
-# city_json = City(
-#     city_model=city_model_file,
-#     epw_weather_file=weather_file,
-#     end_uses_types_file=schedules_file,
-#     envelope_types_file=materials_file,
-#     output_folder=os.path.join(".","cityjson")
-# )
-# city_json.loads_calculation()
-
-
-# import json
-# import numpy as np
-#
-# with open(".\\Belzoni.json", "r") as file:
-#     cityjson = json.load(file)
-#
-# for bd in cityjson["CityObjects"].values():
-#     if bd["type"] == "Building":
-#         heating_residential = np.random.choice(np.arange(1, 5), p=[0.4, 0.5, 0.05, 0.05])
-#         heating_residential = {
-#             1:"Traditional Gas Boiler, Centralized, High Temp Radiator",
-#             2:"Condensing Gas Boiler, Centralized, Low Temp Radiator",
-#             3:"Oil Boiler, Centralized, High Temp Radiator",
-#             4:"A-W Heat Pump, Single, Fan coil",
-#         }[heating_residential]
-#         heating_not_residential = np.random.choice(np.arange(1, 3), p=[0.9, 0.1])
-#         heating_not_residential = {
-#             1:"Condensing Gas Boiler, Centralized, Fan coil",
-#             2:"A-W Heat Pump, Centralized, Radiant surface",
-#         }[heating_not_residential]
-#
-#         if bd["attributes"]["End Use"] == "Residential":
-#             bd["attributes"]["Heating System"] = heating_residential
-#         else:
-#             bd["attributes"]["Heating System"] = heating_not_residential
-#
-#         cooling_residential = np.random.choice(np.arange(1, 3), p=[0.95,0.05])
-#         cooling_residential = {
-#             1:"A-A split",
-#             2:"A-W chiller, Centralized, Fan coil",
-#         }[cooling_residential]
-#         cooling_not_residential = np.random.choice(np.arange(1, 3), p=[0.1, 0.9])
-#         cooling_not_residential = {
-#             1:"A-A split",
-#             2:"A-W chiller, Centralized, Fan coil",
-#         }[cooling_not_residential]
-#
-#         if bd["attributes"]["End Use"] == "Residential":
-#             bd["attributes"]["Cooling System"] = cooling_residential
-#         else:
-#             bd["attributes"]["Cooling System"] = cooling_not_residential
-#
-#
-# with open(".\\Belzoni_new_hvac.json", "w") as file:
-#     json.dump(cityjson,file)
+#%% Simulations
+city_geojson.simulate(output_type="csv")                                        #Comment/Uncomment for Dynamic Simulation   (1C, 2C) 
+#city_geojson.simulate_quasi_steady_state()                                      #Comment/Uncomment for Quasi-Steady-State Simulation
 

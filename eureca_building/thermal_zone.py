@@ -1648,7 +1648,6 @@ Thermal zone {self.name} 2C params:
 
     def solve_quasisteadystate_method(self, weather):
         # TODO: Docstring
-
         # This runs the ISO13790 methods to calculates envelope params and monthly int and sol heat gains
         self._ISO13790_params()
         self.calculate_zone_loads_ISO13790(weather)
@@ -1703,14 +1702,16 @@ Thermal zone {self.name} 2C params:
         a_0 = 1.
         tau_0 = 15.
         a_h = a_0 + tau/tau_0
+        Q_h_ht[Q_h_ht<1e-5]=1e-5
         gamma_h = Q_h_gn/Q_h_ht
-        gamma_h[gamma_h>1e15] = 1e15
+        gamma_h[gamma_h>1e5] = 1e5
         eta_h_gn = np.zeros(12)
         eta_h_gn[gamma_h > 0.] = (1-gamma_h[gamma_h > 0.] ** a_h)/(1-gamma_h[gamma_h > 0.] ** (a_h+1))
         eta_h_gn[gamma_h == 1.] = (a_h)/(a_h+1)
         eta_h_gn[gamma_h <= 0.] = 1/gamma_h[gamma_h <= 0.]
         # Cooling
         a_c = a_0 + tau/tau_0
+        Q_c_ht[Q_c_ht<1e-5]=1e-5
         gamma_c = Q_c_gn / Q_c_ht
         gamma_c[gamma_c>1e15] = 1e15
         eta_c_is = np.zeros(12)

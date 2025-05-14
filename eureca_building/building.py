@@ -468,7 +468,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         return total
 
     def simulate_quasi_steady_state(self,
-                 weather_object: WeatherFile,
+                 weather_object : WeatherFile,
                  output_folder: str = None,
                  output_type: str = "csv",
                  ):
