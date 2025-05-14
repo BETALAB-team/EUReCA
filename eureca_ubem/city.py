@@ -702,7 +702,16 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             if "ST" in building_info["Solar technologies"]:
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
                
-
+    def simulate_quasi_steady_state(self):
+        n_buildings = len(self.buildings_objects)
+        counter = 0
+        for bd_id, building_info in self.buildings_info.items():
+            if counter%100 == 0:
+                print(f"{counter} buildings simulated out of {n_buildings}")
+            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+                          output_folder= os.path.join(self.output_folder,"qss"),
+                          output_type= "csv")
+        
     def simulate(self,
                  print_single_building_results = CONFIG.print_single_building_results,
                  output_type = CONFIG.output_file_format):
@@ -716,7 +725,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         output_type : str, default 'parquet'
             It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
         """
-       
+
         import time
         start = time.time()
         # parallel simulation commented
@@ -762,6 +771,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info[i] = info["TZ info"].loc[i]["Total"]
             info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
+            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+                          output_folder= os.path.join(self.output_folder,"qss"),
+                          output_type= "csv")
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
@@ -819,6 +831,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["Net PV production to grid [Wh]"] += results["Given to Grid [Wh]"].iloc[:,0]
+
 
 
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")

@@ -255,6 +255,7 @@ class Config(configparser.ConfigParser):
         config_dict.building_energy_model = config_dict['simulation settings']["Building energy model"]
         config_dict.print_single_building_results = False if str.lower(
             config_dict['simulation settings']["Print single building results"]) == "false" else True
+
         config_dict.output_file_format = config_dict['simulation settings']["Output file format"]
 
         if not os.path.isdir(config_dict.output_path):
