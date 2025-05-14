@@ -703,6 +703,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
                
     def simulate_quasi_steady_state(self):
+        self.loads_calculation(region="Veneto")
         n_buildings = len(self.buildings_objects)
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
@@ -716,6 +717,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     def simulate(self,
                  print_single_building_results = CONFIG.print_single_building_results,
                  output_type = CONFIG.output_file_format):
+        self.loads_calculation(region="Veneto")
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
