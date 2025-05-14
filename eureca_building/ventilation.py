@@ -538,9 +538,9 @@ class MechanicalVentilation(Ventilation):
 
         Parameters
         ----------
-        area : float, default None
+        area : float, default 0
             [m2]: must be provided if the load is area specific
-        volume : float, default None
+        volume : float, default 0
             [m3]: must be provided if the load is volume specific
         """
         air_density = air_properties['density']
