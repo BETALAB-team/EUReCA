@@ -1,5 +1,8 @@
 """
-Module that is called at the begin of the simulation to set the log file trough the logging library
+Initializes the logging system for the simulation.
+
+This module configures the root logger to write error messages to a file located
+in CONFIG.output_path/logging.log using UTF-8 encoding and a standard formatter.
 """
 
 __author__ = "Enrico Prataviera"

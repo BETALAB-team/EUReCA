@@ -24,14 +24,20 @@ from eureca_building.exceptions import (
 
 
 def calc_neutral_plane_nat_vent(x, *data):
-    """TODO : Giacomo per favore riempi questa
-
+    """
+    Solves the neutral pressure plane height for natural ventilation using input coefficients.
+    
     Parameters
     ----------
     x : float
-
+        Height guess for the neutral plane.
     data : tuple
+        Coefficients for pressure difference equation.
 
+    Returns
+    -------
+    float
+        Residual of pressure balance equation to be minimized.
     """
     a,b,c,h_t,h_b = data
     y = 0.
@@ -127,6 +133,10 @@ class Ventilation:
             [m2]: must be provided if the load is area specific
         volume : float, default None
             [m3]: must be provided if the load is volume specific
+        Returns
+        -------
+        None
+            Sets self.nominal_value_absolute for later use.
         """
         air_density = air_properties['density']
         try:

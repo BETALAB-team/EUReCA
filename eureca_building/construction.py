@@ -25,9 +25,14 @@ from eureca_building.units import units
 
 
 class Construction(object):
-    """Class to model constructions and calculate all the construction parameters: U, k_int, k_est
     """
-
+        Represents a multi-layer building construction, including methods to calculate:
+            - Thermal resistance and U-values
+            - Thermal capacitance (ISO 13790, VDI 6007)
+            - Transfer matrix parameters for dynamic simulation
+            
+        Used for walls, roofs, floors, and internal partitions.
+    """
     # Class attributes
 
     tot_heat_trans_coef = pd.DataFrame(
@@ -430,6 +435,11 @@ Construction: {self.name}
         ----------
         eureca_building.construction.Construction
             Construction object from these values
+            
+        Notes
+        -----
+        This method creates an "equivalent material" with default absorptance and thickness (30 cm)
+        based on ISO 13786 guidelines.
 
         """
 

@@ -320,16 +320,14 @@ class ThermalZone(object):
             self.internal_loads_list.append(int_load)
 
     def extract_convective_radiative_latent_electric_load(self):
-        """From the internal loads calculates 3 arrays (len equal to 8769 * number of time steps per hour):
-        {
-        convective [W] : np.array
-        radiative [W] : np.array
-        latent [kg_vap/s] : np.array
-        }
-
+        """
+        Extracts internal load components from the thermal zone.
+        
         Returns
-        ----------
+        -------
         dict
+            Dictionary with keys: 'convective [W]', 'radiative [W]', 'latent [kg_vap/s]', 'electric [W]'
+            Each mapped to a NumPy array of length equal to CONFIG.number_of_time_steps_year.
         """
         convective = np.zeros(CONFIG.number_of_time_steps_year)
         radiant = np.zeros(CONFIG.number_of_time_steps_year)
