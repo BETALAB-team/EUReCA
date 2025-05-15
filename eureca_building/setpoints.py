@@ -40,7 +40,7 @@ class Setpoint:
         ----------
         name : str
             name
-        setpoint_type : float
+        setpoint_type : str
             type from: {setpoint_prop.keys()}
         tag : str, default None
             a tag to define the type of internal load

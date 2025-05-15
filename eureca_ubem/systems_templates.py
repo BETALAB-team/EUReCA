@@ -23,18 +23,25 @@ from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_s
 # %% Useful functions to create the schedule EndUses
 
 def load_system_templates(path):
-    '''
+    """
+    Loads heating and cooling system templates from an Excel file.
+    
     Parameters
     ----------
     path : str
-        Path to the spreadsheet to read systems_templates.xlsx
-
+        Path to the spreadsheet containing heating and cooling system definitions.
+        
     Returns
     -------
     dict
-        dictionary with systems_templates
-    '''
-
+        Dictionary with two keys: 'heating_systems_templates' and 'cooling_systems_templates',
+        each mapping template names to parameter dictionaries.
+        
+    Notes
+    -----
+    Populates `hvac_heating_systems_classes` and `hvac_cooling_systems_classes`
+    with template keys mapped to parametric constructors.
+    """
     # Check input data type
 
     # read systems templates from excel

@@ -54,7 +54,7 @@ class City():
                  shading_calculation = CONFIG.do_solar_shading_calculation,
                  systems_templates_file = None,
                  ):
-        """Creates the city from all the input files
+        """Initializes the City object by loading data and preparing the simulation environment.
 
         Parameters
         ----------
@@ -123,19 +123,37 @@ class City():
         self._building_model = value
 
     def buildings_creation_from_cityjson(self,json_path):
-        '''This method creates the city from the json file (CityJSON 3D)
+        """
+        Creates building objects from a CityJSON file.
+        
+        Extracts building geometries, surfaces, and properties. Computes internal mass surfaces and thermal zones.
         
         Parameters
         ----------
         json_path : str
-            path of the cityJSON file
-
-        '''
-
+        Path to the CityJSON file defining 3D building geometries.
+        
+        Returns
+        -------
+        None
+        """
         # Case of cityJSON file availability:
         self.n_Floors = 0
         # Function to fix invalid geometries
         def fix_geometry(geom):
+            """
+            Fixes invalid geometry using `make_valid` from shapely.
+
+            Parameters
+            ----------
+            geom : shapely.geometry
+            A geometry object that may be invalid.
+
+            Returns
+            -------
+            shapely.geometry or None
+            Valid geometry if successful, None otherwise.
+            """
             if geom.is_valid:
                 return geom
             else:
@@ -305,14 +323,21 @@ class City():
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
     def buildings_creation_from_geojson(self, json_path):
-        '''Function to create buildings from geojson file (2D file).
-
+        """
+        Creates building objects from a GeoJSON file.
+        
+        Extrudes 2D building footprints into 3D representations using floor counts and height.
+        Assigns envelope and system parameters based on attributes in the GeoJSON file.
+        
         Parameters
         ----------
         json_path : str
-            Path to geojson file.
-
-        '''
+        Path to the GeoJSON file containing building footprints and attributes.
+        
+        Returns
+        -------
+        None
+        """
         # Function to fix invalid geometries
         def fix_geometry(geom):
             if geom.is_valid:
@@ -589,8 +614,20 @@ class City():
                 }[self.building_model]()
 
     def loads_calculation(self, region = CONFIG.region):
-        '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
-        '''
+        """
+        Assigns internal heat gains, setpoints, infiltration, and systems to each building.
+        
+        Also initializes electric loads and ventilation flows based on regional data if applicable.
+        
+        Parameters
+        ----------
+        region : str, optional
+        Italian region used to sample electric load profiles if the building uses default residential schedules.
+        
+        Returns
+        -------
+        None
+        """
         
         if isinstance(region, str):
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
@@ -703,6 +740,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_solar_thermal(weather_obj=self.weather_file)
                
     def simulate_quasi_steady_state(self):
+        """
+        Simulates each building in the city using the quasi-steady state approach.
+        
+        Returns
+        -------
+        None
+        Saves results to a subfolder named 'qss' in the output folder.
+        """
         self.loads_calculation(region="Veneto")
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -717,7 +762,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     def simulate(self,
                  print_single_building_results = CONFIG.print_single_building_results,
                  output_type = CONFIG.output_file_format):
-        self.loads_calculation(region="Veneto")
+        
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -727,8 +772,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             USE CAREFULLY: It might fill a lot of disk space
         output_type : str, default 'parquet'
             It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
+            
+        Returns
+        -------
+        None
         """
-
+        self.loads_calculation(region="Veneto")
         import time
         start = time.time()
         # parallel simulation commented
@@ -859,6 +908,29 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
     @staticmethod
     def calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW):
+        """
+        Calculates the Thermal Synergy Index (TSI) for a cluster of buildings.
+        
+        Parameters
+        ----------
+        rejected_ST : np.ndarray
+        Solar thermal rejected energy over time.
+        rejected_Other : np.ndarray
+        Other rejected heat sources over time.
+        demand_Other : np.ndarray
+        Other energy demands (e.g. internal loads).
+        demand_DH : np.ndarray
+        District heating demand.
+        demand_SH : np.ndarray
+        Space heating demand (positive for heating, negative for cooling).
+        demand_DHW : np.ndarray
+        Domestic hot water demand.
+        
+        Returns
+        -------
+        float
+        TSI value representing thermal synergy efficiency.
+        """
 
         demand_SH_H = np.clip(demand_SH,a_min = 0, a_max = None)
         demand_SH_C = np.clip(demand_SH,a_min = None, a_max = 0)
@@ -874,18 +946,22 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         return TSI
 
     def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
+        """
+        Identifies potential 5GDHC clusters based on building proximity and TSI. (TRIAL)
+        
+        Parameters
+        ----------
+        output_folder : str, optional
+        Path to the folder containing results files, by default CONFIG.output_path
+        distance_buffer : float, optional
+        Buffer radius in meters for proximity-based clustering, by default 150
+            
+        Returns
+        -------
+        None
+        Stores TSI and cluster associations in a DataFrame.
+        """
 
-        # TODO: to be checheck!!! This is just a trial!!
-
-        print("####################################################")
-        print("####################################################")
-        print("####################################################")
-        print("")
-        print("Function find_best_5GDHC_clusters to be checheck!!! This is just a trial!!")
-        print("")
-        print("####################################################")
-        print("####################################################")
-        print("####################################################")
 
         geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
 
@@ -953,9 +1029,18 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
 
     def geometric_preprocessing(self):
-        '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
-        Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
-        '''
+        """
+        Performs geometric preprocessing of city surfaces.
+        
+        This includes:
+            - Reducing the area of surfaces that overlap or coincide
+            - Detecting potential mutual shading relationships between surfaces
+            - Calculating shading coefficients based on geometry and solar positions
+            
+        Returns
+        -------
+        None
+        """
         
         toll_az = CONFIG.urban_shading_tolerances[0]
         toll_dist = CONFIG.urban_shading_tolerances[1]

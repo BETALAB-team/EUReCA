@@ -1,8 +1,14 @@
 """
-This module includes dictionaries with fluid properties (air, water, vapour, fuels)
-To be used all over the code
-"""
+Includes standard physical properties of fluids and fuels used in energy calculations.
 
+Dictionaries:
+- air_properties
+- water_properties
+- vapour_properties
+- fuels_pci
+
+Also includes gravitational acceleration for use in buoyancy calculations.
+"""
 __author__ = "Enrico Prataviera"
 __credits__ = ["Enrico Prataviera"]
 __license__ = "MIT"

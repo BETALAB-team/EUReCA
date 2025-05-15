@@ -214,25 +214,25 @@ class EndUse:
 
     @classmethod
     def load_daily_sched(cls, name, daily_df_from_excel, scalar_df_from_excel, holidays):
-        '''Class method to create the EndUse object from the spreadsheet page
-
+        """
+        Class method to create an EndUse object from an Excel worksheet.
+        
         Parameters
         ----------
         name : str
-            name
+        Name of the building archetype.
         daily_df_from_excel : pandas.DataFrame
-            DataFrame containing schedules from the end_use
+        Hourly schedules for various systems and internal loads.
         scalar_df_from_excel : pandas.DataFrame
-            This series includes some additional data about the archetype
-            (from the GeneralInfo page in the spreadsheet)
-            (Sensible and
-            Latent AHU recovery,
-            Convective fraction of internal gains)
-
+        Metadata such as convective fraction, recovery ratios, and calculation methods.
+        holidays : list of int
+        List of holidays (0–364) used to adjust schedules.
+        
         Returns
         -------
-        eureca_ubem.end_uses.EndUse
-        '''
+        EndUse
+        Configured EndUse object with schedule and system properties set.
+        """
 
         # Each schedule is set to a different attribute of the class
 

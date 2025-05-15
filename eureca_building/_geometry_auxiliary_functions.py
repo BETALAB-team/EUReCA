@@ -1,6 +1,10 @@
 """
-This module includes functions to process polygons
-It is an internal module with internal geometry functions
+Internal module with auxiliary functions for polygon geometry calculations.
+
+Includes:
+- Normal vector estimation
+- Polygon area and centroid
+- Coplanarity checks
 """
 
 __author__ = "Enrico Prataviera"

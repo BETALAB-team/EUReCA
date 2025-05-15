@@ -52,9 +52,28 @@ from eureca_building.config import CONFIG
 #class
 
 class PV_system():
-    '''
-    initializing the PV system for each thermal zone. 
-    '''
+    """
+    Models a photovoltaic system and battery storage for a thermal zone.
+    
+    Attributes
+    ----------
+    weatherobject : WeatherFile
+        Weather data for irradiance and temperature.
+    surface_list : list
+        Surfaces (typically roofs) on which PV is mounted.
+    coverage_factor : float
+        Ratio of the surface area that is PV-active.
+    ...
+
+    Methods
+    -------
+    pv_data_adr : set ADR model parameters.
+    _run_pv_efficiencies : calculate PV efficiency over time.
+    pv_data_install : configure installed capacity.
+    pv_production : compute electricity produced by PV.
+    Battery : initialize battery parameters.
+    Battery_charge : simulate charge/discharge for each timestep.
+    """
     
     def __init__(self,
                  name: str,

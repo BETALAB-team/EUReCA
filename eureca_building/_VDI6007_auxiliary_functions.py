@@ -1,7 +1,7 @@
 """
-This module includes functions to manage the 2C model from the Standard VDI 6007
+This module implements helper functions for applying the VDI 6007 standard
+for dynamic thermal simulation of buildings using the 2C model.
 """
-
 __author__ = "Enrico Prataviera"
 __credits__ = ["Enrico Prataviera"]
 __license__ = "MIT"

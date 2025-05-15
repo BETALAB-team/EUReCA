@@ -13,7 +13,11 @@ from eureca_building.units import units, material_limits
 
 
 class Material:
-    """Class used to define the material. Creates the material and checks the properties
+    """
+    Represents a thermal material with conductivity, density, specific heat, and thickness.
+
+    Includes property validation based on boundary conditions, and automatic calculation of
+    thermal capacity and resistance.
     """
 
     name: str
@@ -232,8 +236,11 @@ Material: {self.name}
 
 
 class AirGapMaterial:
-    """A class used to define the air gap material
-<    """
+    """
+    Represents an air layer with predefined density and specific heat.
+
+    Thermal resistance is the primary property, from which conductivity is derived.
+    """
 
     name: str
     thick: float = 0.100  # Thickness [m]

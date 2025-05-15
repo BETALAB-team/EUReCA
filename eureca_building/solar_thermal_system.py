@@ -12,9 +12,7 @@ import numpy as np
 
 '''The Class defining a flat plate collector coupled with thermal storage tank'''
 class SolarThermal_Collector():
-    '''
-    Reference: The model available from [book]
-    '''
+
     def __init__(self,
                  name: str,
                  surface_list: list,
@@ -27,7 +25,21 @@ class SolarThermal_Collector():
                  Collector_parameters={'efficiency_slope':-0.013,
                                        'efficiency_intercept':0.8}
                  ): 
-        
+        """
+        Models a flat-plate solar thermal collector system based on BOSCH manual sizing.
+
+        Attributes
+        ----------
+        name : str
+            Name of the system.
+        surface_list : list
+            List of building surfaces to mount the collectors.
+        dhw : float
+            Daily domestic hot water demand [kWh/day].
+        weatherobject : WeatherFile
+            Weather object with irradiance and temperature data.
+        ...
+        """
         
         self.name=name
         self.max_coverage_factor=max_coverage_factor

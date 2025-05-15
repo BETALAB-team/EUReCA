@@ -54,6 +54,10 @@ class WeatherFile():
             number of the different direction (solar height) solar radiation will be calculated
         urban_shading_tol: list, default [80.,100.,80.]
             list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)
+        Returns
+        -------
+        None
+            Populates weather data attributes (hourly_data, general_data, monthly_data).
         '''
         self.weatherepw=epw
         # Importing and processing weather data from .epw
@@ -167,7 +171,12 @@ class WeatherFile():
         self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
 
     def irradiances_calculation(self):
-        """Internal method to run the irrandiances calculation
+        """"
+        Calculates solar position and irradiance components across directions and stores them in `hourly_data`.
+
+        Returns
+        -------
+        None
         """
         # Get and store solar position arrays
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
