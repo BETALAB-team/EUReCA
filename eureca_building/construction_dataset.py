@@ -54,7 +54,14 @@ class ConstructionDataset:
         -------
         eureca_building.construction_dataset.ConstructionDataset
             the object with the three dictionaries including all Materials Windows and Constructions from the spreadsheet
-
+        Notes
+        -----
+        The Excel file must contain the following sheets:
+            - "Materials"
+            - "Windows"
+            - "Constructions"
+            
+        Each sheet must follow the naming and units expected by the parser.
 
         """
         dataset = cls()

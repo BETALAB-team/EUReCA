@@ -54,6 +54,10 @@ class WeatherFile():
             number of the different direction (solar height) solar radiation will be calculated
         urban_shading_tol: list, default [80.,100.,80.]
             list of three floats with the tolerances for urban shading calc (azimuth, distance, theta)
+        Returns
+        -------
+        None
+            Populates weather data attributes (hourly_data, general_data, monthly_data).
         '''
         self.weatherepw=epw
         # Importing and processing weather data from .epw
@@ -88,7 +92,23 @@ class WeatherFile():
                
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
-            self._epw_hourly_data = epw[0].resample(m).bfill()
+            df = epw[0]
+            # 1. Linearly interpolate continuous variables
+            interp_cols = ['temp_air', 'temp_dew', 'relative_humidity', 'wind_speed']
+            df_interp = df[interp_cols].resample(m).interpolate(method='linear')
+            # 2. Handle wind direction using sine-cosine interpolation
+            wd_rad = np.deg2rad(df['wind_direction'])
+            df_wind_u = np.cos(wd_rad)
+            df_wind_v = np.sin(wd_rad)
+            df_u = df_wind_u.resample(m).interpolate(method='linear')
+            df_v = df_wind_v.resample(m).interpolate(method='linear')
+            wind_direction_interp = (np.rad2deg(np.arctan2(df_v, df_u)) + 360) % 360
+            wind_direction_interp.name = 'wind_direction'
+            # 3. Backfill all other remaining columns
+            other_cols = df.columns.difference(interp_cols + ['wind_direction'])
+            df_fill = df[other_cols].resample(m).bfill()
+            # 4. Combine everything
+            self._epw_hourly_data = pd.concat([df_interp, wind_direction_interp, df_fill], axis=1)
 
         # Weather Data and Average temperature difference between Text and Tsky
         self.hourly_data = {}
@@ -147,7 +167,7 @@ class WeatherFile():
             self.irradiances_calculation()
 
         self.general_data['urban_shading_tol'] = urban_shading_tol
-        self.general_data['yearly_solar_irradiation'] = self._epw_hourly_data["ghi"].sum()/2 #Wh
+        self.general_data['yearly_solar_irradiation'] = self._epw_hourly_data["ghi"].sum()/time_steps #Wh
 
         # Definition of average T_ext during heating season
         av_t_daily = np.array([np.mean(self.hourly_data["out_air_db_temperature"][i:i+24*time_steps]) for i in range(0,8760 * time_steps, 24*time_steps)])
@@ -167,7 +187,12 @@ class WeatherFile():
         self.monthly_data["out_air_db_temperature"] = get_monthly_value_from_annual_vector(self.hourly_data["out_air_db_temperature"], method='mean')
 
     def irradiances_calculation(self):
-        """Internal method to run the irrandiances calculation
+        """"
+        Calculates solar position and irradiance components across directions and stores them in `hourly_data`.
+
+        Returns
+        -------
+        None
         """
         # Get and store solar position arrays
         self._solar_position = self._site.get_solarposition(times=self._epw_hourly_data.index)
