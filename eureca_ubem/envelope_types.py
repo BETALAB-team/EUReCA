@@ -48,18 +48,21 @@ def load_envelopes(path):
 
     envelopes_dict = dict()
     for i in envelopes.index:
-        envelope = EnvelopeType(
-            name = envelopes.loc[i]["name"],
-            roof = cs_dataset.constructions_dict[envelopes.loc[i]["Roof"]],
-            ground_floor = cs_dataset.constructions_dict[envelopes.loc[i]["GroundFloor"]],
-            interior_ceiling = cs_dataset.constructions_dict[envelopes.loc[i]["IntCeiling"]],
-            external_wall = cs_dataset.constructions_dict[envelopes.loc[i]["ExtWall"]],
-            interior_wall = cs_dataset.constructions_dict[envelopes.loc[i]["IntWall"]],
-            window = cs_dataset.windows_dict[envelopes.loc[i]["Window"]],
-        )
+        try:
+            envelope = EnvelopeType(
+                name = envelopes.loc[i]["name"],
+                roof = cs_dataset.constructions_dict[envelopes.loc[i]["Roof"]],
+                ground_floor = cs_dataset.constructions_dict[envelopes.loc[i]["GroundFloor"]],
+                interior_ceiling = cs_dataset.constructions_dict[envelopes.loc[i]["IntCeiling"]],
+                external_wall = cs_dataset.constructions_dict[envelopes.loc[i]["ExtWall"]],
+                interior_wall = cs_dataset.constructions_dict[envelopes.loc[i]["IntWall"]],
+                window = cs_dataset.windows_dict[envelopes.loc[i]["Window"]],
+                )   
+            envelopes_dict[envelope.name] = envelope
 
-        envelopes_dict[envelope.name] = envelope
-
+        except (KeyError, TypeError, ValueError):   
+            # Currently, URBEM data is incomplete. until the cells get complete... 
+            continue
     return envelopes_dict
 
 

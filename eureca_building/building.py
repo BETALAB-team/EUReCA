@@ -324,7 +324,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             # 'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Primary Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Primary Non-Renewable Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'CO2 Emission [kg CO2]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
         
         
@@ -407,8 +410,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
         else:
             pv_production = 0.
-            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.nan]*6
-            fromgrid = total['Electric consumption [Wh]'].iloc[:, 0].values
+            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Nm3]"][:, 0].shape) for _ in range(6)]
+            fromgrid = total[("Electric consumption [Wh]", f"Bd {self.name}")].values
             togrid = 0.
 
         total["PV production [Wh]",f"Bd {self.name}"]=pv_production
@@ -419,8 +422,37 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Given to Grid [Wh]",f"Bd {self.name}"]=togrid
         total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
         total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
+        print(directsolar)
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
-
+        # in case of static renewable energy factor:
+        total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"]=1.95 * fromgrid\
+                                                        +1.05 * 11200 * results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +0.20 * 4860 * results ["Heating system wood consumption [kg]"][:, 0]\
+                                                        +0.00 * directsolar
+                                                        
+                                                        
+        total["Primary Energy [Wh]",f"Bd {self.name}"]= 2.42 * fromgrid \
+                                                        +1.05 * 11200 *  results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +1.00 * 4860 * results ["Heating system wood consumption [kg]"][:, 0] \
+                                                        +1.00 * directsolar
+        try:
+            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]+results['Solar Thermal Production [Wh]'][:, 0]
+        except AttributeError:
+            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]
+                                                        
+        # Fattori di Emissione from ISPRA 2024 https://emissioni.sina.isprambiente.it/news/
+        total["CO2 Emission [kg CO2]",f"Bd {self.name}"]= 1.95 * 61.2 / 277778 * fromgrid \
+                                                        +1.05 * 11200 * 58.9 / 277778 * results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * 74.1 / 277778 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
+                                                        +0.00 * directsolar
+                                                        
+        print(directsolar)
          
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")

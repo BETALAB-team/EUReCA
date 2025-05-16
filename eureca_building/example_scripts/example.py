@@ -81,6 +81,7 @@ wall_south = Surface(
     construction=ext_wall_from_U,
     window=window_cs,
 )
+
 wall_east = Surface(
     "Wall 2",
     vertices=((21.36, 0, 0), (21.36, 20.42, 0), (21.36, 20.42, 6), (21.36, 0, 6)),
@@ -89,6 +90,7 @@ wall_east = Surface(
     construction=ext_wall_cs,
     window=window_cs,
 )
+
 wall_north = Surface(
     "Wall 2",
     vertices=((21.36, 20.42, 0), (0, 20.42, 0), (0, 20.42, 6), (21.36, 20.42, 6)),
@@ -142,13 +144,15 @@ delay_ts = 8760 * ts_h + 1 - ts_h
 people_sched = Schedule(
     "PeopleOccupancy1",
     "percent",
-    np.array(([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)[:delay_ts],
+    np.array(
+        ([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)
+    [:delay_ts],
 )
 
 # Loads
 people = People(
     name='occupancy_tz',
-    unit='px',
+    unit='px', # px/m2 m2/px
     nominal_value=1.2,
     schedule=people_sched,
     fraction_latent=0.45,
@@ -355,7 +359,7 @@ for i in range(1):
 
 
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model="1C")
-    heating_peak_load = tz1.design_heating_load(-5.)
+    heating_peak_load = tz1.design_heating_load(weather_file)
 
     lim = 0, 8760*2 - 1
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
@@ -420,7 +424,7 @@ for i in range(1):
     )
 
     cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model="1C")
-    heating_peak_load = tz2.design_heating_load(-5.)
+    heating_peak_load = tz2.design_heating_load(weather_file)
 
     lim = 0, 8760*2 - 1
     tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)

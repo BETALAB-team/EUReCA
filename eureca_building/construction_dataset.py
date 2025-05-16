@@ -103,21 +103,24 @@ class ConstructionDataset:
         # Constructions
         for cons_idx in data["Constructions"].index:
             cons = data["Constructions"].loc[cons_idx]
+            target_columns = [f'column_{i}_id' for i in range(1, 11)]
             list_of_materials = [
-                dataset.materials_dict[x] for x in cons[5:] if str(x) != "nan"
-            ]
-
+                dataset.materials_dict[x]
+                for col in target_columns
+                if col in cons and str(cons[col]) != "nan"
+                for x in [cons[col]]]
+            
             if (
-                    not np.isnan(cons["U-value [W/(m2 K)]"]) and
+                    isinstance((cons["U-value [W/(m2 K)]"]), (int, float)) and
                     (cons["Weight class"] in ["Very heavy", "Heavy", "Medium", "Light", "Very light"])
             ):
                 dataset.constructions_dict[cons_idx] = Construction.from_U_value(
                                                             cons["name"],
                                                             u_value = float(cons["U-value [W/(m2 K)]"]),
                                                             weight_class =  cons["Weight class"],
-                                                            construction_type = cons["type"],)
+                                                            construction_type = cons["type"])
 
-            else:
+            elif(len(list_of_materials)>0):
 
                 dataset.constructions_dict[cons_idx] = Construction(
                     cons["name"],
