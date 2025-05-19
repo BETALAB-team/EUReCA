@@ -28,6 +28,7 @@ from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
+from tqdm import tqdm
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -53,6 +54,7 @@ class City():
                  building_model = CONFIG.building_energy_model,
                  shading_calculation = CONFIG.do_solar_shading_calculation,
                  systems_templates_file = None,
+                 baseline = 1
                  ):
         """Initializes the City object by loading data and preparing the simulation environment.
 
@@ -73,33 +75,17 @@ class City():
         shading_calculation : bool, default False
             whether to do or not the mutual shading calculation
         """
-
+        self.baseline = baseline;
         self.__city_surfaces = []  # List of all the external surfaces of a city
-        # Loading weather file
-        self.weather_file = WeatherFile(
-            epw_weather_file,
-            year = CONFIG.simulation_reference_year,
-            time_steps = CONFIG.ts_per_hour,
-            irradiances_calculation = True,
-            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
-            height_subdivisions = CONFIG.height_subdivisions,
-            urban_shading_tol = CONFIG.urban_shading_tolerances
-        )
-
-        # Loading Envelope and Schedule Data
-        self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
-        self.end_uses_dict = load_schedules(end_uses_types_file)
-        self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
-
+        # Adding information paths
+        self.weather_file_path=epw_weather_file
+        self.envelopes_dict_path = envelope_types_file  
+        self.end_uses_dict_path = end_uses_types_file
+        self.systems_templates_path = systems_templates_file
+        self.input_path=city_model
         self.building_model = building_model
         self.shading_calculation = shading_calculation
-
-        if city_model.endswith('.json'):
-            self.buildings_creation_from_cityjson(city_model)
-        elif city_model.endswith('.geojson'):
-            self.buildings_creation_from_geojson(city_model)
-        else:
-            raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {city_model}")
+        self.initialization_flag = 0
 
         if not os.path.isdir(output_folder):
             os.mkdir(output_folder)
@@ -121,6 +107,138 @@ class City():
                 f"City class, building_model is not a allowed: {value}. please provide an allowed model."
             )
         self._building_model = value
+        
+    def load_info(self):
+        
+        self.weather_file = WeatherFile(
+            self.weather_file_path,
+            year = CONFIG.simulation_reference_year,
+            time_steps = CONFIG.ts_per_hour,
+            irradiances_calculation = True,
+            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
+            height_subdivisions = CONFIG.height_subdivisions,
+            urban_shading_tol = CONFIG.urban_shading_tolerances
+        )
+        self.envelopes_dict = load_envelopes(self.envelopes_dict_path)  # Envelope file loading
+        self.end_uses_dict = load_schedules(self.end_uses_dict_path)
+        self.systems_templates = load_system_templates(self.systems_templates_path) if self.systems_templates_path is not None else None
+    
+    def initializer(self):
+        self.load_info()
+        if self.input_path.endswith('.json'):
+            self.buildings_creation_from_cityjson(self.input_path)
+            self.initialization_flag = 1
+        elif self.input_path.endswith('.geojson'):
+            self.buildings_creation_from_geojson(self.input_path)
+            self.initialization_flag = 1
+        else:
+            raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {self.input_path}")
+
+        
+    def scenario_creation(self, scenario_dict, output_folder):
+        """
+        Generate intervention scenarios based only on combinations actually present in scenario_dict.
+    
+        Parameters
+        ----------
+        json_path : str
+            Path to the input GeoJSON file.
+        scenario_dict : dict
+            Dictionary of scenarios with intervention percentages.
+        output_folder : str
+            Folder to save the generated scenario files.
+        """
+    
+        def load_file(path):
+            if path.endswith('.geojson') or path.endswith('.json'):
+                try:
+                    gdf = gpd.read_file(path)
+                    return gdf
+                except Exception:
+                    raise ValueError("File format not supported or file unreadable.")
+    
+        def save_geojson(gdf, name):
+            gdf.to_file(os.path.join(output_folder, f"{name}.geojson"), driver='GeoJSON')
+    
+        def clone_input(data):
+            return data.copy()
+    
+        def apply_changes(data, intervention_set):
+            interventions = []
+            if "envelope" in intervention_set:
+                data["Envelope"] = "2005-2010"
+                interventions.append("Envelope")
+            if "HVAC" in intervention_set:
+                data["Heating System"] = "A-W Heat Pump, Single, Fan coil"
+                data["Cooling System"] = "A-A split"
+                interventions.append("HVAC")
+            if "deep_retrofit" in intervention_set:
+                data["Envelope"] = "2005-2010"
+                data["Heating System"] = "A-W Heat Pump, Single, Fan coil"
+                data["Cooling System"] = "A-A split"
+                interventions.append("deep_retrofit")
+            if "PV" in intervention_set and "TS" in intervention_set:
+                data["Solar technologies"] = "PV,TS"
+                interventions.append("PV_TS")
+            elif "PV" in intervention_set:
+                data["Solar technologies"] = "PV"
+                interventions.append("PV")
+            elif "TS" in intervention_set:
+                data["Solar technologies"] = "TS"
+                interventions.append("TS")
+            return data,interventions
+    
+        # Create output directory if it doesn't exist
+        os.makedirs(output_folder, exist_ok=True)
+    
+        # Load the input file
+        base_data = load_file(self.input_path)
+    
+        # Determine unique sets of active interventions across all scenarios
+        unique_combinations = set()
+        for scenario in scenario_dict.values():
+            active = frozenset({k for k, v in scenario.items() if v > 0})
+            if active:
+                unique_combinations.add(active)
+        intervention_list=[]
+        # Generate and save a scenario for each unique intervention set
+        for combo in unique_combinations:
+            name = "base_" + "_".join(sorted(combo))
+            modified , interventions_done = apply_changes(clone_input(base_data), combo)
+            intervention_list.append(interventions_done)
+            save_geojson(modified, name)
+        self.base_scenarios={}
+        for i, filename in enumerate(os.listdir(output_folder)):
+            if filename.endswith(".geojson"):
+                full_path = os.path.join(output_folder, filename)
+                scenario_name = os.path.splitext(filename)[0]  # removes '.geojson'
+                self.base_scenarios[scenario_name] = City(
+                    city_model=full_path,
+                    epw_weather_file=self.weather_file_path,
+                    end_uses_types_file=self.end_uses_dict_path,
+                    envelope_types_file=self.envelopes_dict_path,
+                    systems_templates_file=self.systems_templates_path,
+                    shading_calculation=self.shading_calculation,                                                   #Shading Calculation Requires Preprocessing Time
+                    building_model = self.building_model,                                                      #1C for 5R1C (ISO 13790), 2C for 7R2C (VDI6007)
+                    output_folder=os.path.join(".","Output_folder"+scenario_name),
+                    baseline=0                          
+                )
+                self.base_scenarios[scenario_name].interventions_applied = intervention_list[i]
+        
+    def scenario_simulation(self):
+        if not hasattr(self, 'base_scenarios'):
+            raise AttributeError("The scenarios are not generated yet, please create scenarios before attempting scenario simulation")
+            
+        print("Proceeding with the scenario simulation")
+        for base_scenario, city_object in self.base_scenarios.items():
+            city_object.simulate(output_type="csv")   
+            
+            
+            # returns outputcity1, outputcity2, outputcity3, outputcity4, outputcity5 
+            
+        # def scenario_mixmatch(self, outputcitieslist):
+        #     returns scenariooutput1, scenariooutput2,...
+        #     each city scneario with a cost added (detailed or sum?)
 
     def buildings_creation_from_cityjson(self,json_path):
         """
@@ -322,6 +440,11 @@ class City():
         #     json.dump(self.output_geojson, outfile)
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
+        
+        
+        
+    
+        
     def buildings_creation_from_geojson(self, json_path):
         """
         Creates building objects from a GeoJSON file.
@@ -634,10 +757,9 @@ class City():
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
         
-        # iiii=0
-        # jjjj=3608
+
         for bd_id, building_info in self.buildings_info.items():
-            # iiii=iiii+1
+
             building_obj = self.buildings_objects[bd_id]
 
             if len(building_obj._thermal_zones_list) > 1:
@@ -748,6 +870,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         None
         Saves results to a subfolder named 'qss' in the output folder.
         """
+        if (self.initialization_flag == 0):
+            self.initializer()
         self.loads_calculation(region="Veneto")
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -777,6 +901,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         -------
         None
         """
+        if (self.initialization_flag == 0):
+            self.initializer()
         self.loads_calculation(region="Veneto")
         import time
         start = time.time()
@@ -808,10 +934,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
-        for bd_id, building_info in self.buildings_info.items():
-            if counter%10 == 0:
-                print(f"{counter} buildings simulated out of {n_buildings}")
-            counter += 1
+        for bd_id, building_info in tqdm(self.buildings_info.items(), desc="Processing Buildings", unit="building"):
+
 
             info = {}
             info["TZ info"] = {}
@@ -892,6 +1016,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
+        # if self.baseline==0:
+        #     cost_analysis
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         new_geojson.drop("geometry",axis = 1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep =";")
 
@@ -1046,30 +1172,21 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         toll_dist = CONFIG.urban_shading_tolerances[1]
         toll_theta = CONFIG.urban_shading_tolerances[2]
 
-        # Each surface is compared with all the others
-        # qqq=len(self.__city_surfaces)
-        # qqqq=qqq*(qqq-1)/2
-        # iiii=0
-        # jjjj=0
+
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
         max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
-        for x in range(len(self.__city_surfaces)):
-            # jjjj=jjjj+1
-            # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
-           
+        for x, surface in enumerate(tqdm(self.__city_surfaces, desc="Geometric Preprocessing", unit="surface")):
+
             # Function to filter using scipy the nearest points (centroids)
             _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
             
-            # iiiii=0
+
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
             for y in filtered_indices:
-                # iiii=iiii+1
-                # iiiii=iiiii+1
-                # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
@@ -1089,7 +1206,6 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                         self.__city_surfaces[y].reduce_area(intersectionArea)
                         self.__city_surfaces[x].reduce_area(intersectionArea)
 
-                # print(f" {int(iiii/jjjj)*100} percent: geometry")
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
@@ -1179,14 +1295,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # SECTION 2: Calculation of the shading effect
             for x in range(len(self.__city_surfaces)):
                 self.__city_surfaces[x].shading_coefficient = 1.
-                # iiiii=0
                 if self.__city_surfaces[x].shading_coupled_surfaces != []:
                     self.__city_surfaces[x].shading_calculation = 'On'
                     shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
-                        # iiii=iiii+1
-                        # iiiii=iiiii+1
-                        # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
+
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
                         surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]

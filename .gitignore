@@ -1,6 +1,7 @@
 /__pycache__/
 .spyproject
 RCenv.yml
+**/Output_folder*/
 /eureca_ubem/Input/output
 /eureca_ubem/Input/Output_folder
 /eureca_ubem/Input/geojson_corr_sysmod

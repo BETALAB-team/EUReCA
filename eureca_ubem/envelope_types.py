@@ -59,7 +59,6 @@ def load_envelopes(path):
                 window = cs_dataset.windows_dict[envelopes.loc[i]["Window"]],
                 )   
             envelopes_dict[envelope.name] = envelope
-
         except (KeyError, TypeError, ValueError):   
             # Currently, URBEM data is incomplete. until the cells get complete... 
             continue
