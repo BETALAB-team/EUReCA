@@ -103,7 +103,7 @@ class ConstructionDataset:
         # Constructions
         for cons_idx in data["Constructions"].index:
             cons = data["Constructions"].loc[cons_idx]
-            target_columns = [f'column_{i}_id' for i in range(1, 11)]
+            target_columns = [f'material_{i}_id' for i in range(1, 11)]
             list_of_materials = [
                 dataset.materials_dict[x]
                 for col in target_columns
