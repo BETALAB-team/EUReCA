@@ -450,8 +450,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                                                         +1.10 * 8140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
                                                         +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
                                                         +0.00 * directsolar
-                                                        
-         
+        self.primary_energy=total["Primary Energy [Wh]",f"Bd {self.name}"] 
+        self.co2_emission=total["CO2 Emission [kg CO2]",f"Bd {self.name}"]                                                 
+        self.intervention_cost = 0.0
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:

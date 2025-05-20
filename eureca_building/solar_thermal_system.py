@@ -62,6 +62,7 @@ class SolarThermal_Collector():
             tot_area=tot_area+Surface._area
         self.sized_coverage_factor=sized_area/tot_area
         coverage_factor=min(self.sized_coverage_factor,max_coverage_factor)
+        self.installed_area = coverage_factor * tot_area 
         for Surface in self._surfaces: 
             tilt=Surface._height_round
             orient=Surface._azimuth_round

@@ -5,12 +5,13 @@ import os
 import json
 import concurrent.futures
 # import psutil
-
+import warnings
 import pickle as pickle
 import pandas as pd
 import shapely
 import geopandas as gpd
 import numpy as np
+from itertools import chain, combinations
 from cjio import cityjson
 from scipy.spatial import cKDTree
 from shapely.validation import make_valid
@@ -28,6 +29,8 @@ from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
 from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
+from eureca_ubem.scenario_cost import calculate_intervention_cost
+import random
 from tqdm import tqdm
 
 #%% ---------------------------------------------------------------------------------------------------
@@ -135,14 +138,15 @@ class City():
             raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {self.input_path}")
 
         
+
+    
     def scenario_creation(self, scenario_dict, output_folder):
         """
-        Generate intervention scenarios based only on combinations actually present in scenario_dict.
+        Generate intervention scenarios from scenario_dict by producing all valid combinations
+        of interventions, skipping duplicates and invalid mixes (like deep_retrofit with HVAC/envelope).
     
         Parameters
         ----------
-        json_path : str
-            Path to the input GeoJSON file.
         scenario_dict : dict
             Dictionary of scenarios with intervention percentages.
         output_folder : str
@@ -156,7 +160,10 @@ class City():
                     return gdf
                 except Exception:
                     raise ValueError("File format not supported or file unreadable.")
-    
+        def powerset(iterable):
+            """Generate all non-empty subsets of a set."""
+            s = list(iterable)
+            return chain.from_iterable(combinations(s, r) for r in range(1, len(s)+1))
         def save_geojson(gdf, name):
             gdf.to_file(os.path.join(output_folder, f"{name}.geojson"), driver='GeoJSON')
     
@@ -186,44 +193,57 @@ class City():
             elif "TS" in intervention_set:
                 data["Solar technologies"] = "TS"
                 interventions.append("TS")
-            return data,interventions
+            return data, interventions
     
-        # Create output directory if it doesn't exist
+        # Step 1: Create output directory
         os.makedirs(output_folder, exist_ok=True)
     
-        # Load the input file
+        # Step 2: Load input data
         base_data = load_file(self.input_path)
     
-        # Determine unique sets of active interventions across all scenarios
+        # Step 3: Generate valid unique combinations
         unique_combinations = set()
+    
         for scenario in scenario_dict.values():
-            active = frozenset({k for k, v in scenario.items() if v > 0})
-            if active:
-                unique_combinations.add(active)
-        intervention_list=[]
-        # Generate and save a scenario for each unique intervention set
+            active_keys = {k for k, v in scenario.items() if v > 0}
+            for subset in powerset(active_keys):
+                subset_set = set(subset)
+                if 'deep_retrofit' in subset_set and ('HVAC' in subset_set or 'envelope' in subset_set):
+                    continue
+                if 'HVAC' in subset_set and ('deep_retrofit' in subset_set or 'envelope' in subset_set):
+                    continue
+                if 'envelope' in subset_set and ('HVAC' in subset_set or 'deep_retrofit' in subset_set):
+                    continue
+                frozen = frozenset(subset_set)
+                unique_combinations.add(frozen)
+    
+        # Step 4: Apply each unique combo
+        self.base_scenarios = {}
+        generated_names = set()
         for combo in unique_combinations:
-            name = "base_" + "_".join(sorted(combo))
-            modified , interventions_done = apply_changes(clone_input(base_data), combo)
-            intervention_list.append(interventions_done)
+            combo_sorted = sorted(combo)
+            name = "base_" + "_".join(combo_sorted)
+            if name in generated_names:
+                continue  # skip duplicate
+            generated_names.add(name)
+    
+            modified, interventions_done = apply_changes(clone_input(base_data), combo)
             save_geojson(modified, name)
-        self.base_scenarios={}
-        for i, filename in enumerate(os.listdir(output_folder)):
-            if filename.endswith(".geojson"):
-                full_path = os.path.join(output_folder, filename)
-                scenario_name = os.path.splitext(filename)[0]  # removes '.geojson'
-                self.base_scenarios[scenario_name] = City(
-                    city_model=full_path,
-                    epw_weather_file=self.weather_file_path,
-                    end_uses_types_file=self.end_uses_dict_path,
-                    envelope_types_file=self.envelopes_dict_path,
-                    systems_templates_file=self.systems_templates_path,
-                    shading_calculation=self.shading_calculation,                                                   #Shading Calculation Requires Preprocessing Time
-                    building_model = self.building_model,                                                      #1C for 5R1C (ISO 13790), 2C for 7R2C (VDI6007)
-                    output_folder=os.path.join(".","Output_folder"+scenario_name),
-                    baseline=0                          
-                )
-                self.base_scenarios[scenario_name].interventions_applied = intervention_list[i]
+    
+            # Step 5: Store new City object
+            self.base_scenarios[name] = City(
+                city_model=os.path.join(output_folder, f"{name}.geojson"),
+                epw_weather_file=self.weather_file_path,
+                end_uses_types_file=self.end_uses_dict_path,
+                envelope_types_file=self.envelopes_dict_path,
+                systems_templates_file=self.systems_templates_path,
+                shading_calculation=self.shading_calculation,
+                building_model=self.building_model,
+                output_folder=os.path.join(".", "Output_folder" + name),
+                baseline=0
+            )
+            self.base_scenarios[name].interventions_applied = interventions_done
+            self.base_scenarios[name].parent_city = self
         
     def scenario_simulation(self):
         if not hasattr(self, 'base_scenarios'):
@@ -235,7 +255,101 @@ class City():
             
             
             # returns outputcity1, outputcity2, outputcity3, outputcity4, outputcity5 
+    def random_assign_interventions(self, scenario_dict, n_assignments):
+        """
+        For each scenario, create a DataFrame of randomized intervention assignments
+        across buildings, following intervention probabilities and respecting mutual exclusivity
+        between 'HVAC', 'envelope', and 'deep_retrofit'.
+        
+        Parameters
+        ----------
+        scenario_dict : dict
+            Dictionary where each scenario is a dict of {intervention: percentage}.
+        n_assignments : int
+            Number of random assignment trials per scenario.
             
+        Returns
+        -------
+        dict of {scenario_name: pd.DataFrame}
+            A DataFrame per scenario with 'id' column and assignment_n columns.
+        """
+        
+        MUTUALLY_EXCLUSIVE = ["HVAC", "envelope", "deep_retrofit"]
+        all_building_ids = list(self.buildings_info.keys())
+        total_buildings = len(all_building_ids)
+        scenario_dataframes = {}
+    
+        for scenario_name, interventions in scenario_dict.items():
+            # Sanity check: intervention percentages should be between 0 and 100
+            for k, v in interventions.items():
+                if not (0 <= v <= 100):
+                    warnings.warn(f"Scenario '{scenario_name}' has invalid percentage for {k}: {v}. Skipping scenario.")
+                    break
+            else:
+                df = pd.DataFrame({"id": all_building_ids})
+    
+                # Step 1: Extract probabilities
+                deep_pct = interventions.get("deep_retrofit", 0)
+                hvac_pct = interventions.get("HVAC", 0)
+                env_pct = interventions.get("envelope", 0)
+                pv_pct = interventions.get("PV", 0)
+                ts_pct = interventions.get("TS", 0)
+    
+                env_or_hvac_pct = deep_pct + hvac_pct + env_pct
+                if env_or_hvac_pct > 100:
+                    warnings.warn(f"Scenario '{scenario_name}' has mutually exclusive interventions > 100%. Skipping.")
+                    continue
+    
+                # For multiple assignment rounds
+                for a in range(n_assignments):
+                    building_assignment = {bid: [] for bid in all_building_ids}
+    
+                    # Step 2: Assign one of [HVAC, deep, envelope]
+                    n_env_or_hvac = math.ceil((env_or_hvac_pct / 100) * total_buildings)
+                    candidate_ids = random.sample(all_building_ids, n_env_or_hvac)
+    
+                    # Compute weights
+                    total_exclusive_weight = deep_pct + hvac_pct + env_pct
+                    weights = {
+                        "deep_retrofit": deep_pct / total_exclusive_weight if deep_pct else 0,
+                        "HVAC": hvac_pct / total_exclusive_weight if hvac_pct else 0,
+                        "envelope": env_pct / total_exclusive_weight if env_pct else 0,
+                    }
+    
+                    for bid in candidate_ids:
+                        assigned = random.choices(
+                            population=MUTUALLY_EXCLUSIVE,
+                            weights=[weights[k] for k in MUTUALLY_EXCLUSIVE],
+                            k=1
+                        )[0]
+                        building_assignment[bid].append(assigned)
+    
+                    # Step 3: Assign PV independently
+                    n_pv = math.ceil((pv_pct / 100) * total_buildings)
+                    pv_ids = random.sample(all_building_ids, n_pv)
+                    for bid in pv_ids:
+                        building_assignment[bid].append("PV")
+    
+                    # Step 4: Assign TS independently
+                    n_ts = math.ceil((ts_pct / 100) * total_buildings)
+                    ts_ids = random.sample(all_building_ids, n_ts)
+                    for bid in ts_ids:
+                        building_assignment[bid].append("TS")
+    
+                    # Step 5: Collapse interventions into strings (e.g., PV_HVAC)
+                    final_column = []
+                    for bid in all_building_ids:
+                        interventions_list = building_assignment[bid]
+                        if interventions_list:
+                            final_column.append("_".join(sorted(interventions_list)))
+                        else:
+                            final_column.append(None)
+    
+                    df[f"assignment_{a+1}"] = final_column
+    
+                scenario_dataframes[scenario_name] = df
+    
+        return scenario_dataframes
         # def scenario_mixmatch(self, outputcitieslist):
         #     returns scenariooutput1, scenariooutput2,...
         #     each city scneario with a cost added (detailed or sum?)
@@ -1015,6 +1129,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
+        self.output_geojson["intervention_cost [euro]"] = 0.0
+        self.output_geojson["scenario"] = "base"
+        if self.baseline == 0:
+            calculate_intervention_cost(self)
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
         # if self.baseline==0:
         #     cost_analysis

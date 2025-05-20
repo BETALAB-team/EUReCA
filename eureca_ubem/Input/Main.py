@@ -48,7 +48,8 @@ scenario_dict={
         "deep_retrofit":15,
         "envelope":23}
     }
-
+city_geojson.initializer()
 city_geojson.scenario_creation(scenario_dict, output_folder=os.path.join(".","scenarios")    )
 city_geojson.scenario_simulation()
+AA=city_geojson.random_assign_interventions(scenario_dict, n_assignments=15)
 
