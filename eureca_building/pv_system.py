@@ -133,10 +133,14 @@ class PV_system():
         
 
         '''
+        self.total_area_installed = 0
+        self.total_power_installed = 0
         Module_Power_STC_condition=400 #Module Power at STC
         Single_Module_Surface_Area=1.7 #Module Area
         for Surface,v in self._pv_efficiencies.items():
             Installed_PV_area=Surface._area*self.coverage_factor
+            self.total_area_installed =self.total_area_installed +Installed_PV_area
+            self.total_power_installed = self.total_power_installed + Installed_PV_area * Module_Power_STC_condition
             self._pv_efficiencies[Surface]['power_stc']=Installed_PV_area/Single_Module_Surface_Area*Module_Power_STC_condition
         self.pv_g_stc=1000 #W/m2
            

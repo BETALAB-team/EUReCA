@@ -422,7 +422,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Given to Grid [Wh]",f"Bd {self.name}"]=togrid
         total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
         total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
-        print(directsolar)
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
         # in case of static renewable energy factor:
         total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"]=1.95 * fromgrid\
@@ -451,9 +450,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                                                         +1.10 * 8140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
                                                         +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
                                                         +0.00 * directsolar
-                                                        
-        print(directsolar)
-         
+        self.primary_energy=sum(total["Primary Energy [Wh]",f"Bd {self.name}"])/1000
+        self.primary_energy_nren=sum(total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"] )/1000
+        self.co2_emission=sum(total["CO2 Emission [kg CO2]",f"Bd {self.name}"])/1000                                                 
+        self.intervention_cost = 0.0
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
