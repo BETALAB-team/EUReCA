@@ -32,23 +32,23 @@ city_geojson.simulate(output_type="csv")                                        
 
 #%% This part is for scenario calculation, uncommenting it will result in a long calculation! 
 #scenario_dict={
-    "scenario_one":{
-        "PV":10,
-        "TS":5},
-    "scenario_two":{
-        "HVAC":50,
-        "TS":5},
-    "scenario_three":{
-        "PV":30,
-        "deep_retrofit":5},
-    "scenario_four":{
-        "PV":10,
-        "envelope":15},
-    "scenario_five":{
-        "PV":10,
-        "deep_retrofit":15,
-        "envelope":23}
-    }
+#    "scenario_one":{
+#       "PV":10,
+#       "TS":5},
+#   "scenario_two":{
+#       "HVAC":50,
+#       "TS":5},
+#   "scenario_three":{
+#       "PV":30,
+#       "deep_retrofit":5},
+#   "scenario_four":{
+#       "PV":10,
+#       "envelope":15},
+#   "scenario_five":{
+#       "PV":10,
+#       "deep_retrofit":15,
+#       "envelope":23}
+#   }
 #city_geojson.initializer()
 #stats = city_geojson.scenario_analysis(scenario_dict, output_folder=os.path.join(".","scenarios"), n_assignment=25   )
 #generate_summary_pdf(os.path.join(".","Output_folder_report"),scenario_dict,stats)
