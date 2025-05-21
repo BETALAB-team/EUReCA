@@ -32,6 +32,7 @@ from eureca_ubem.electric_load_italian_distribution import get_italian_random_el
 from eureca_ubem.scenario_cost import calculate_intervention_cost
 import random
 from tqdm import tqdm
+import shutil
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -139,7 +140,24 @@ class City():
 
         
 
-    
+    def scenario_analysis (self, scenario_dict, output_folder, n_assignment):
+        """
+        Provide the analysis regarding the scenarios 
+        Parameters
+        ----------
+        scenario_dict : dict
+            Dictionary of scenarios with intervention percentages.
+        output_folder : str
+            Folder to save the generated scenario files.
+        """
+        self.scenario_creation(scenario_dict, output_folder)
+        self.scenario_simulation()
+        for base_scenario, city_object in self.base_scenarios.items():
+            path_to_output = city_object.output_folder
+            shutil.rmtree(path_to_output)
+        out_assignments = self.random_assign_interventions(scenario_dict, n_assignment)
+        statistics = self.generate_scenario_cost_dataframes(out_assignments)
+        return statistics 
     def scenario_creation(self, scenario_dict, output_folder):
         """
         Generate intervention scenarios from scenario_dict by producing all valid combinations
@@ -244,14 +262,14 @@ class City():
             )
             self.base_scenarios[name].interventions_applied = interventions_done
             self.base_scenarios[name].parent_city = self
-        
+            
     def scenario_simulation(self):
         if not hasattr(self, 'base_scenarios'):
             raise AttributeError("The scenarios are not generated yet, please create scenarios before attempting scenario simulation")
             
         print("Proceeding with the scenario simulation")
         for base_scenario, city_object in self.base_scenarios.items():
-            city_object.simulate(output_type="csv")   
+            city_object.simulate(print_single_building_results = False)   
             
             
             # returns outputcity1, outputcity2, outputcity3, outputcity4, outputcity5 
@@ -350,6 +368,111 @@ class City():
                 scenario_dataframes[scenario_name] = df
     
         return scenario_dataframes
+
+    def generate_scenario_cost_dataframes(self, assignment_dataframes):
+        """
+        Generate cost DataFrames from assignment DataFrames by retrieving
+        intervention_cost from matching base_scenarios and buildings.
+        
+        Parameters
+        ----------
+        assignment_dataframes : dict
+            Output of generate_scenario_assignment_dataframes, one DataFrame per scenario.
+        
+        Returns
+        -------
+        dict
+            Dictionary with one entry per scenario. Each entry contains:
+                {
+                    "cost": [...], "cost_mean": ..., "cost_max": ..., "cost_min": ..., "cost_std": ...,
+                    "primary_energy": [...], ...
+                    "primary_energy_nren": [...], ...
+                    "co2_emission": [...], ...
+                }
+        """
+        cost_dataframes = {}
+        primary_energy_dataframes ={}
+        primary_energy_nren_dataframes ={}
+        co2_dataframes ={}
+    
+        for scenario_name, assignment_df in assignment_dataframes.items():
+            # Start cost DataFrame with same index and ID
+            cost_df = pd.DataFrame({"id": assignment_df["id"]})
+            pe_df = pd.DataFrame({"id": assignment_df["id"]})
+            pe_nren_df = pd.DataFrame({"id": assignment_df["id"]})
+            co2_df = pd.DataFrame({"id": assignment_df["id"]})
+            # Loop through assignment columns
+            for col in assignment_df.columns:
+                if col == "id":
+                    continue
+    
+                cost_column = []
+                pe_column = []
+                pe_nren_column = []
+                co2_column = []
+    
+                for row_idx, assignment in assignment_df[col].items():
+                    bid = str(assignment_df.at[row_idx, "id"])
+    
+                    if not assignment:
+                        building_obj = self.no_intervention_buildings[bid]
+                        cost_column.append(building_obj.intervention_cost)
+                        pe_column.append(building_obj.primary_energy)
+                        pe_nren_column.append(building_obj.primary_energy_nren)
+                        co2_column.append(building_obj.co2_emission)
+                        continue
+    
+                    base_key = f"base_{assignment}"
+                    try:
+                        building_obj = self.base_scenarios[base_key].buildings_objects[bid]
+                        cost = building_obj.intervention_cost
+                        pe = building_obj.primary_energy
+                        pe_nren = building_obj.primary_energy_nren
+                        co2_em = building_obj.co2_emission
+                    except KeyError:
+                        warnings.warn(
+                            f"Missing building '{bid}' or base scenario '{base_key}' in scenario '{scenario_name}'. Using cost = 0."
+                        )
+                        cost = 0
+                        pe= 0 
+                        pe_nren = 0 
+                        co2_em = 0 
+    
+                    cost_column.append(cost)
+                    pe_column.append(pe)
+                    pe_nren_column.append(pe_nren)
+                    co2_column.append(co2_em)
+                    
+                cost_df[col] = cost_column
+                pe_df[col] = pe_column
+                pe_nren_df[col] = pe_nren_column
+                co2_df[col] = co2_column
+            cost_dataframes[scenario_name] = cost_df
+            primary_energy_dataframes[scenario_name] = pe_df
+            primary_energy_nren_dataframes[scenario_name] = pe_nren_df
+            co2_dataframes[scenario_name] = co2_df
+    
+        summary = {}
+        for scenario_name in cost_dataframes.keys():
+            
+            scenario_summary = {}
+    
+            def summarize(df, label):
+                values = df.drop(columns=["id"]).sum(axis=0).values.tolist()
+                arr = np.array(values)
+                scenario_summary[f"{label}"] = values
+                scenario_summary[f"{label}_mean"] = float(arr.mean())
+                scenario_summary[f"{label}_max"] = float(arr.max())
+                scenario_summary[f"{label}_min"] = float(arr.min())
+                scenario_summary[f"{label}_std"] = float(arr.std())
+    
+            summarize(cost_dataframes[scenario_name], "cost")
+            summarize(primary_energy_dataframes[scenario_name], "primary_energy")
+            summarize(primary_energy_nren_dataframes[scenario_name], "primary_energy_nren")
+            summarize(co2_dataframes[scenario_name], "co2_emission")
+    
+            summary[scenario_name] = scenario_summary
+        return summary
         # def scenario_mixmatch(self, outputcitieslist):
         #     returns scenariooutput1, scenariooutput2,...
         #     each city scneario with a cost added (detailed or sum?)
@@ -1133,6 +1256,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         self.output_geojson["scenario"] = "base"
         if self.baseline == 0:
             calculate_intervention_cost(self)
+        if self.baseline == 1:
+            self.no_intervention_buildings = self.buildings_objects 
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
         # if self.baseline==0:
         #     cost_analysis

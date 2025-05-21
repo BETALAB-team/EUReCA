@@ -2,6 +2,7 @@
 import os
 from eureca_building.config import load_config
 from eureca_ubem.city import City
+from eureca_ubem.Report import generate_summary_pdf
 
 
 #%%  Load Inputs 
@@ -49,7 +50,5 @@ scenario_dict={
         "envelope":23}
     }
 city_geojson.initializer()
-city_geojson.scenario_creation(scenario_dict, output_folder=os.path.join(".","scenarios")    )
-city_geojson.scenario_simulation()
-AA=city_geojson.random_assign_interventions(scenario_dict, n_assignments=15)
-
+stats = city_geojson.scenario_analysis(scenario_dict, output_folder=os.path.join(".","scenarios"), n_assignment=25   )
+generate_summary_pdf(os.path.join(".","Output_folder_report"),scenario_dict,stats)

@@ -26,3 +26,4 @@ tzdata==2025.1
 urllib3==2.3.0
 xlrd==2.0.1
 tqdm==4.66.1
+reportlab==4.4.1
