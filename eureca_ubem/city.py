@@ -31,6 +31,7 @@ from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
 from eureca_ubem.scenario_cost import calculate_intervention_cost
 import random
+from scipy.linalg import eigh
 from tqdm import tqdm
 import shutil
 
@@ -1201,6 +1202,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
+            self.buildings_objects[bd_id].demand = results["Heating Demand [Wh]"] + results["Cooling Demand [Wh]"] 
             monthly = results.resample("ME").sum()
 
             heat_demand = monthly["Heating Demand [Wh]"]
@@ -1275,44 +1277,105 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
-    @staticmethod
-    def calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW):
+    #@staticmethod
+    def compute_demand_matrices(self, cooling_coeff=1.0):
         """
-        Calculates the Thermal Synergy Index (TSI) for a cluster of buildings.
+        Generate two DataFrames from the heating and cooling demands of the city's building objects.
         
         Parameters
         ----------
-        rejected_ST : np.ndarray
-        Solar thermal rejected energy over time.
-        rejected_Other : np.ndarray
-        Other rejected heat sources over time.
-        demand_Other : np.ndarray
-        Other energy demands (e.g. internal loads).
-        demand_DH : np.ndarray
-        District heating demand.
-        demand_SH : np.ndarray
-        Space heating demand (positive for heating, negative for cooling).
-        demand_DHW : np.ndarray
-        Domestic hot water demand.
-        
+        cooling_coeff : float, optional
+            Coefficient to scale the cooling demand before combining. Default is 1.0.
+
         Returns
         -------
-        float
-        TSI value representing thermal synergy efficiency.
+        synergized : pd.DataFrame
+            DataFrame of the sum of heating and scaled cooling demands (columns labeled by building ID).
+        absolute : pd.DataFrame
+            DataFrame of the sum of absolute heating and scaled cooling demands (columns labeled by building ID).
         """
+        demand_dict = {}
 
-        demand_SH_H = np.clip(demand_SH,a_min = 0, a_max = None)
-        demand_SH_C = np.clip(demand_SH,a_min = None, a_max = 0)
+        for bldg_id, bldg_obj in self.buildings_objects.items():
+            if hasattr(bldg_obj, 'demand') :
+                demand_dict[bldg_id] = bldg_obj.demand
 
-        delivered_demand = demand_Other.sum(axis = 1) + demand_SH_H.sum(axis = 1) + demand_DHW.sum(axis=1)
+            else:
+                raise AttributeError(f"Building '{bldg_id}' is missing 'demand'.")
 
-        rejected_demand = -1*rejected_ST.sum(axis = 1) + -1*rejected_Other.sum(axis = 1) + demand_SH_C.sum(axis = 1)
+        # Create aligned DataFrames (n x m)
+        df = pd.DataFrame(demand_dict)
 
-        TSI = np.sum(delivered_demand+rejected_demand)/(
-            np.sum(np.abs(delivered_demand)) + np.sum(np.abs(rejected_demand))
-            )
 
-        return TSI
+        # Compute synergized and absolute demand matrices
+        synergized = df 
+        absolute = df.abs()
+
+        self.synergized_demand_matrice = synergized 
+        self.absolute_demand_matrice = absolute 
+
+
+    
+
+    def get_optimal_binary_selection_via_generalized_eigen(self, cooling_coeff=1.0):
+        """
+        Computes the optimal binary selection of buildings (0 or 1) that minimizes the synergy-to-absolute
+        demand ratio (TSI), based on the generalized eigenvector of AᵀA and BᵀB.
+
+        Parameters
+        ----------
+        cooling_coeff : float
+            Coefficient to scale the cooling demand.
+
+        Returns
+        -------
+        best_selection_dict : dict
+            Mapping of building ID → 1 (included) or 0 (excluded) with minimum TSI.
+        min_tsi : float
+            The minimum synergy score (TSI) achieved.
+        """
+        # Step 1: Get demand matrices
+        self.compute_demand_matrices()
+        synergized_df, absolute_df = self.synergized_demand_matrice, self.absolute_demand_matrice
+
+        A = synergized_df.values
+        B = absolute_df.values
+
+        # Step 2: Solve Mx = λNx
+        M = A.T @ A
+        N = B.T @ B
+        eigvals, eigvecs = eigh(M, N)
+        idx_min = np.argmin(eigvals)
+        x_opt = eigvecs[:, idx_min]
+        x_opt = x_opt / np.linalg.norm(x_opt)  # Normalize
+        # Step 3: Greedy ranking from highest to lowest
+        building_ids = synergized_df.columns.tolist()
+        x_opt_dict = dict(zip(building_ids, x_opt))
+        sorted_bldgs = sorted(x_opt_dict.items(), key=lambda kv: kv[1], reverse=True)
+
+        current_x = {bid: 0.0 for bid in building_ids}
+        best_x = None
+        min_tsi = float("inf")
+
+        for bldg_id, _ in sorted_bldgs:
+            current_x[bldg_id] = 1.0
+            x_vec = np.array([current_x[bid] for bid in building_ids]).reshape(-1, 1)
+            
+            Ax = A @ x_vec
+            Bx = B @ x_vec
+            norm_Ax = np.linalg.norm(Ax)
+            norm_Bx = np.linalg.norm(Bx)
+            if sum(x_vec)==1:
+                self.Ax=Ax
+                self.Bx=Bx
+                self.Q=Ax/Bx
+            tsi = norm_Ax / norm_Bx if norm_Bx != 0 else np.inf
+            if tsi < min_tsi:
+                min_tsi = tsi
+                best_x = current_x.copy()
+
+        return best_x, min_tsi
+
 
     def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
         """
