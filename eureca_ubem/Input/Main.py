@@ -30,8 +30,8 @@ city_geojson = City(
 city_geojson.simulate(output_type="csv")                                        #Comment/Uncomment for Dynamic Simulation   (1C, 2C) 
 #city_geojson.simulate_quasi_steady_state()                                      #Comment/Uncomment for Quasi-Steady-State Simulation
 
-
-scenario_dict={
+#%% This part is for scenario calculation, uncommenting it will result in a long calculation! 
+#scenario_dict={
     "scenario_one":{
         "PV":10,
         "TS":5},
@@ -49,6 +49,6 @@ scenario_dict={
         "deep_retrofit":15,
         "envelope":23}
     }
-city_geojson.initializer()
-stats = city_geojson.scenario_analysis(scenario_dict, output_folder=os.path.join(".","scenarios"), n_assignment=25   )
-generate_summary_pdf(os.path.join(".","Output_folder_report"),scenario_dict,stats)
+#city_geojson.initializer()
+#stats = city_geojson.scenario_analysis(scenario_dict, output_folder=os.path.join(".","scenarios"), n_assignment=25   )
+#generate_summary_pdf(os.path.join(".","Output_folder_report"),scenario_dict,stats)
