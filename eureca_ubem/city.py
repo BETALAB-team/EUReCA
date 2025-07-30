@@ -796,15 +796,15 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
         district_hourly_results = pd.DataFrame(0., index = index, columns = [
             "Gas consumption [Nm3]",
-            "Electric consumption [Wh]",
+            "Electric consumption [MWh]",
             "Oil consumption [L]",
             "Wood consumption [kg]",
-            "TZ sensible load [W]",
-            "TZ latent load [W]",
-            "TZ AHU pre heater load [W]",
-            "TZ AHU post heater load [W]",
-            "TZ DHW demand [W]",
-            "Net PV production to grid [Wh]"
+            "TZ sensible load [kW]",
+            "TZ latent load [kW]",
+            "TZ AHU pre heater load [kW]",
+            "TZ AHU post heater load [kW]",
+            "TZ DHW demand [kW]",
+            "Net PV production to grid [MWh]"
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
@@ -832,18 +832,18 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=None)
             results.index = index
 
-            demand = results[["TZ sensible load [W]",
-                              "TZ latent load [W]",
-                              "TZ AHU pre heater load [W]",
-                              "TZ AHU post heater load [W]",
-                              "TZ DHW demand [W]"]]
+            demand = results[["TZ sensible load [kW]",
+                              "TZ latent load [kW]",
+                              "TZ AHU pre heater load [kW]",
+                              "TZ AHU post heater load [kW]",
+                              "TZ DHW demand [kW]"]]
 
-            results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
-            results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
+            results["Heating Demand [kWh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
+            results["Cooling Demand [kWh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
             monthly = results.resample("ME").sum()
 
-            heat_demand = monthly["Heating Demand [Wh]"]
-            cooling_demand = monthly["Cooling Demand [Wh]"]
+            heat_demand = monthly["Heating Demand [kWh]"]
+            cooling_demand = monthly["Cooling Demand [kWh]"]
             gas_consumption = monthly[[col for col in monthly.columns if "gas consumption" in col[0]]].sum(axis=1)
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
@@ -857,32 +857,32 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
-                    info[f"{i} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i} electric consumption [MWh]"] = el_consumption.loc[i]/1000
                     info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
-                    info[f"{i} Heating Demand [Wh]"] = heat_demand.loc[i]
-                    info[f"{i} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i} Heating Demand [MWh]"] = heat_demand.loc[i]/1000
+                    info[f"{i} Cooling Demand [MWh]"] = cooling_demand.loc[i]/1000
                 else:
                     info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
-                    info[f"{i.month_name()} electric consumption [Wh]"] = el_consumption.loc[i]
+                    info[f"{i.month_name()} electric consumption [MWh]"] = el_consumption.loc[i]/1000
                     info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
-                    info[f"{i.month_name()} Heating Demand [Wh]"] = heat_demand.loc[i]
-                    info[f"{i.month_name()} Cooling Demand [Wh]"] = cooling_demand.loc[i]
+                    info[f"{i.month_name()} Heating Demand [MWh]"] = heat_demand.loc[i]/1000
+                    info[f"{i.month_name()} Cooling Demand [MWh]"] = cooling_demand.loc[i]/1000
             final_results[bd_id] = info
             district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
             district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
-            district_hourly_results["Electric consumption [Wh]"] += results["Heating system electric consumption [Wh]"].iloc[:,0] \
-                                                                    + results["Cooling system electric consumption [Wh]"].iloc[:,0] \
-                                                                    + results["Appliances electric consumption [Wh]"].iloc[:,0] \
-                                                                    + results['AHU electric consumption [Wh]'].iloc[:,0]
-            district_hourly_results["TZ sensible load [W]"] += results["TZ sensible load [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["TZ latent load [W]"] += results["TZ latent load [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["TZ AHU pre heater load [W]"] += results["TZ AHU pre heater load [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["TZ AHU post heater load [W]"] += results["TZ AHU post heater load [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["TZ DHW demand [W]"] += results["TZ DHW demand [W]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["Net PV production to grid [Wh]"] += results["Given to Grid [Wh]"].iloc[:,0]
+            district_hourly_results["Electric consumption [MWh]"] += (results["Heating system electric consumption [kWh]"].iloc[:,0] \
+                                                                    + results["Cooling system electric consumption [kWh]"].iloc[:,0] \
+                                                                    + results["Appliances electric consumption [kWh]"].iloc[:,0] \
+                                                                    + results['AHU electric consumption [kWh]'].iloc[:,0])/1000
+            district_hourly_results["TZ sensible load [kW]"] += results["TZ sensible load [kW]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ latent load [kW]"] += results["TZ latent load [kW]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ AHU pre heater load [kW]"] += results["TZ AHU pre heater load [kW]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ AHU post heater load [kW]"] += results["TZ AHU post heater load [kW]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["TZ DHW demand [kW]"] += results["TZ DHW demand [kW]"].iloc[:,0:1].sum(axis = 1)
+            district_hourly_results["Net PV production to grid [MWh]"] += results["Given to Grid [kWh]"].iloc[:,0]/1000
 
 
 

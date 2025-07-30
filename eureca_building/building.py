@@ -295,22 +295,22 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ To [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ Tmr [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ RH [-]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ sensible load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ latent load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU pre heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU post heater load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ AHU electric load [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ sensible load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ latent load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU pre heater load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU post heater load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ AHU electric load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
-            'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ DHW demand [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
             'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'DHW tank charge [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charge [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'DHW tank charging rate [kW]' : np.zeros([CONFIG.number_of_time_steps, 1]),
 
             # 'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Solar Thermal Production [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Thermal Production [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Non-Renewable DHW [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gasoline consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -318,15 +318,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Heating system wood consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system pellet consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system LPG consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system DH consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system electric consumption [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Cooling system electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system DH consumption [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system electric consumption [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Cooling system electric consumption [kWh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             # 'PV Production [W]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Primary Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Primary Non-Renewable Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'AHU electric consumption [kWh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Appliances electric consumption [kWh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Electric consumption [kWh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Primary Energy [kWh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Primary Non-Renewable Energy [kWh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'CO2 Emission [kg CO2]':np.zeros([CONFIG.number_of_time_steps, 1])
         }
         
@@ -337,10 +337,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         
         electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(axis=0) / CONFIG.ts_per_hour
-        results['Appliances electric consumption [Wh]'][:, 0] = electric_consumption[CONFIG.start_time_step:CONFIG.final_time_step]
+        results['Appliances electric consumption [kWh]'][:, 0] = electric_consumption[CONFIG.start_time_step:CONFIG.final_time_step]/1000
 
         results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
-        results['TZ DHW demand [W]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
+        results['TZ DHW demand [kW]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]/1000
 
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
@@ -351,22 +351,22 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['TZ Tmr [°C]'][t - t_start,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
             results['TZ RH [-]'][t - t_start,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
 
-            results['TZ sensible load [W]'][t - t_start, :] = [tz.sensible_zone_load for tz in self._thermal_zones_list]
-            results['TZ latent load [W]'][t - t_start, :] = [tz.latent_zone_load for tz in self._thermal_zones_list]
+            results['TZ sensible load [kW]'][t - t_start, :] = [tz.sensible_zone_load/1000 for tz in self._thermal_zones_list]
+            results['TZ latent load [kW]'][t - t_start, :] = [tz.latent_zone_load/1000 for tz in self._thermal_zones_list]
 
-            results['TZ AHU pre heater load [W]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem for tz in self._thermal_zones_list]
-            results['TZ AHU post heater load [W]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem for tz in self._thermal_zones_list]
-            results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
+            results['TZ AHU pre heater load [kW]'][t - t_start, :] = [tz.air_handling_unit.preh_deu_Dem/1000 for tz in self._thermal_zones_list]
+            results['TZ AHU post heater load [kW]'][t - t_start, :] = [tz.air_handling_unit.posth_Dem/1000 for tz in self._thermal_zones_list]
+            results['TZ AHU electric load [kW]'][t - t_start, :] = [tz.AHU_electric_consumption/1000 for tz in
                                                                       self._thermal_zones_list]
 
             results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
             results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
-            results['DHW tank charge [Wh]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge
-            results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
+            results['DHW tank charge [kWh]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge/1000
+            results['Non-Renewable DHW [kWh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank/1000
             try:
-                results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_gain_out
+                results['Solar Thermal Production [kWh]'][t - t_start,0] = self.heating_system.solar_gain_out/1000
             except AttributeError:
-                results['Solar Thermal Production [Wh]'][t - t_start, 0] = 0
+                results['Solar Thermal Production [kWh]'][t - t_start, 0] = 0
 
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
@@ -376,10 +376,10 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system coal consumption [kg]'][t - t_start,0] = self.heating_system.coal_consumption
             results['Heating system wood consumption [kg]'][t - t_start,0] = self.heating_system.wood_consumption
             results['Heating system pellet consumption [kg]'][t - t_start,0] = self.heating_system.pellet_consumption
-            results['Heating system DH consumption [Wh]'][t - t_start,0] = self.heating_system.DH_consumption
-            results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
-            results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
-            results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
+            results['Heating system DH consumption [kWh]'][t - t_start,0] = self.heating_system.DH_consumption/1000
+            results['Heating system electric consumption [kWh]'][t - t_start,0] = self.heating_system.electric_consumption/1000
+            results['Cooling system electric consumption [kWh]'][t - t_start,0] = self.cooling_system.electric_consumption/1000
+            results['AHU electric consumption [kWh]'][t - t_start,0] = results['TZ AHU electric load [kW]'][t - t_start, :].sum() / CONFIG.ts_per_hour
 
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
         # print((np.max(results['Solar Thermal Production [Wh]'])))
@@ -399,33 +399,33 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         for bd_result_label in bd_labels:
             total[bd_result_label] = results[bd_result_label]
         total.index=Time_index    
-        total['Electric consumption [Wh]'] += total["Heating system electric consumption [Wh]"]\
-                + total["Cooling system electric consumption [Wh]"] \
-                + total["Appliances electric consumption [Wh]"] \
-                + total['AHU electric consumption [Wh]']
+        total['Electric consumption [kWh]'] += total["Heating system electric consumption [kWh]"]\
+                + total["Cooling system electric consumption [kWh]"] \
+                + total["Appliances electric consumption [kWh]"] \
+                + total['AHU electric consumption [kWh]']
 
         # Associate PV to the building
         if hasattr(self, 'pv_system'):
             pv_production=self.pv_system.pv_production()
-            [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
+            [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=1000*total['Electric consumption [kWh]'].iloc[:, 0].values,pv_prod=pv_production)
         else:
             pv_production = 0.
             [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Nm3]"][:, 0].shape) for _ in range(6)]
-            fromgrid = total[("Electric consumption [Wh]", f"Bd {self.name}")].values
+            fromgrid = total[("Electric consumption [kWh]", f"Bd {self.name}")].values
             togrid = 0.
 
-        total["PV production [Wh]",f"Bd {self.name}"]=pv_production
+        total["PV production [kWh]",f"Bd {self.name}"]=pv_production/1000
         total["Battery State [%]",f"Bd {self.name}"]=BatteryState
-        total["Given to Batteries [Wh]",f"Bd {self.name}"]=tobattery
+        total["Given to Batteries [kWh]",f"Bd {self.name}"]=tobattery/1000
         
-        total["Taken from the Batteries [Wh]",f"Bd {self.name}"]=frombattery
-        total["Given to Grid [Wh]",f"Bd {self.name}"]=togrid
-        total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
-        total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
+        total["Taken from the Batteries [kWh]",f"Bd {self.name}"]=frombattery/1000
+        total["Given to Grid [kWh]",f"Bd {self.name}"]=togrid/1000
+        total["Taken from the Gird [kWh]",f"Bd {self.name}"]=fromgrid/1000
+        total["directly from the PV [kWh]",f"Bd {self.name}"]=directsolar/1000
         print(directsolar)
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
         # in case of static renewable energy factor:
-        total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"]=1.95 * fromgrid\
+        total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid/1000\
                                                         +1.05 * 11200 * results ["Heating system gas consumption [Nm3]"][:, 0] \
                                                         +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
                                                         +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
@@ -433,16 +433,16 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                                                         +0.00 * directsolar
                                                         
                                                         
-        total["Primary Energy [Wh]",f"Bd {self.name}"]= 2.42 * fromgrid \
+        total["Primary Energy [kWh]",f"Bd {self.name}"]= 2.42 * fromgrid/1000 \
                                                         +1.05 * 11200 *  results ["Heating system gas consumption [Nm3]"][:, 0] \
                                                         +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
                                                         +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
                                                         +1.00 * 4860 * results ["Heating system wood consumption [kg]"][:, 0] \
                                                         +1.00 * directsolar
         try:
-            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]+results['Solar Thermal Production [Wh]'][:, 0]
+            total["Primary Energy [kWh]",f"Bd {self.name}"] = total["Primary Energy [kWh]",f"Bd {self.name}"]+results['Solar Thermal Production [kWh]'][:, 0]
         except AttributeError:
-            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]
+            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [kWh]",f"Bd {self.name}"]
                                                         
         # Fattori di Emissione from ISPRA 2024 https://emissioni.sina.isprambiente.it/news/
         total["CO2 Emission [kg CO2]",f"Bd {self.name}"]= 1.95 * 61.2 / 277778 * fromgrid \
@@ -536,9 +536,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['Heating system coal consumption [kg]'] = self.heating_system.coal_consumption
         results['Heating system wood consumption [kg]'] = self.heating_system.wood_consumption
         results['Heating system pellet consumption [kg]'] = self.heating_system.pellet_consumption
-        results['Heating system DH consumption [Wh]'] = self.heating_system.DH_consumption
-        results['Heating system electric consumption [Wh]'] = self.heating_system.electric_consumption
-        results['Cooling system electric consumption [Wh]'] = self.cooling_system.electric_consumption
+        results['Heating system DH consumption [kWh]'] = self.heating_system.DH_consumption/1000
+        results['Heating system electric consumption [kWh]'] = self.heating_system.electric_consumption/1000
+        results['Cooling system electric consumption [kWh]'] = self.cooling_system.electric_consumption/1000
 
         results = pd.DataFrame(results)
 
