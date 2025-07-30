@@ -18,6 +18,7 @@ from eureca_building.config import CONFIG
 def get_monthly_value_from_annual_vector(
         array,
         method='sum',
+        ts=CONFIG.time_step
         # start = CONFIG.start_date,
         # end = CONFIG.final_date,
     ):
@@ -35,7 +36,7 @@ def get_monthly_value_from_annual_vector(
     numpy.array
         an array with the resampled array
     """
-    array_year = pd.Series(array, index = pd.date_range(start="01/01/2023 00:00",end="31/12/2023 23:00",freq=f"{CONFIG.time_step}s"))
+    array_year = pd.Series(array, index = pd.date_range(start="01/01/2023 00:00",end="31/12/2023 23:00",periods=8760*ts))
     try:
         monthly_array = {
             'sum': array_year.resample('1ME').sum(),
