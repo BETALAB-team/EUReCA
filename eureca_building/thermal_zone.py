@@ -1794,7 +1794,11 @@ Thermal zone {self.name} 2C params:
             max = weather.hourly_data['out_air_db_temperature'].argmax()
         else:
             max = self.theta_eq_tot.argmax()
-        lim_air = [max - 24*CONFIG.ts_per_hour, max + 24*CONFIG.ts_per_hour]
+        if max + 24*CONFIG.ts_per_hour > CONFIG.final_time_step:
+            max = CONFIG.final_time_step-24*CONFIG.ts_per_hour
+        if max - 24*CONFIG.ts_per_hour < CONFIG.start_time_step:
+            max = CONFIG.start_time_step+24*CONFIG.ts_per_hour        
+        lim_air = [max - 24*CONFIG.ts_per_hour ,max + 24*CONFIG.ts_per_hour]
         sensible_max_cooling_load = 0.
         if model == "1C":
             for t in range(lim_air[0],lim_air[1]):

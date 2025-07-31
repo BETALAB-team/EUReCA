@@ -152,6 +152,8 @@ class PV_system():
         for Surface,Dict_pv_data in self._pv_efficiencies.items():
             Production_watt = Dict_pv_data['power_stc']*Dict_pv_data['pv_rel_eta']*Dict_pv_data['poa_global']/self.pv_g_stc
             ProductionWh += Production_watt/CONFIG.ts_per_hour
+        
+        ProductionWh = ProductionWh[CONFIG.start_time_step:CONFIG.final_time_step]
 
         return ProductionWh
     

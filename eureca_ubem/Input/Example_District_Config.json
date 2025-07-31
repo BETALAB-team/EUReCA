@@ -9,7 +9,7 @@
     "Building energy model": "2C",
     "time steps per hour": "3",
     "simulation reference year" : "2023",
-    "start date": "01-01 00:00",
+    "start date": "08-01 03:00",
     "final date": "12-31 23:00",
     "heating season start": "11-15 23:00",
     "heating season end": "02-15 23:00",

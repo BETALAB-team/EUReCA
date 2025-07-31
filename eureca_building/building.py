@@ -343,7 +343,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['TZ DHW demand [kW]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]/1000
 
         for t in range(t_start - preprocessing_ts, t_stop):
-            self.solve_timestep(t, weather_object)
+            self.solve_timestep(t-t_start, weather_object)
 
                  
             results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
@@ -422,7 +422,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Given to Grid [kWh]",f"Bd {self.name}"]=togrid/1000
         total["Taken from the Gird [kWh]",f"Bd {self.name}"]=fromgrid/1000
         total["directly from the PV [kWh]",f"Bd {self.name}"]=directsolar/1000
-        print(directsolar)
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
         # in case of static renewable energy factor:
         total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid/1000\
@@ -452,7 +451,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                                                         +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
                                                         +0.00 * directsolar
                                                         
-        print(directsolar)
          
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
@@ -495,7 +493,6 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         electric_consumption = np.array([tz.electric_load for tz in self._thermal_zones_list]).sum(
             axis=0) / CONFIG.ts_per_hour # Wh
-
         results['Appliances electric consumption [Wh]'] = get_monthly_value_from_annual_vector(electric_consumption,
         method='sum')
 

@@ -93,10 +93,7 @@ class WeatherFile():
         if time_steps > 1:
             m = str(60 / float(time_steps)) + 'min'
             df = epw[0]
-            df.index = pd.date_range(start=str(year)+'-01-01 00:00:00', periods=8760, freq='H')
-            last_row = df.iloc[[-1]].copy()
-            last_row.index = [df.index[-1] + pd.Timedelta(hours=1)]
-            df = pd.concat([df, last_row])
+            df.index = pd.date_range(start=str(year)+'-01-01 00:00:00', periods=8760, freq='h')
             # 1. Linearly interpolate continuous variables
             interp_cols = ['temp_air', 'temp_dew', 'relative_humidity', 'wind_speed']
             df_interp = df[interp_cols].resample(m).interpolate(method='linear')
@@ -113,7 +110,7 @@ class WeatherFile():
             other_cols = df.columns.difference(interp_cols + ['wind_direction'])
             df_fill = df[other_cols].resample(m).bfill()
             # 4. Combine everything
-            self._epw_hourly_data = pd.concat([df_interp, wind_direction_interp.iloc[:-1], df_fill.iloc[:-1]], axis=1)
+            self._epw_hourly_data = pd.concat([df_interp, wind_direction_interp, df_fill], axis=1)
         # Weather Data and Average temperature difference between Text and Tsky
         self.hourly_data = {}
         self.general_data = {}
@@ -377,26 +374,26 @@ def _TskyCalc(Class, T_ext, T_dp, P_, n_opaque, time_steps):
     # Check input data type
     # Calculation Martin Berdhal model used by TRNSYS
     day = np.arange(24 * time_steps)  # Inizialization day vector
-    T_sky = np.zeros(24 * time_steps)
-    Tsky = []
-    T_sky_year = []
-    for i in range(365):
-        for x in day:
-            t = i *time_steps* 24 + x
-            Tdp = T_dp[t]
-            P = P_[t] / 100  # [mbar]
-            nopaque = n_opaque[t] * 0.1  # [0-1]
-            eps_m = 0.711 + 0.56 * Tdp / 100 + 0.73 * (T_dp / 100) ** 2
-            eps_h = 0.013 * np.cos(2 * np.pi * (x + 1) / (24*time_steps))
-            eps_e = 0.00012 * (P - 1000)
-            eps_clear = eps_m + eps_h + eps_e  # Emissivity under clear sky condition
-            C = nopaque * 0.9  # Infrared cloud amount
-            eps_sky = eps_clear + (1 - eps_clear) * C  # Sky emissivity
-            T_sky[x] = ((T_ext[t] + 273) * (eps_sky ** 0.25)) - 273  # Apparent sky temperature [°C]
-        Tsky = np.append(Class.Tsky, Class.T_sky)  # Annual Tsky created day by day
+    T_sky = np.zeros(len(T_dp))
+
+    for t in range (len(T_dp)):
+        i = int(t/(24*time_steps))
+        x = t - int (t/(24*time_steps))*24*time_steps
+        t = i *time_steps* 24 + x
+        Tdp = T_dp[t]
+        P = P_[t] / 100  # [mbar]
+        nopaque = n_opaque[t] * 0.1  # [0-1]
+        eps_m = 0.711 + 0.56 * Tdp / 100 + 0.73 * (Tdp / 100) ** 2
+        eps_h = 0.013 * np.cos(2 * np.pi * (x + 1) / (24*time_steps))
+        eps_e = 0.00012 * (P - 1000)
+        eps_clear = eps_m + eps_h + eps_e  # Emissivity under clear sky condition
+        C = nopaque * 0.9  # Infrared cloud amount
+        eps_sky = eps_clear + (1 - eps_clear) * C  # Sky emissivity
+        T_sky[t] = ((T_ext[t] + 273) * (eps_sky ** 0.25)) - 273  # Apparent sky temperature [°C]
+        Tsky= T_sky
 
     # Average temperature difference between External air temperature and Apparent sky temperature
-    dT_er = np.mean(T_ext - Class.Tsky)
+    dT_er = np.mean(T_ext - Tsky)
     
 
     return dT_er
