@@ -7,7 +7,7 @@
   },
   "simulation settings": {
     "Building energy model": "2C",
-    "time steps per hour": "1",
+    "time steps per hour": "3",
     "simulation reference year" : "2023",
     "start date": "01-01 00:00",
     "final date": "12-31 23:00",
