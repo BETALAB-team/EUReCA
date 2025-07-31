@@ -381,7 +381,7 @@ def _TskyCalc(Class, T_ext, T_dp, P_, n_opaque, time_steps):
     Tsky = []
     T_sky_year = []
     for i in range(365):
-        for x in Class.day:
+        for x in day:
             t = i *time_steps* 24 + x
             Tdp = T_dp[t]
             P = P_[t] / 100  # [mbar]
