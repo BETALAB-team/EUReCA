@@ -97,7 +97,7 @@ class WeatherFile():
             # 1. Linearly interpolate continuous variables
             interp_cols = ['temp_air', 'temp_dew', 'relative_humidity', 'wind_speed']
             df_interp = df[interp_cols].resample(m).interpolate(method='linear')
-            df_interp = df_interp.iloc[:-1]
+            df_interp = df_interp.iloc[:]
             # 2. Handle wind direction using sine-cosine interpolation
             wd_rad = np.deg2rad(df['wind_direction'])
             df_wind_u = np.cos(wd_rad)
