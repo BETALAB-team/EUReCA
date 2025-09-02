@@ -6,6 +6,8 @@ The Energy Urban Resistance Capacitance Approach provides an efficient and relia
 
 This research project has been developed within the [BETALAB](https://research.dii.unipd.it/betalab/) research group of the University of Padua, Italy.
 
+In order to access the tool's documentation, you can check out [this link](https://eureca.readthedocs.io/en/latest/)
+
 ## Python environment set up
 The tool is distributed via the GitHub repository. As first step, you must create a new conda or venv environment. You can name it eureca.
 
