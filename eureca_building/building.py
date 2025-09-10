@@ -285,8 +285,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         pandas.DataFrame
             building time step results
         """
-        for tz in self._thermal_zones_list:
-            tz.reset_init_values()
+        # for tz in self._thermal_zones_list:
+        #     tz.reset_init_values()
             
             
         
