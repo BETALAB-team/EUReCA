@@ -61,6 +61,7 @@ def load_config(file: str = None):
             CONFIG.read(file)
         elif file.endswith('json'):
             CONFIG = Config.from_json(file)
+
         else:
             raise ValueError(f'Config file must be .json or .ini')
     except (FileNotFoundError, AttributeError):

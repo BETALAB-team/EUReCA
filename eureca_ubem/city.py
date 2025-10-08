@@ -73,7 +73,6 @@ class City():
         shading_calculation : bool, default False
             whether to do or not the mutual shading calculation
         """
-
         self.__city_surfaces = []  # List of all the external surfaces of a city
         # Loading weather file
         self.weather_file = WeatherFile(

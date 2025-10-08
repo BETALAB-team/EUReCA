@@ -12,7 +12,7 @@
     "start date": "01-01 00:00",
     "final date": "12-31 23:00",
     "heating season start": "10-15 23:00",
-    "heating season end": "04-15 23:00",
+    "heating season end": "05-15 23:00",
     "cooling season start": "06-01 23:00",
     "cooling season end": "09-30 23:00",
     "Print single building results": "False",

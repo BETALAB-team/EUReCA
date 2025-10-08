@@ -1068,7 +1068,7 @@ Thermal zone {self.name} 2C params:
 
             q[0] = -phi_HC_set * conv_factor - Hve_inf * T_e - Hve_vent * T_sup_AHU - phi_ia \
                    - self._air_thermal_capacity * self.Ta0 / tau
-            q[1] = -phi_st * rad_factor - self.Htr_w * T_e
+            q[1] = -phi_HC_set * rad_factor - phi_st - self.Htr_w * T_e
             q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
             y = np.linalg.inv(Y).dot(q)
             # Seems to be more computationally efficient then np.insert
