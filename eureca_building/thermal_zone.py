@@ -332,16 +332,14 @@ class ThermalZone(object):
         self.occupancy_schedule=occupancy
 
     def extract_convective_radiative_latent_electric_load(self):
-        """From the internal loads calculates 3 arrays (len equal to 8769 * number of time steps per hour):
-        {
-        convective [W] : np.array
-        radiative [W] : np.array
-        latent [kg_vap/s] : np.array
-        }
-
+        """
+        Extracts internal load components from the thermal zone.
+        
         Returns
-        ----------
+        -------
         dict
+            Dictionary with keys: 'convective [W]', 'radiative [W]', 'latent [kg_vap/s]', 'electric [W]'
+            Each mapped to a NumPy array of length equal to CONFIG.number_of_time_steps_year.
         """
         convective = np.zeros(CONFIG.number_of_time_steps_year)
         radiant = np.zeros(CONFIG.number_of_time_steps_year)
@@ -1660,7 +1658,6 @@ Thermal zone {self.name} 2C params:
 
     def solve_quasisteadystate_method(self, weather):
         # TODO: Docstring
-
         # This runs the ISO13790 methods to calculates envelope params and monthly int and sol heat gains
         self._ISO13790_params()
         self.calculate_zone_loads_ISO13790(weather)
@@ -1715,14 +1712,16 @@ Thermal zone {self.name} 2C params:
         a_0 = 1.
         tau_0 = 15.
         a_h = a_0 + tau/tau_0
+        Q_h_ht[Q_h_ht<1e-5]=1e-5
         gamma_h = Q_h_gn/Q_h_ht
-        gamma_h[gamma_h>1e15] = 1e15
+        gamma_h[gamma_h>1e5] = 1e5
         eta_h_gn = np.zeros(12)
         eta_h_gn[gamma_h > 0.] = (1-gamma_h[gamma_h > 0.] ** a_h)/(1-gamma_h[gamma_h > 0.] ** (a_h+1))
         eta_h_gn[gamma_h == 1.] = (a_h)/(a_h+1)
         eta_h_gn[gamma_h <= 0.] = 1/gamma_h[gamma_h <= 0.]
         # Cooling
         a_c = a_0 + tau/tau_0
+        Q_c_ht[Q_c_ht<1e-5]=1e-5
         gamma_c = Q_c_gn / Q_c_ht
         gamma_c[gamma_c>1e15] = 1e15
         eta_c_is = np.zeros(12)
@@ -1774,7 +1773,7 @@ Thermal zone {self.name} 2C params:
         self.sensible_AHU_demand_qss_method = (Q_h_mec_sens)/3600000 # [kWh]
         self.latent_AHU_demand_qss_method = (Q_h_mec_lat)/3600000 # [kWh]
 
-    def design_heating_load(self, t_ext_design):
+    def design_heating_load(self, weather):
         """Preliminary calculation to calculate the heating design temperature.
         Static calculation considering the product UA of all surfaces, the maximum infiltration flow rate, and the outdoor design temperature
 
@@ -1783,6 +1782,8 @@ Thermal zone {self.name} 2C params:
         t_ext_design : float
             outdoor design temperature [°C]
         """
+        t_ext_design = weather.general_data['heating_oa_design_temperature']
+
         m_ve = self.infiltration_air_flow_rate.max()
         self.design_heating_system_power = 1.3 * (self.Htr_op + self.Htr_w) * (20. - t_ext_design) + m_ve * air_properties['specific_heat'] * (20. - t_ext_design)
         return self.design_heating_system_power

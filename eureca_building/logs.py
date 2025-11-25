@@ -1,5 +1,8 @@
 """
-Module that is called at the begin of the simulation to set the log file trough the logging library
+Initializes the logging system for the simulation.
+
+This module configures the root logger to write error messages to a file located
+in CONFIG.output_path/logging.log using UTF-8 encoding and a standard formatter.
 """
 
 __author__ = "Enrico Prataviera"
@@ -12,11 +15,13 @@ __maintainer__ = "Enrico Prataviera"
 import os
 import logging
 
+from eureca_building.config import CONFIG
+
 # Logging file
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.WARNING)  # or whatever
+root_logger.setLevel(logging.ERROR)  # or whatever
 handler = logging.FileHandler(
-    os.path.join(".", "logging.log"), "w", "utf-8"
+    os.path.join(CONFIG.output_path, "logging.log"), "w", "utf-8"
 )  # or whatever
 formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

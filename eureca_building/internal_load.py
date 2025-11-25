@@ -218,6 +218,11 @@ Return value must be a np.array
 
 
 class People(InternalLoad):
+    """
+    Models internal gains from people, including sensible and latent heat.
+
+    Supports multiple unit types (W, W/m², px, px/m²) and metabolic rate-based scaling.
+    """
     def __init__(
             self,
             name: str,

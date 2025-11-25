@@ -24,8 +24,10 @@ from eureca_building.exceptions import (
 
 
 class Schedule:
-    """Class Schedule with some generic methods for all schedules.
-    (in particular how they are created)
+    """
+    Represents time-varying schedules for energy modeling (e.g., temperature, availability).
+    
+    Supports validation of bounds, unit types, and generation from constant or daily profiles.
     """
 
     def __init__(

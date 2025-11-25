@@ -30,7 +30,7 @@ load_config(config_path)
 from eureca_building.config import CONFIG
 
 #########################################################
-
+import eureca_building.logs
 from eureca_building.weather import WeatherFile
 from eureca_building.material import Material
 from eureca_building.surface import Surface, SurfaceInternalMass
@@ -81,6 +81,7 @@ wall_south = Surface(
     construction=ext_wall_from_U,
     window=window_cs,
 )
+
 wall_east = Surface(
     "Wall 2",
     vertices=((21.36, 0, 0), (21.36, 20.42, 0), (21.36, 20.42, 6), (21.36, 0, 6)),
@@ -89,6 +90,7 @@ wall_east = Surface(
     construction=ext_wall_cs,
     window=window_cs,
 )
+
 wall_north = Surface(
     "Wall 2",
     vertices=((21.36, 20.42, 0), (0, 20.42, 0), (0, 20.42, 6), (21.36, 20.42, 6)),
@@ -142,13 +144,15 @@ delay_ts = 8760 * ts_h + 1 - ts_h
 people_sched = Schedule(
     "PeopleOccupancy1",
     "percent",
-    np.array(([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)[:delay_ts],
+    np.array(
+        ([0.1] * 7 * ts_h + [0.6] * 2 * ts_h + [0.4] * 5 * ts_h + [0.6] * 10 * ts_h) * 365)
+    [:delay_ts],
 )
 
 # Loads
 people = People(
     name='occupancy_tz',
-    unit='px',
+    unit='px', # px/m2 m2/px
     nominal_value=1.2,
     schedule=people_sched,
     fraction_latent=0.45,
@@ -355,14 +359,54 @@ for i in range(1):
 
 
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model="1C")
-    heating_peak_load = tz1.design_heating_load(-5.)
+    heating_peak_load = tz1.design_heating_load(weather_file)
 
     lim = 0, 8760*2 - 1
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
     bd = Building("Bd 1", thermal_zones_list=[tz1], model="2C")
-    bd.set_hvac_system("A-W HP Staffel, Centralized, Fan coil",
-                       "A-W chiller, Centralized, Radiant surface")
+
+    heating_system_params = {
+        "name": "s1",
+        "description": "s1",
+
+        "SH emission system": "Radiators",
+        "SH emission target temperature [°C]": 80,
+        "SH emission convective fraction [-]": 0.89,
+        "SH emission efficiency [-]": 0.89,
+        "SH distribution efficiency [-]": 0.85,
+        "SH regulation efficiency [-]": 0.52,
+        "SH generation efficiency [-]": 0.99,
+        "SH COP [-]": 3.1,
+        "SH fuel": "Electric",
+
+        "DHW emission efficiency [-]": 0.99,
+        "DHW distribution efficiency [-]": 0.98,
+        "DHW regulation efficiency [-]": 0.97,
+        "DHW generation efficiency [-]": 0.95,
+        "DHW COP [-]": 2.9,
+        "DHW fuel": "Electric",
+    }
+
+    cooling_system_params = {
+        "name": "s1",
+        "description": "s1",
+
+        "SC emission system": "Radiators",
+        "SC emission target temperature [°C]": 80,
+        "SC emission convective fraction [-]": 0.89,
+        "SC emission efficiency [-]": 0.89,
+        "SC distribution efficiency [-]": 0.85,
+        "SC regulation efficiency [-]": 0.52,
+        "SC generation efficiency [-]": 0.99,
+        "SC fuel": "Electric",
+    }
+
+    bd.set_hvac_system("Traditional Gas Boiler, Single, Fan coil",
+                       "A-W chiller, Centralized, Fan coil")
+
+    bd.set_hvac_system("From manual parameters",
+                       "From manual parameters", heating_system_params = heating_system_params, cooling_system_params = cooling_system_params)
     bd.set_hvac_system_capacity(weather_file)
     start = time.time()
     df_res = bd.simulate(weather_file, output_folder="Results", t_start=lim[0], t_stop=lim[1])
@@ -380,7 +424,7 @@ for i in range(1):
     )
 
     cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model="1C")
-    heating_peak_load = tz2.design_heating_load(-5.)
+    heating_peak_load = tz2.design_heating_load(weather_file)
 
     lim = 0, 8760*2 - 1
     tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)

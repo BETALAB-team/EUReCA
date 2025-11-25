@@ -354,7 +354,7 @@ for i in range(1):
 )
     
     cooling_1C_peak_load = tz1.design_sensible_cooling_load(weather_file, model = "1C")
-    heating_peak_load = tz1.design_heating_load(-5.)
+    heating_peak_load = tz1.design_heating_load(weather_file)
 
     tz1.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 
@@ -403,7 +403,7 @@ for i in range(1):
 )
     
     cooling_1C_peak_load = tz2.design_sensible_cooling_load(weather_file, model = "1C")
-    heating_peak_load = tz2.design_heating_load(-5.)
+    heating_peak_load = tz2.design_heating_load(weather_file)
 
     tz2.add_domestic_hot_water(weather_file, dhw_1, dhw_2)
 

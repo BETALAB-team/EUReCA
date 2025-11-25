@@ -53,16 +53,38 @@ from eureca_building.config import CONFIG
 #class
 
 class PV_system():
-    '''
-    initializing the PV system for each thermal zone. 
-    '''
+    """
+    Models a photovoltaic system and battery storage for a thermal zone.
+    
+    Attributes
+    ----------
+    weatherobject : WeatherFile
+        Weather data for irradiance and temperature.
+    surface_list : list
+        Surfaces (typically roofs) on which PV is mounted.
+    coverage_factor : float
+        Ratio of the surface area that is PV-active.
+    ...
+
+    Methods
+    -------
+    pv_data_adr : set ADR model parameters.
+    _run_pv_efficiencies : calculate PV efficiency over time.
+    pv_data_install : configure installed capacity.
+    pv_production : compute electricity produced by PV.
+    Battery : initialize battery parameters.
+    Battery_charge : simulate charge/discharge for each timestep.
+    """
     
     def __init__(self,
                  name: str,
                  weatherobject: WeatherFile,
                  surface_list: list,
                  mount_surfaces=["Roof"],
-                 coverage_factor=0.6): #Coverage factor for the area that is covered by the PV
+
+
+                 coverage_factor=0.45): #Coverage factor for the area that is covered by the PV
+
         self.name=name
         self.coverage_factor=coverage_factor
         self._surfaces=[s for s in surface_list if s.surface_type in mount_surfaces]
@@ -115,10 +137,14 @@ class PV_system():
         
 
         '''
-        Module_Power_STC_condition=100 #Module Power at STC
+        self.total_area_installed = 0
+        self.total_power_installed = 0
+        Module_Power_STC_condition=400 #Module Power at STC
         Single_Module_Surface_Area=1.7 #Module Area
         for Surface,v in self._pv_efficiencies.items():
             Installed_PV_area=Surface._area*self.coverage_factor
+            self.total_area_installed =self.total_area_installed +Installed_PV_area
+            self.total_power_installed = self.total_power_installed + Installed_PV_area * Module_Power_STC_condition
             self._pv_efficiencies[Surface]['power_stc']=Installed_PV_area/Single_Module_Surface_Area*Module_Power_STC_condition
         self.pv_g_stc=1000 #W/m2
            

@@ -105,7 +105,7 @@ class Building:
             raise TypeError(f"Building {self.name}, the refrigerator system must be a System object: {type(value)}")
         self._refrigerator_system = value
     
-    def set_hvac_system(self, heating_system, cooling_system):
+    def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
 
         Available heating systems: {hvac_heating_systems_classes.keys()}
@@ -127,13 +127,13 @@ class Building:
 
         """
         try:
-            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system)
+            self.heating_system = hvac_heating_systems_classes[heating_system](heating_system_key = heating_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, heating system not allowed: current heating system {heating_system}. Available heating systems:\n{hvac_heating_systems_classes.keys()}")
         if not isinstance(self.heating_system, System):
             raise TypeError((f"Building {self.name}, heating system does not comply with System class. The heating system class must be created using System interface"))
         try:
-            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system)
+            self.cooling_system = hvac_cooling_systems_classes[cooling_system](cooling_system_key = cooling_system, **kwargs)
         except KeyError:
             raise KeyError(f"Building {self.name}, cooling system not allowed: current cooling system {cooling_system}. Available cooling systems:\n{hvac_cooling_systems_classes.keys()}")
         if not isinstance(self.cooling_system, System):
@@ -344,6 +344,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
             'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
             'Refrigerator Heat Rejected [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+            'Primary Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Primary Non-Renewable Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
+            'CO2 Emission [kg CO2]':np.zeros([CONFIG.number_of_time_steps, 1])
 
         }
         
@@ -429,8 +432,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=total['Electric consumption [Wh]'].iloc[:, 0].values,pv_prod=pv_production)
         else:
             pv_production = 0.
-            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.nan]*6
-            fromgrid = total['Electric consumption [Wh]'].iloc[:, 0].values
+            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Nm3]"][:, 0].shape) for _ in range(6)]
+            fromgrid = total[("Electric consumption [Wh]", f"Bd {self.name}")].values
             togrid = 0.
 
         total["PV production [Wh]",f"Bd {self.name}"]=pv_production
@@ -442,8 +445,37 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Taken from the Gird [Wh]",f"Bd {self.name}"]=fromgrid
         total["directly from the PV [Wh]",f"Bd {self.name}"]=directsolar
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
-
-         
+        # in case of static renewable energy factor:
+        total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"]=1.95 * fromgrid\
+                                                        +1.05 * 11200 * results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +0.20 * 4860 * results ["Heating system wood consumption [kg]"][:, 0]\
+                                                        +0.00 * directsolar
+                                                        
+                                                        
+        total["Primary Energy [Wh]",f"Bd {self.name}"]= 2.42 * fromgrid \
+                                                        +1.05 * 11200 *  results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +1.00 * 4860 * results ["Heating system wood consumption [kg]"][:, 0] \
+                                                        +1.00 * directsolar
+        try:
+            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]+results['Solar Thermal Production [Wh]'][:, 0]
+        except AttributeError:
+            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [Wh]",f"Bd {self.name}"]
+                                                        
+        # Fattori di Emissione from ISPRA 2024 https://emissioni.sina.isprambiente.it/news/
+        total["CO2 Emission [kg CO2]",f"Bd {self.name}"]= 1.95 * 61.2 / 277778 * fromgrid \
+                                                        +1.05 * 11200 * 58.9 / 277778 * results ["Heating system gas consumption [Nm3]"][:, 0] \
+                                                        +1.07 * 9333 * 74.1 / 277778 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
+                                                        +0.00 * directsolar
+        self.primary_energy=sum(total["Primary Energy [Wh]",f"Bd {self.name}"])/1000
+        self.primary_energy_nren=sum(total["Primary Non-Renewable Energy [Wh]",f"Bd {self.name}"] )/1000
+        self.co2_emission=sum(total["CO2 Emission [kg CO2]",f"Bd {self.name}"])/1000                                                 
+        self.intervention_cost = 0.0
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
         if output_folder != None:
@@ -458,7 +490,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         return total
 
     def simulate_quasi_steady_state(self,
-                 weather_object: WeatherFile,
+                 weather_object : WeatherFile,
                  output_folder: str = None,
                  output_type: str = "csv",
                  ):

@@ -5,17 +5,19 @@ import os
 import json
 import concurrent.futures
 # import psutil
-
+import warnings
 import pickle as pickle
 import pandas as pd
 import shapely
 import geopandas as gpd
 import numpy as np
+from itertools import chain, combinations
 from cjio import cityjson
 from scipy.spatial import cKDTree
 from shapely.validation import make_valid
 from shapely.geometry import MultiPolygon
 from eureca_building.config import CONFIG
+import eureca_building.logs
 from eureca_building.pv_system import PV_system
 from eureca_building.weather import WeatherFile
 from eureca_building.thermal_zone import ThermalZone
@@ -25,7 +27,13 @@ from eureca_building._geometry_auxiliary_functions import normal_versor_2
 from eureca_building.air_handling_unit import AirHandlingUnit
 from eureca_ubem.end_uses import load_schedules
 from eureca_ubem.envelope_types import load_envelopes
+from eureca_ubem.systems_templates import load_system_templates
 from eureca_ubem.electric_load_italian_distribution import get_italian_random_el_loads
+from eureca_ubem.scenario_cost import calculate_intervention_cost
+import random
+from scipy.linalg import eigh
+from tqdm import tqdm
+import shutil
 
 #%% ---------------------------------------------------------------------------------------------------
 #%% City class
@@ -47,11 +55,13 @@ class City():
                  envelope_types_file:str,
                  end_uses_types_file:str,
                  epw_weather_file:str,
-                 output_folder: str,
-                 building_model = "2C",
-                 shading_calculation = False,
+                 output_folder = CONFIG.output_path,
+                 building_model = CONFIG.building_energy_model,
+                 shading_calculation = CONFIG.do_solar_shading_calculation,
+                 systems_templates_file = None,
+                 baseline = 1
                  ):
-        """Creates the city from all the input files
+        """Initializes the City object by loading data and preparing the simulation environment.
 
         Parameters
         ----------
@@ -70,32 +80,17 @@ class City():
         shading_calculation : bool, default False
             whether to do or not the mutual shading calculation
         """
-
+        self.baseline = baseline;
         self.__city_surfaces = []  # List of all the external surfaces of a city
-        # Loading weather file
-        self.weather_file = WeatherFile(
-            epw_weather_file,
-            year = CONFIG.simulation_reference_year,
-            time_steps = CONFIG.ts_per_hour,
-            irradiances_calculation = CONFIG.do_solar_radiation_calculation,
-            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
-            height_subdivisions = CONFIG.height_subdivisions,
-            urban_shading_tol = CONFIG.urban_shading_tolerances
-        )
-
-        # Loading Envelope and Schedule Data
-        self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
-        self.end_uses_dict = load_schedules(end_uses_types_file)
-
+        # Adding information paths
+        self.weather_file_path=epw_weather_file
+        self.envelopes_dict_path = envelope_types_file  
+        self.end_uses_dict_path = end_uses_types_file
+        self.systems_templates_path = systems_templates_file
+        self.input_path=city_model
         self.building_model = building_model
         self.shading_calculation = shading_calculation
-
-        if city_model.endswith('.json'):
-            self.buildings_creation_from_cityjson(city_model)
-        elif city_model.endswith('.geojson'):
-            self.buildings_creation_from_geojson(city_model)
-        else:
-            raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {city_model}")
+        self.initialization_flag = 0
 
         if not os.path.isdir(output_folder):
             os.mkdir(output_folder)
@@ -117,21 +112,404 @@ class City():
                 f"City class, building_model is not a allowed: {value}. please provide an allowed model."
             )
         self._building_model = value
+        
+    def load_info(self):
+        
+        self.weather_file = WeatherFile(
+            self.weather_file_path,
+            year = CONFIG.simulation_reference_year,
+            time_steps = CONFIG.ts_per_hour,
+            irradiances_calculation = True,
+            azimuth_subdivisions = CONFIG.azimuth_subdivisions,
+            height_subdivisions = CONFIG.height_subdivisions,
+            urban_shading_tol = CONFIG.urban_shading_tolerances
+        )
+        self.envelopes_dict = load_envelopes(self.envelopes_dict_path)  # Envelope file loading
+        self.end_uses_dict = load_schedules(self.end_uses_dict_path)
+        self.systems_templates = load_system_templates(self.systems_templates_path) if self.systems_templates_path is not None else None
+    
+    def initializer(self):
+        self.load_info()
+        if self.input_path.endswith('.json'):
+            self.buildings_creation_from_cityjson(self.input_path)
+            self.initialization_flag = 1
+        elif self.input_path.endswith('.geojson'):
+            self.buildings_creation_from_geojson(self.input_path)
+            self.initialization_flag = 1
+        else:
+            raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {self.input_path}")
+
+        
+
+    def scenario_analysis (self, scenario_dict, output_folder, n_assignment):
+        """
+        Provide the analysis regarding the scenarios 
+        Parameters
+        ----------
+        scenario_dict : dict
+            Dictionary of scenarios with intervention percentages.
+        output_folder : str
+            Folder to save the generated scenario files.
+        """
+        self.scenario_creation(scenario_dict, output_folder)
+        self.scenario_simulation()
+        for base_scenario, city_object in self.base_scenarios.items():
+            path_to_output = city_object.output_folder
+            shutil.rmtree(path_to_output)
+        out_assignments = self.random_assign_interventions(scenario_dict, n_assignment)
+        statistics = self.generate_scenario_cost_dataframes(out_assignments)
+        return statistics 
+    def scenario_creation(self, scenario_dict, output_folder):
+        """
+        Generate intervention scenarios from scenario_dict by producing all valid combinations
+        of interventions, skipping duplicates and invalid mixes (like deep_retrofit with HVAC/envelope).
+    
+        Parameters
+        ----------
+        scenario_dict : dict
+            Dictionary of scenarios with intervention percentages.
+        output_folder : str
+            Folder to save the generated scenario files.
+        """
+    
+        def load_file(path):
+            if path.endswith('.geojson') or path.endswith('.json'):
+                try:
+                    gdf = gpd.read_file(path)
+                    return gdf
+                except Exception:
+                    raise ValueError("File format not supported or file unreadable.")
+        def powerset(iterable):
+            """Generate all non-empty subsets of a set."""
+            s = list(iterable)
+            return chain.from_iterable(combinations(s, r) for r in range(1, len(s)+1))
+        def save_geojson(gdf, name):
+            gdf.to_file(os.path.join(output_folder, f"{name}.geojson"), driver='GeoJSON')
+    
+        def clone_input(data):
+            return data.copy()
+    
+        def apply_changes(data, intervention_set):
+            interventions = []
+            if "envelope" in intervention_set:
+                data["Envelope"] = "2005-2010"
+                interventions.append("Envelope")
+            if "HVAC" in intervention_set:
+                data["Heating System"] = "A-W Heat Pump, Single, Fan coil"
+                data["Cooling System"] = "A-A split"
+                interventions.append("HVAC")
+            if "deep_retrofit" in intervention_set:
+                data["Envelope"] = "2005-2010"
+                data["Heating System"] = "A-W Heat Pump, Single, Fan coil"
+                data["Cooling System"] = "A-A split"
+                interventions.append("deep_retrofit")
+            if "PV" in intervention_set and "TS" in intervention_set:
+                data["Solar technologies"] = "PV,TS"
+                interventions.append("PV_TS")
+            elif "PV" in intervention_set:
+                data["Solar technologies"] = "PV"
+                interventions.append("PV")
+            elif "TS" in intervention_set:
+                data["Solar technologies"] = "TS"
+                interventions.append("TS")
+            return data, interventions
+    
+        # Step 1: Create output directory
+        os.makedirs(output_folder, exist_ok=True)
+    
+        # Step 2: Load input data
+        base_data = load_file(self.input_path)
+    
+        # Step 3: Generate valid unique combinations
+        unique_combinations = set()
+    
+        for scenario in scenario_dict.values():
+            active_keys = {k for k, v in scenario.items() if v > 0}
+            for subset in powerset(active_keys):
+                subset_set = set(subset)
+                if 'deep_retrofit' in subset_set and ('HVAC' in subset_set or 'envelope' in subset_set):
+                    continue
+                if 'HVAC' in subset_set and ('deep_retrofit' in subset_set or 'envelope' in subset_set):
+                    continue
+                if 'envelope' in subset_set and ('HVAC' in subset_set or 'deep_retrofit' in subset_set):
+                    continue
+                frozen = frozenset(subset_set)
+                unique_combinations.add(frozen)
+    
+        # Step 4: Apply each unique combo
+        self.base_scenarios = {}
+        generated_names = set()
+        for combo in unique_combinations:
+            combo_sorted = sorted(combo)
+            name = "base_" + "_".join(combo_sorted)
+            if name in generated_names:
+                continue  # skip duplicate
+            generated_names.add(name)
+    
+            modified, interventions_done = apply_changes(clone_input(base_data), combo)
+            save_geojson(modified, name)
+    
+            # Step 5: Store new City object
+            self.base_scenarios[name] = City(
+                city_model=os.path.join(output_folder, f"{name}.geojson"),
+                epw_weather_file=self.weather_file_path,
+                end_uses_types_file=self.end_uses_dict_path,
+                envelope_types_file=self.envelopes_dict_path,
+                systems_templates_file=self.systems_templates_path,
+                shading_calculation=self.shading_calculation,
+                building_model=self.building_model,
+                output_folder=os.path.join(".", "Output_folder" + name),
+                baseline=0
+            )
+            self.base_scenarios[name].interventions_applied = interventions_done
+            self.base_scenarios[name].parent_city = self
+            
+    def scenario_simulation(self):
+        if not hasattr(self, 'base_scenarios'):
+            raise AttributeError("The scenarios are not generated yet, please create scenarios before attempting scenario simulation")
+            
+        print("Proceeding with the scenario simulation")
+        for base_scenario, city_object in self.base_scenarios.items():
+            city_object.simulate(print_single_building_results = False)   
+            
+            
+            # returns outputcity1, outputcity2, outputcity3, outputcity4, outputcity5 
+    def random_assign_interventions(self, scenario_dict, n_assignments):
+        """
+        For each scenario, create a DataFrame of randomized intervention assignments
+        across buildings, following intervention probabilities and respecting mutual exclusivity
+        between 'HVAC', 'envelope', and 'deep_retrofit'.
+        
+        Parameters
+        ----------
+        scenario_dict : dict
+            Dictionary where each scenario is a dict of {intervention: percentage}.
+        n_assignments : int
+            Number of random assignment trials per scenario.
+            
+        Returns
+        -------
+        dict of {scenario_name: pd.DataFrame}
+            A DataFrame per scenario with 'id' column and assignment_n columns.
+        """
+        
+        MUTUALLY_EXCLUSIVE = ["HVAC", "envelope", "deep_retrofit"]
+        all_building_ids = list(self.buildings_info.keys())
+        total_buildings = len(all_building_ids)
+        scenario_dataframes = {}
+    
+        for scenario_name, interventions in scenario_dict.items():
+            # Sanity check: intervention percentages should be between 0 and 100
+            for k, v in interventions.items():
+                if not (0 <= v <= 100):
+                    warnings.warn(f"Scenario '{scenario_name}' has invalid percentage for {k}: {v}. Skipping scenario.")
+                    break
+            else:
+                df = pd.DataFrame({"id": all_building_ids})
+    
+                # Step 1: Extract probabilities
+                deep_pct = interventions.get("deep_retrofit", 0)
+                hvac_pct = interventions.get("HVAC", 0)
+                env_pct = interventions.get("envelope", 0)
+                pv_pct = interventions.get("PV", 0)
+                ts_pct = interventions.get("TS", 0)
+    
+                env_or_hvac_pct = deep_pct + hvac_pct + env_pct
+                if env_or_hvac_pct > 100:
+                    warnings.warn(f"Scenario '{scenario_name}' has mutually exclusive interventions > 100%. Skipping.")
+                    continue
+    
+                # For multiple assignment rounds
+                for a in range(n_assignments):
+                    building_assignment = {bid: [] for bid in all_building_ids}
+    
+                    # Step 2: Assign one of [HVAC, deep, envelope]
+                    n_env_or_hvac = math.ceil((env_or_hvac_pct / 100) * total_buildings)
+                    candidate_ids = random.sample(all_building_ids, n_env_or_hvac)
+    
+                    # Compute weights
+                    total_exclusive_weight = deep_pct + hvac_pct + env_pct
+                    weights = {
+                        "deep_retrofit": deep_pct / total_exclusive_weight if deep_pct else 0,
+                        "HVAC": hvac_pct / total_exclusive_weight if hvac_pct else 0,
+                        "envelope": env_pct / total_exclusive_weight if env_pct else 0,
+                    }
+    
+                    for bid in candidate_ids:
+                        assigned = random.choices(
+                            population=MUTUALLY_EXCLUSIVE,
+                            weights=[weights[k] for k in MUTUALLY_EXCLUSIVE],
+                            k=1
+                        )[0]
+                        building_assignment[bid].append(assigned)
+    
+                    # Step 3: Assign PV independently
+                    n_pv = math.ceil((pv_pct / 100) * total_buildings)
+                    pv_ids = random.sample(all_building_ids, n_pv)
+                    for bid in pv_ids:
+                        building_assignment[bid].append("PV")
+    
+                    # Step 4: Assign TS independently
+                    n_ts = math.ceil((ts_pct / 100) * total_buildings)
+                    ts_ids = random.sample(all_building_ids, n_ts)
+                    for bid in ts_ids:
+                        building_assignment[bid].append("TS")
+    
+                    # Step 5: Collapse interventions into strings (e.g., PV_HVAC)
+                    final_column = []
+                    for bid in all_building_ids:
+                        interventions_list = building_assignment[bid]
+                        if interventions_list:
+                            final_column.append("_".join(sorted(interventions_list)))
+                        else:
+                            final_column.append(None)
+    
+                    df[f"assignment_{a+1}"] = final_column
+    
+                scenario_dataframes[scenario_name] = df
+    
+        return scenario_dataframes
+
+    def generate_scenario_cost_dataframes(self, assignment_dataframes):
+        """
+        Generate cost DataFrames from assignment DataFrames by retrieving
+        intervention_cost from matching base_scenarios and buildings.
+        
+        Parameters
+        ----------
+        assignment_dataframes : dict
+            Output of generate_scenario_assignment_dataframes, one DataFrame per scenario.
+        
+        Returns
+        -------
+        dict
+            Dictionary with one entry per scenario. Each entry contains:
+                {
+                    "cost": [...], "cost_mean": ..., "cost_max": ..., "cost_min": ..., "cost_std": ...,
+                    "primary_energy": [...], ...
+                    "primary_energy_nren": [...], ...
+                    "co2_emission": [...], ...
+                }
+        """
+        cost_dataframes = {}
+        primary_energy_dataframes ={}
+        primary_energy_nren_dataframes ={}
+        co2_dataframes ={}
+    
+        for scenario_name, assignment_df in assignment_dataframes.items():
+            # Start cost DataFrame with same index and ID
+            cost_df = pd.DataFrame({"id": assignment_df["id"]})
+            pe_df = pd.DataFrame({"id": assignment_df["id"]})
+            pe_nren_df = pd.DataFrame({"id": assignment_df["id"]})
+            co2_df = pd.DataFrame({"id": assignment_df["id"]})
+            # Loop through assignment columns
+            for col in assignment_df.columns:
+                if col == "id":
+                    continue
+    
+                cost_column = []
+                pe_column = []
+                pe_nren_column = []
+                co2_column = []
+    
+                for row_idx, assignment in assignment_df[col].items():
+                    bid = str(assignment_df.at[row_idx, "id"])
+    
+                    if not assignment:
+                        building_obj = self.no_intervention_buildings[bid]
+                        cost_column.append(building_obj.intervention_cost)
+                        pe_column.append(building_obj.primary_energy)
+                        pe_nren_column.append(building_obj.primary_energy_nren)
+                        co2_column.append(building_obj.co2_emission)
+                        continue
+    
+                    base_key = f"base_{assignment}"
+                    try:
+                        building_obj = self.base_scenarios[base_key].buildings_objects[bid]
+                        cost = building_obj.intervention_cost
+                        pe = building_obj.primary_energy
+                        pe_nren = building_obj.primary_energy_nren
+                        co2_em = building_obj.co2_emission
+                    except KeyError:
+                        warnings.warn(
+                            f"Missing building '{bid}' or base scenario '{base_key}' in scenario '{scenario_name}'. Using cost = 0."
+                        )
+                        cost = 0
+                        pe= 0 
+                        pe_nren = 0 
+                        co2_em = 0 
+    
+                    cost_column.append(cost)
+                    pe_column.append(pe)
+                    pe_nren_column.append(pe_nren)
+                    co2_column.append(co2_em)
+                    
+                cost_df[col] = cost_column
+                pe_df[col] = pe_column
+                pe_nren_df[col] = pe_nren_column
+                co2_df[col] = co2_column
+            cost_dataframes[scenario_name] = cost_df
+            primary_energy_dataframes[scenario_name] = pe_df
+            primary_energy_nren_dataframes[scenario_name] = pe_nren_df
+            co2_dataframes[scenario_name] = co2_df
+    
+        summary = {}
+        for scenario_name in cost_dataframes.keys():
+            
+            scenario_summary = {}
+    
+            def summarize(df, label):
+                values = df.drop(columns=["id"]).sum(axis=0).values.tolist()
+                arr = np.array(values)
+                scenario_summary[f"{label}"] = values
+                scenario_summary[f"{label}_mean"] = float(arr.mean())
+                scenario_summary[f"{label}_max"] = float(arr.max())
+                scenario_summary[f"{label}_min"] = float(arr.min())
+                scenario_summary[f"{label}_std"] = float(arr.std())
+    
+            summarize(cost_dataframes[scenario_name], "cost")
+            summarize(primary_energy_dataframes[scenario_name], "primary_energy")
+            summarize(primary_energy_nren_dataframes[scenario_name], "primary_energy_nren")
+            summarize(co2_dataframes[scenario_name], "co2_emission")
+    
+            summary[scenario_name] = scenario_summary
+        return summary
+        # def scenario_mixmatch(self, outputcitieslist):
+        #     returns scenariooutput1, scenariooutput2,...
+        #     each city scneario with a cost added (detailed or sum?)
 
     def buildings_creation_from_cityjson(self,json_path):
-        '''This method creates the city from the json file (CityJSON 3D)
+        """
+        Creates building objects from a CityJSON file.
+        
+        Extracts building geometries, surfaces, and properties. Computes internal mass surfaces and thermal zones.
         
         Parameters
         ----------
         json_path : str
-            path of the cityJSON file
-
-        '''
-
+        Path to the CityJSON file defining 3D building geometries.
+        
+        Returns
+        -------
+        None
+        """
         # Case of cityJSON file availability:
         self.n_Floors = 0
         # Function to fix invalid geometries
         def fix_geometry(geom):
+            """
+            Fixes invalid geometry using `make_valid` from shapely.
+
+            Parameters
+            ----------
+            geom : shapely.geometry
+            A geometry object that may be invalid.
+
+            Returns
+            -------
+            shapely.geometry or None
+            Valid geometry if successful, None otherwise.
+            """
             if geom.is_valid:
                 return geom
             else:
@@ -300,15 +678,27 @@ class City():
         #     json.dump(self.output_geojson, outfile)
         self.output_geojson = gpd.read_file(json.dumps(self.output_geojson)).explode(index_parts=True)
 
+        
+        
+        
+    
+        
     def buildings_creation_from_geojson(self, json_path):
-        '''Function to create buildings from geojson file (2D file).
-
+        """
+        Creates building objects from a GeoJSON file.
+        
+        Extrudes 2D building footprints into 3D representations using floor counts and height.
+        Assigns envelope and system parameters based on attributes in the GeoJSON file.
+        
         Parameters
         ----------
         json_path : str
-            Path to geojson file.
-
-        '''
+        Path to the GeoJSON file containing building footprints and attributes.
+        
+        Returns
+        -------
+        None
+        """
         # Function to fix invalid geometries
         def fix_geometry(geom):
             if geom.is_valid:
@@ -584,19 +974,30 @@ class City():
                     "2C": thermal_zone._VDI6007_params,
                 }[self.building_model]()
 
-    def loads_calculation(self, region = None):
-        '''This method does the internal heat gains and solar calculation, as well as it sets the setpoints, ventilation and systems to each building
-        '''
+    def loads_calculation(self, region = CONFIG.region):
+        """
+        Assigns internal heat gains, setpoints, infiltration, and systems to each building.
+        
+        Also initializes electric loads and ventilation flows based on regional data if applicable.
+        
+        Parameters
+        ----------
+        region : str, optional
+        Italian region used to sample electric load profiles if the building uses default residential schedules.
+        
+        Returns
+        -------
+        None
+        """
         
         if isinstance(region, str):
             italian_el_loads = get_italian_random_el_loads(len(self.buildings_info.values()),region)
             italian_el_loads["Index"] = list(self.buildings_info.keys())
             italian_el_loads.set_index("Index", drop=True, inplace = True)
         
-        # iiii=0
-        # jjjj=3608
+
         for bd_id, building_info in self.buildings_info.items():
-            # iiii=iiii+1
+
             building_obj = self.buildings_objects[bd_id]
 
             if len(building_obj._thermal_zones_list) > 1:
@@ -669,24 +1070,60 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
                 tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
                 
-                tz.design_heating_load(-5.)
+                tz.design_heating_load(self.weather_file)
                 
                 tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
-                
-            building_obj.set_hvac_system(building_info["Heating System"], building_info["Cooling System"])
+
+
+            hs_params = None
+            cs_params = None
+
+            # Get HVAC paramas for manually set havc systems
+            if self.systems_templates is not None:
+                if building_info["Heating System"] in self.systems_templates["heating_systems_templates"].keys():
+                    hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
+                if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
+                    cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
+
+
+            building_obj.set_hvac_system(
+                building_info["Heating System"],
+                building_info["Cooling System"],
+                heating_system_params = hs_params,
+                cooling_system_params = cs_params)
             building_obj.set_hvac_system_capacity(self.weather_file)
 
             if "PV" in building_info["Solar technologies"]:
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
             if "ST" in building_info["Solar technologies"]:
-                building_obj.add_solar_thermal(weather_obj=self.weather_file)
-            
-            Refrigerated_end_uses=["supermarket"]
-            if any(building_info[key] in Refrigerated_end_uses for key in ["End Use", "Lower End Use", "Upper End Use"]):               
-                building_obj.add_refrigeration()
-                building_obj.set_refrigerator_capacity(EER_mean=3.5)
-    def simulate(self, print_single_building_results = False, output_type = "parquet"):
+                building_obj.add_solar_thermal(weather_obj=self.weather_file)  
+    def simulate_quasi_steady_state(self):
+        """
+        Simulates each building in the city using the quasi-steady state approach.
+        
+        Returns
+        -------
+        None
+        Saves results to a subfolder named 'qss' in the output folder.
+        """
+        if (self.initialization_flag == 0):
+            self.initializer()
+        self.loads_calculation(region="Veneto")
+        n_buildings = len(self.buildings_objects)
+        counter = 0
+        for bd_id, building_info in self.buildings_info.items():
+            if counter%100 == 0:
+                print(f"{counter} buildings simulated out of {n_buildings}")
+            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+                          output_folder= os.path.join(self.output_folder,"qss"),
+                          output_type= "csv")
+            counter += 1
+        
+    def simulate(self,
+                 print_single_building_results = CONFIG.print_single_building_results,
+                 output_type = CONFIG.output_file_format):
+        
         """Simulation of the whole city, and memorization and stamp of results.
 
         Parameters
@@ -696,8 +1133,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             USE CAREFULLY: It might fill a lot of disk space
         output_type : str, default 'parquet'
             It can be either csv (more suitable for excel but more disk space) or parquet (more efficient but not readable from excel)
+            
+        Returns
+        -------
+        None
         """
-       
+        if (self.initialization_flag == 0):
+            self.initializer()
+        self.loads_calculation(region="Veneto")
         import time
         start = time.time()
         # parallel simulation commented
@@ -728,10 +1171,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
-        for bd_id, building_info in self.buildings_info.items():
-            if counter%1 == 0:
-                print(f"{counter} buildings simulated out of {n_buildings}, {bd_id} is the last one")
-            counter += 1
+
+        for bd_id, building_info in tqdm(self.buildings_info.items(), desc="Processing Buildings", unit="building"):
+
+
 
             info = {}
             info["TZ info"] = {}
@@ -743,6 +1186,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info[i] = info["TZ info"].loc[i]["Total"]
             info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
+            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+                          output_folder= os.path.join(self.output_folder,"qss"),
+                          output_type= "csv")
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
@@ -757,7 +1203,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
             results["Heating Demand [Wh]"] = demand[demand >= 0].sum(axis = 1) / CONFIG.ts_per_hour
             results["Cooling Demand [Wh]"] = demand[demand < 0].sum(axis = 1) / CONFIG.ts_per_hour
-            monthly = results.resample("M").sum()
+            self.buildings_objects[bd_id].demand = results["Heating Demand [Wh]"] + results["Cooling Demand [Wh]"] 
+            monthly = results.resample("ME").sum()
 
             heat_demand = monthly["Heating Demand [Wh]"]
             cooling_demand = monthly["Cooling Demand [Wh]"]
@@ -765,12 +1212,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             el_consumption = monthly[[col for col in monthly.columns if "electric consumption" in col[0]]].sum(axis=1)
             oil_consumption = monthly[[col for col in monthly.columns if "oil consumption" in col[0]]].sum(axis=1)
             wood_consumption = monthly[[col for col in monthly.columns if "wood consumption" in col[0]]].sum(axis=1)
-            heat_demand["Total"] = heat_demand.sum()
-            cooling_demand["Total"] = cooling_demand.sum()
-            gas_consumption["Total"] = gas_consumption.sum()
-            el_consumption["Total"] = el_consumption.sum()
-            oil_consumption["Total"] = oil_consumption.sum()
-            wood_consumption["Total"] = wood_consumption.sum()
+            heat_demand = pd.concat([heat_demand, pd.Series([heat_demand.sum()], index = ["Total"])])
+            cooling_demand = pd.concat([cooling_demand, pd.Series([cooling_demand.sum()], index = ["Total"])])
+            gas_consumption = pd.concat([gas_consumption, pd.Series([gas_consumption.sum()], index = ["Total"])])
+            el_consumption = pd.concat([el_consumption, pd.Series([el_consumption.sum()], index = ["Total"])])
+            oil_consumption = pd.concat([oil_consumption, pd.Series([oil_consumption.sum()], index = ["Total"])])
+            wood_consumption = pd.concat([wood_consumption, pd.Series([wood_consumption.sum()], index = ["Total"])])
             for i in gas_consumption.index:
                 if i == "Total":
                     info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
@@ -802,12 +1249,21 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["Net PV production to grid [Wh]"] += results["Given to Grid [Wh]"].iloc[:,0]
 
 
+
         district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary.csv"), sep =";")
         bd_summary = pd.DataFrame.from_dict(final_results,orient="index")
         # bd_summary.to_csv(os.path.join(self.output_folder,"Buildings_summary.csv"), sep =";")
         bd_summary.drop(["Name"], axis = 1, inplace = True)
         self.output_geojson.set_index("new_id", drop=True, inplace = True)
+        self.output_geojson["intervention_cost [euro]"] = 0.0
+        self.output_geojson["scenario"] = "base"
+        if self.baseline == 0:
+            calculate_intervention_cost(self)
+        if self.baseline == 1:
+            self.no_intervention_buildings = self.buildings_objects 
         new_geojson = pd.concat([self.output_geojson,bd_summary],axis=1)
+        # if self.baseline==0:
+        #     cost_analysis
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         new_geojson.drop("geometry",axis = 1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep =";")
 
@@ -822,39 +1278,222 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
+    #@staticmethod
+    def compute_demand_matrices(self, cooling_coeff=1.0):
+        """
+        Generate two DataFrames from the heating and cooling demands of the city's building objects.
+        
+        Parameters
+        ----------
+        cooling_coeff : float, optional
+            Coefficient to scale the cooling demand before combining. Default is 1.0.
+
+        Returns
+        -------
+        synergized : pd.DataFrame
+            DataFrame of the sum of heating and scaled cooling demands (columns labeled by building ID).
+        absolute : pd.DataFrame
+            DataFrame of the sum of absolute heating and scaled cooling demands (columns labeled by building ID).
+        """
+        demand_dict = {}
+
+        for bldg_id, bldg_obj in self.buildings_objects.items():
+            if hasattr(bldg_obj, 'demand') :
+                demand_dict[bldg_id] = bldg_obj.demand
+
+            else:
+                raise AttributeError(f"Building '{bldg_id}' is missing 'demand'.")
+
+        # Create aligned DataFrames (n x m)
+        df = pd.DataFrame(demand_dict)
+
+
+        # Compute synergized and absolute demand matrices
+        synergized = df 
+        absolute = df.abs()
+
+        self.synergized_demand_matrice = synergized 
+        self.absolute_demand_matrice = absolute 
+
+
+    
+
+    def get_optimal_binary_selection_via_generalized_eigen(self, cooling_coeff=1.0):
+        """
+        Computes the optimal binary selection of buildings (0 or 1) that minimizes the synergy-to-absolute
+        demand ratio (TSI), based on the generalized eigenvector of AᵀA and BᵀB.
+
+        Parameters
+        ----------
+        cooling_coeff : float
+            Coefficient to scale the cooling demand.
+
+        Returns
+        -------
+        best_selection_dict : dict
+            Mapping of building ID → 1 (included) or 0 (excluded) with minimum TSI.
+        min_tsi : float
+            The minimum synergy score (TSI) achieved.
+        """
+        # Step 1: Get demand matrices
+        self.compute_demand_matrices()
+        synergized_df, absolute_df = self.synergized_demand_matrice, self.absolute_demand_matrice
+
+        A = synergized_df.values
+        B = absolute_df.values
+
+        # Step 2: Solve Mx = λNx
+        M = A.T @ A
+        N = B.T @ B
+        eigvals, eigvecs = eigh(M, N)
+        idx_min = np.argmin(eigvals)
+        x_opt = eigvecs[:, idx_min]
+        x_opt = x_opt / np.linalg.norm(x_opt)  # Normalize
+        # Step 3: Greedy ranking from highest to lowest
+        building_ids = synergized_df.columns.tolist()
+        x_opt_dict = dict(zip(building_ids, x_opt))
+        sorted_bldgs = sorted(x_opt_dict.items(), key=lambda kv: kv[1], reverse=True)
+
+        current_x = {bid: 0.0 for bid in building_ids}
+        best_x = None
+        min_tsi = float("inf")
+
+        for bldg_id, _ in sorted_bldgs:
+            current_x[bldg_id] = 1.0
+            x_vec = np.array([current_x[bid] for bid in building_ids]).reshape(-1, 1)
+            
+            Ax = A @ x_vec
+            Bx = B @ x_vec
+            norm_Ax = np.linalg.norm(Ax)
+            norm_Bx = np.linalg.norm(Bx)
+            if sum(x_vec)==1:
+                self.Ax=Ax
+                self.Bx=Bx
+                self.Q=Ax/Bx
+            tsi = norm_Ax / norm_Bx if norm_Bx != 0 else np.inf
+            if tsi < min_tsi:
+                min_tsi = tsi
+                best_x = current_x.copy()
+
+        return best_x, min_tsi
+
+
+    def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
+        """
+        Identifies potential 5GDHC clusters based on building proximity and TSI. (TRIAL)
+        
+        Parameters
+        ----------
+        output_folder : str, optional
+        Path to the folder containing results files, by default CONFIG.output_path
+        distance_buffer : float, optional
+        Buffer radius in meters for proximity-based clustering, by default 150
+            
+        Returns
+        -------
+        None
+        Stores TSI and cluster associations in a DataFrame.
+        """
+
+
+        geojson = gpd.read_file(os.path.join(output_folder,"Buildings_summary.geojson"))
+
+        centroid = geojson.centroid
+        buffers = centroid.buffer(distance_buffer)
+
+        results = pd.DataFrame(index=geojson.index, columns=["TSI", "Belonging BDs"])
+
+        for bd in geojson.index[:]:
+            intersect_filter = buffers.loc[bd].intersects(geojson.geometry)
+            filtered_bds = geojson.loc[intersect_filter]
+
+            rejected_ST = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            rejected_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_Other = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_SH = np.zeros([CONFIG.number_of_time_steps_year, 1])
+            demand_DHW = np.zeros([CONFIG.number_of_time_steps_year, 1])
+
+            for i in filtered_bds.index:
+                # TODO: Change to parquet files to be more fast
+                results_file = f"Results Bd {filtered_bds['Name'].loc[i]}.csv"
+                df = pd.read_csv(os.path.join(output_folder, results_file), delimiter=";", header=[0, 1])
+
+                if "Solar surplus [Wh]" in df.columns.get_level_values(0):
+                    rejected_ST = np.hstack([
+                        rejected_ST,
+                        df["Solar surplus [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Rejected [Wh]" in df.columns.get_level_values(0):
+                    rejected_Other = np.hstack([
+                        rejected_Other,
+                        df["Refrigerator Heat Rejected [Wh]"].values
+                    ])
+
+                if "Refrigerator Heat Absorbed [Wh]" in df.columns.get_level_values(0):
+                    demand_Other = np.hstack([
+                        demand_Other,
+                        df["Refrigerator Heat Absorbed [Wh]"].values
+                    ])
+
+                demand_DH = np.hstack([
+                    demand_DH,
+                    df["Heating system DH consumption [Wh]"].values
+                ])
+
+                demand_SH = np.hstack([
+                    demand_SH,
+                    df["TZ sensible load [W]"].values +
+                    df["TZ AHU pre heater load [W]"].values +
+                    df["TZ AHU post heater load [W]"].values
+                ])
+
+                demand_DHW = np.hstack([
+                    demand_DHW,
+                    df["TZ DHW demand [W]"].values
+                ])
+
+            TSI = self.calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW)
+
+            results.loc[bd]["TSI"] = TSI
+            results.loc[bd]["Belonging BDs"] = filtered_bds.id.to_list()
+
+
+
     def geometric_preprocessing(self):
-        '''This method firstly reduces the area of coincidence surfaces in the city. This first part must be done to get consistent results
-        Moreover, it takes into account the shading effect between buildings surfaces, if shading_calculation is set to True at the city creation
-        '''
+        """
+        Performs geometric preprocessing of city surfaces.
+        
+        This includes:
+            - Reducing the area of surfaces that overlap or coincide
+            - Detecting potential mutual shading relationships between surfaces
+            - Calculating shading coefficients based on geometry and solar positions
+            
+        Returns
+        -------
+        None
+        """
         
         toll_az = CONFIG.urban_shading_tolerances[0]
         toll_dist = CONFIG.urban_shading_tolerances[1]
         toll_theta = CONFIG.urban_shading_tolerances[2]
 
-        # Each surface is compared with all the others
-        # qqq=len(self.__city_surfaces)
-        # qqqq=qqq*(qqq-1)/2
-        # iiii=0
-        # jjjj=0
+
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
         max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
-        for x in range(len(self.__city_surfaces)):
-            # jjjj=jjjj+1
-            # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
-           
+        for x, surface in enumerate(tqdm(self.__city_surfaces, desc="Geometric Preprocessing", unit="surface")):
+
             # Function to filter using scipy the nearest points (centroids)
             _, filtered_indices = plg_kdtree.query(list_of_centroids[x], k=max_number_of_neighborhoods)
             
-            # iiiii=0
+
             try:
                 self.__city_surfaces[x].shading_coupled_surfaces
             except AttributeError:
                 self.__city_surfaces[x].shading_coupled_surfaces = []
             for y in filtered_indices:
-                # iiii=iiii+1
-                # iiiii=iiiii+1
-                # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(check_indices)}")
 
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
@@ -874,7 +1513,6 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                         self.__city_surfaces[y].reduce_area(intersectionArea)
                         self.__city_surfaces[x].reduce_area(intersectionArea)
 
-                # print(f" {int(iiii/jjjj)*100} percent: geometry")
                 try:
                     self.__city_surfaces[y].shading_coupled_surfaces
                 except AttributeError:
@@ -964,14 +1602,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # SECTION 2: Calculation of the shading effect
             for x in range(len(self.__city_surfaces)):
                 self.__city_surfaces[x].shading_coefficient = 1.
-                # iiiii=0
                 if self.__city_surfaces[x].shading_coupled_surfaces != []:
                     self.__city_surfaces[x].shading_calculation = 'On'
                     shading = [0]*len(self.__city_surfaces[x].shading_coupled_surfaces)
                     for y in range(len(self.__city_surfaces[x].shading_coupled_surfaces)):
-                        # iiii=iiii+1
-                        # iiiii=iiiii+1
-                        # print(f" {iiii}:{jjjj}//{len(self.__city_surfaces)},{iiiii}:{len(self.__city_surfaces[x].shading_coupled_surfaces)}")
+
 
                         distance = self.__city_surfaces[x].shading_coupled_surfaces[y][0]
                         surface_opposite_index = self.__city_surfaces[x].shading_coupled_surfaces[y][1]

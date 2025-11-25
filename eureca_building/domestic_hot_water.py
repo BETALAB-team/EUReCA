@@ -22,15 +22,21 @@ from eureca_building.exceptions import InvalidScheduleType
 
 def _event_distribution(number_of_daily_events,daily_vector_distibution, number_of_days):
     """
+    Generates event time steps based on a temporal probability distribution.
+    
     Parameters
     ----------
-    n
-    x
-    pdf vettore distribuzione
+    number_of_daily_events : int
+        Number of draw-off events per day.
+    daily_vector_distibution : np.array
+        PDF across 24-hour periods (reshaped to match model time step).
+    number_of_days : int
+        Number of days to simulate.
 
     Returns
     -------
-
+    np.ndarray
+        Integer array of shape (days, events) with event time step indices.
     """
     y_guess = np.random.rand(number_of_days, int(number_of_daily_events))
     cdf = np.cumsum(daily_vector_distibution)
@@ -40,16 +46,19 @@ def _event_distribution(number_of_daily_events,daily_vector_distibution, number_
 
 def dhw_calc_calculation(volume_unit, numunits):
     """
-
+    Generates a yearly DHW volume profile based on stochastic draw-off events.
+    
     Parameters
     ----------
-    volume_unit
-    numunits
-    time_step
+    volume_unit : float
+        Annual DHW volume per unit [m³/year].
+    numunits : int
+        Number of residential units to model.
 
     Returns
     -------
-
+    np.ndarray
+        Hourly DHW volume demand [liters/hour], resampled to match CONFIG.time_step.
     """
     # The DHW calc is always run with a 5 min time step. At the end it is resapled to the CONFIG time step
     volume_unit = volume_unit * 1000 # m3 to l
