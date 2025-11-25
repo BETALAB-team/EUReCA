@@ -260,7 +260,7 @@ class WeatherFile():
 
         return w
     
-    def monthly_statistics(self, printer = True):
+    def monthly_statistics(self, printer = False):
         
         epw_df = self._epw_hourly_data
     
@@ -341,10 +341,6 @@ class WeatherFile():
         
         
         return
-
-
-
-
 
 def _TskyCalc(T_ext, T_dp, P_, n_opaque, time_steps):
     '''Apparent sky temperature calculation procedure

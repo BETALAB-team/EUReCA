@@ -318,6 +318,18 @@ class ThermalZone(object):
                     f"ThermalZone {self.name}, add_internal_load() method: internal_load not of InternalLoad type: {type(int_load)}"
                 )
             self.internal_loads_list.append(int_load)
+            
+    def add_occupancy(self, occupancy):
+        """Function to associate occupancy to the thermal zone
+
+        Parameters
+        ----------
+        internal_load : eureca_building.internal_load.InternalLoad
+            As many eureca_building.internal_load.InternalLoad can be provided
+
+        """
+
+        self.occupancy_schedule=occupancy
 
     def extract_convective_radiative_latent_electric_load(self):
         """
