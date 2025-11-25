@@ -8,9 +8,9 @@ from eureca_ubem.Report import generate_summary_pdf
 #%%  Load Inputs 
 load_config(os.path.join(".","Example_District_Config.json"))                   #Simulation Settings Given as JSON file 
 weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")          #Path to weatherfile in epw energyplus format
-schedules_file = os.path.join(".","Schedules_total.xlsx")                       #Path to the schedules for the end use
-materials_file = os.path.join(".","materials_and_construction_test.xlsx")       #Path to the construction material information
-city_model_file = os.path.join(".","Example_District.geojson")                  #Path to the geoindexed file of the footprints of buildings
+schedules_file = os.path.join(".","Schedules_QGIS_Output.xlsx")                       #Path to the schedules for the end use
+materials_file = os.path.join(".","Materials.xlsx")       #Path to the construction material information
+city_model_file = os.path.join(".","TSI.geojson")                  #Path to the geoindexed file of the footprints of buildings
 systems_file = os.path.join(".","systems.xlsx")                                 #Path to the HVAC systems specifications
 
 
@@ -54,4 +54,9 @@ city_geojson.simulate(output_type="csv")                                        
 #generate_summary_pdf(os.path.join(".","Output_folder_report"),scenario_dict,stats)
 #%%
 
-a,b =city_geojson.get_optimal_binary_selection_via_generalized_eigen()
+b =city_geojson.get_optimal_binary_selection_via_generalized_eigen(
+        cooling_coeff = 1.0,
+        min_window = 100.0,
+        max_window = 1000.0,
+        sliding_fac = 0.1,
+        scaling_fac = 4)

@@ -1185,9 +1185,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info[i] = info["TZ info"].loc[i]["Total"]
             info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
-            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
-                          output_folder= os.path.join(self.output_folder,"qss"),
-                          output_type= "csv")
+            # self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+            #               output_folder= os.path.join(self.output_folder,"qss"),
+            #               output_type= "csv")
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
@@ -1277,104 +1277,225 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
 
-    #@staticmethod
-    def compute_demand_matrices(self, cooling_coeff=1.0):
+    def compute_demand_matrices(self, cooling_coeff: float = 1.0) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Generate two DataFrames from the heating and cooling demands of the city's building objects.
-        
+
         Parameters
         ----------
         cooling_coeff : float, optional
-            Coefficient to scale the cooling demand before combining. Default is 1.0.
+            Coefficient to scale the cooling demand before combining.
 
         Returns
         -------
         synergized : pd.DataFrame
-            DataFrame of the sum of heating and scaled cooling demands (columns labeled by building ID).
         absolute : pd.DataFrame
-            DataFrame of the sum of absolute heating and scaled cooling demands (columns labeled by building ID).
         """
         demand_dict = {}
-
         for bldg_id, bldg_obj in self.buildings_objects.items():
-            if hasattr(bldg_obj, 'demand') :
+            if hasattr(bldg_obj, "demand"):
                 demand_dict[bldg_id] = bldg_obj.demand
-
             else:
                 raise AttributeError(f"Building '{bldg_id}' is missing 'demand'.")
-
-        # Create aligned DataFrames (n x m)
         df = pd.DataFrame(demand_dict)
-
-
-        # Compute synergized and absolute demand matrices
-        synergized = df 
+        synergized = df
         absolute = df.abs()
+        self.synergized_demand_matrice = synergized
+        self.absolute_demand_matrice = absolute
+        return synergized, absolute
 
-        self.synergized_demand_matrice = synergized 
-        self.absolute_demand_matrice = absolute 
-
-
-    
-
-    def get_optimal_binary_selection_via_generalized_eigen(self, cooling_coeff=1.0):
+    def _get_building_centroids(self) -> dict:
         """
-        Computes the optimal binary selection of buildings (0 or 1) that minimizes the synergy-to-absolute
-        demand ratio (TSI), based on the generalized eigenvector of AᵀA and BᵀB.
+        Return a dictionary mapping building_id -> (centroid_x, centroid_y).
+
+        Returns
+        -------
+        centroids : dict
+        """
+        centroids = {}
+        for bldg_id, bldg_obj in self.buildings_objects.items():
+            prefix = f"{bldg_obj.name}:"
+            xs = []
+            ys = []
+            for s in self.__city_surfaces:
+                if s.name.startswith(prefix):
+                    c = s._centroid
+                    xs.append(c[0])
+                    ys.append(c[1])
+            if not xs:
+                raise ValueError(f"No surfaces found for building {bldg_id}")
+            centroids[bldg_id] = (sum(xs) / len(xs), sum(ys) / len(ys))
+        return centroids
+
+    def _generate_sliding_window_parts(
+        self,
+        min_window: float,
+        max_window: float,
+        sliding_fac: float,
+        scaling_fac: int,
+    ) -> dict[int, list]:
+        """
+        Generate spatial building groups using sliding square windows of multiple sizes.
+
+        Parameters
+        ----------
+        min_window : float
+            Minimum window size in meters.
+        max_window : float
+            Maximum window size in meters.
+        sliding_fac : float
+            Overlap factor between 0.05 and 1.0.
+        scaling_fac : int
+            Number of geometrically spaced window sizes.
+
+        Returns
+        -------
+        parts : dict
+            Mapping part_index -> list of building IDs.
+        """
+        if min_window <= 0 or max_window <= 0:
+            raise ValueError("min_window and max_window must be positive")
+        if max_window < min_window:
+            raise ValueError("max_window must be >= min_window")
+        if not (0.05 <= sliding_fac <= 1.0):
+            raise ValueError("sliding_fac must be between 0.05 and 1.0")
+        if scaling_fac <= 1:
+            raise ValueError("scaling_fac must be > 1")
+
+        centroids = self._get_building_centroids()
+        xs = [c[0] for c in centroids.values()]
+        ys = [c[1] for c in centroids.values()]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+
+        q = (max_window / min_window) ** (1.0 / (scaling_fac - 1))
+        window_sizes = [min_window * (q ** i) for i in range(scaling_fac)]
+
+        parts = {}
+        part_idx = 1
+
+        for w in window_sizes:
+            step = w * sliding_fac
+            x_start = min_x
+            while x_start <= max_x:
+                y_start = min_y
+                while y_start <= max_y:
+                    x_end = x_start + w
+                    y_end = y_start + w
+                    selected = [
+                        bid for bid, (cx, cy) in centroids.items()
+                        if (x_start <= cx < x_end) and (y_start <= cy < y_end)
+                    ]
+                    if selected:
+                        parts[part_idx] = selected
+                        part_idx += 1
+                    y_start += step
+                x_start += step
+
+        return parts
+
+    def get_optimal_binary_selection_via_generalized_eigen(
+        self,
+        cooling_coeff: float = 1.0,
+        min_window: float = 100.0,
+        max_window: float = 1000.0,
+        sliding_fac: float = 0.5,
+        scaling_fac: int = 3,
+    ) -> dict:
+        """
+        Compute the optimal binary demand selection (0 or 1) minimizing the synergy-to-absolute ratio (TSI)
+        within sliding spatial windows of varying sizes.
 
         Parameters
         ----------
         cooling_coeff : float
-            Coefficient to scale the cooling demand.
+            Scaling factor for cooling demand.
+        min_window : float
+            Minimum sliding window size in meters.
+        max_window : float
+            Maximum sliding window size in meters.
+        sliding_fac : float
+            Overlap factor between windows.
+        scaling_fac : int
+            Number of geometrically spaced window sizes.
 
         Returns
         -------
-        best_selection_dict : dict
-            Mapping of building ID → 1 (included) or 0 (excluded) with minimum TSI.
-        min_tsi : float
-            The minimum synergy score (TSI) achieved.
+        results : dict
+            Mapping part_index -> { 'best_x': dict, 'min_tsi': float } for up to 100 best windows.
         """
-        # Step 1: Get demand matrices
-        self.compute_demand_matrices()
-        synergized_df, absolute_df = self.synergized_demand_matrice, self.absolute_demand_matrice
+        synergized_df, absolute_df = self.compute_demand_matrices(cooling_coeff=cooling_coeff)
+        parts = self._generate_sliding_window_parts(
+            min_window=min_window,
+            max_window=max_window,
+            sliding_fac=sliding_fac,
+            scaling_fac=scaling_fac,
+        )
 
-        A = synergized_df.values
-        B = absolute_df.values
+        results = {}
+        worst_tsi = float("inf")
+        best_tsi = float("inf")
+        i = 0
+        for part_idx, part_bldgs in parts.items():
+            if not part_bldgs:
+                continue
 
-        # Step 2: Solve Mx = λNx
-        M = A.T @ A
-        N = B.T @ B
-        eigvals, eigvecs = eigh(M, N)
-        idx_min = np.argmin(eigvals)
-        x_opt = eigvecs[:, idx_min]
-        x_opt = x_opt / np.linalg.norm(x_opt)  # Normalize
-        # Step 3: Greedy ranking from highest to lowest
-        building_ids = synergized_df.columns.tolist()
-        x_opt_dict = dict(zip(building_ids, x_opt))
-        sorted_bldgs = sorted(x_opt_dict.items(), key=lambda kv: kv[1], reverse=True)
+            A = synergized_df[part_bldgs].values
+            B = absolute_df[part_bldgs].values
 
-        current_x = {bid: 0.0 for bid in building_ids}
-        best_x = None
-        min_tsi = float("inf")
+            M = A.T @ A
+            N = B.T @ B
+            eigvals, eigvecs = eigh(M, N)
+            idx_min = np.argmin(eigvals)
+            x_opt = eigvecs[:, idx_min]
+            x_opt = x_opt / np.linalg.norm(x_opt)
 
-        for bldg_id, _ in sorted_bldgs:
-            current_x[bldg_id] = 1.0
-            x_vec = np.array([current_x[bid] for bid in building_ids]).reshape(-1, 1)
-            
-            Ax = A @ x_vec
-            Bx = B @ x_vec
-            norm_Ax = np.linalg.norm(Ax)
-            norm_Bx = np.linalg.norm(Bx)
-            if sum(x_vec)==1:
-                self.Ax=Ax
-                self.Bx=Bx
-                self.Q=Ax/Bx
-            tsi = norm_Ax / norm_Bx if norm_Bx != 0 else np.inf
-            if tsi < min_tsi:
-                min_tsi = tsi
-                best_x = current_x.copy()
+            x_opt_dict = dict(zip(part_bldgs, x_opt))
+            sorted_bldgs = sorted(x_opt_dict.items(), key=lambda kv: kv[1], reverse=True)
 
-        return best_x, min_tsi
+            current_x = {bid: 0.0 for bid in part_bldgs}
+            best_x = None
+            min_tsi = float("inf")
+
+            for bldg_id, _ in sorted_bldgs:
+                current_x[bldg_id] = 1.0
+                x_vec = np.array([current_x[bid] for bid in part_bldgs]).reshape(-1, 1)
+                Ax = A @ x_vec
+                Bx = B @ x_vec
+                norm_Ax = np.linalg.norm(Ax)
+                norm_Bx = np.linalg.norm(Bx)
+
+                if x_vec.sum() == 1:
+                    self.Ax = Ax
+                    self.Bx = Bx
+                    self.Q = Ax / np.where(Bx == 0, np.nan, Bx)
+
+                tsi = norm_Ax / norm_Bx if norm_Bx > 0 else float("inf")
+                if tsi < min_tsi:
+                    min_tsi = tsi
+                    best_x = current_x.copy()
+
+            if best_x is None or not np.isfinite(min_tsi):
+                continue
+
+            entry = {"best_x": best_x, "min_tsi": float(min_tsi)}
+            if len(results) < 100:
+                results[part_idx] = entry
+                worst_tsi = max(v["min_tsi"] for v in results.values())
+            else:
+                if min_tsi < worst_tsi:
+                    results[part_idx] = entry
+                    if len(results) > 100:
+                        worst_key = max(results, key=lambda k: results[k]["min_tsi"])
+                        del results[worst_key]
+                    worst_tsi = max(v["min_tsi"] for v in results.values())
+            best_tsi = min(v["min_tsi"] for v in results.values())
+            if i %100 == 0:
+                print (f"window{i} out of {len(parts)}, current best = {best_tsi}")
+            i = i+1
+
+        return results
+
 
 
     def find_best_5GDHC_clusters(self, output_folder = CONFIG.output_path, distance_buffer = 150):
