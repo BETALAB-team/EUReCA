@@ -1011,7 +1011,7 @@ class City():
                 ]
 
             for tz, use in zones_objs:
-
+                tz.add_occupancy(use.occupancy)
                 # TODO: copy.deepcopy
                 if use.scalar_data["Appliances calculation"] == "Italian Residential Building Stock":
                     try:
@@ -1097,8 +1097,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 building_obj.add_pv_system(weather_obj=self.weather_file)
                 # TODO: add battery/non battery config in solar techologies column ["Only PV, PV and battery"]
             if "ST" in building_info["Solar technologies"]:
-                building_obj.add_solar_thermal(weather_obj=self.weather_file)
-               
+                building_obj.add_solar_thermal(weather_obj=self.weather_file)  
     def simulate_quasi_steady_state(self):
         """
         Simulates each building in the city using the quasi-steady state approach.
@@ -1172,7 +1171,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         ])
         n_buildings = len(self.buildings_objects)
         counter = 0
+
         for bd_id, building_info in tqdm(self.buildings_info.items(), desc="Processing Buildings", unit="building"):
+
 
 
             info = {}

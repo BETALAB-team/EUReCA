@@ -57,6 +57,7 @@ eureca_building/example_scripts/VDI_bestests.py
 eureca_building/example_scripts/logging.log
 eureca_building.egg-info/
 eureca_building/test/__pycache__/
+PostProcess/Supermarkets/*.json
 .idea/
 build/
 dist/

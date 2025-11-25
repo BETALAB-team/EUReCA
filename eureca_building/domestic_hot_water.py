@@ -217,7 +217,6 @@ class DomesticHotWater:
             tuple of numpy.arrays
             volume flow rate [m3/s], dhw heating demand [W]
         """
-
         if self.calculation_method == "Schedule":
             schedule = self.schedule.schedule
             if self.unit == "L/s":

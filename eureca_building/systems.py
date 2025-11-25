@@ -135,7 +135,6 @@ class System(metaclass=abc.ABCMeta):
     
 
     def set_dhw_design_capacity_tank(self, dhw_flow_rate, weather_file):
-
         T_tank = 55
         T_user = 40
         T_tank_max = 80
@@ -189,7 +188,9 @@ class System(metaclass=abc.ABCMeta):
         #     solar_thermal_gain=0
         self.charging_mode = 0
         self.discharging_mode = 0
+
         self.solar_gain_out = self.solar_gain.iloc[timestep]/CONFIG.ts_per_hour if hasattr(self,"solar_gain") else 0
+
         solar_gain=self.solar_gain_out
         self.tank_discharge=0
         self.dhw_capacity_to_tank=0
@@ -268,7 +269,7 @@ class IdealLoad(System):
         """
         pass
 
-    def solve_system(self, heat_flow, weather, t, T_int, RH_int, *args):
+    def solve_system(self, heat_flow,dhw_flow, weather, t, T_int, RH_int, *args):
         """Solve the system power for the time step
 
         Parameters
@@ -280,11 +281,12 @@ class IdealLoad(System):
         t : int
             Simulation time step
         T_int : float
-            Zone temperature [°]
+            Zone temperature [°C]
         RH_int : float
             Zone relative humidity [%]
 
         """
+
         pass
 
 
@@ -352,7 +354,6 @@ class CondensingBoiler(System):
         Weather : eureca_building.weather.WeatherFile
             WeatherFile object
         '''
-
         # Choise of system size based on estimated nominal Power
         Size_0 = 0
         self.design_power = design_power  # [W]
@@ -411,7 +412,8 @@ class CondensingBoiler(System):
          RH_int : float
              Zone relative humidity [%]
          '''
-
+        
+ 
         self.dhw_tank_solver(dhw_flow, weather,t)
         heat_flow += self.dhw_capacity_to_tank
 
@@ -1502,7 +1504,7 @@ class HP_Staffell(System):
             self.convective_fraction = 0.5
 
         self.T_emitter = {
-            "Low Temp Radiator":60.,
+            "Low Temp Radiator":50.,
             "High Temp Radiator":70.,
             "Radiant surface":35.,
             "Fan coil":40,
@@ -2026,3 +2028,83 @@ hvac_cooling_systems_classes = {
     "A-W chiller, Single, Radiant surface":Cooling_EN15316,
     "From manual parameters":CoolingFromParams,
 }
+
+class Refrigerator(System):
+    '''Class Cooling_EN15316. This method considers a generic cooling system as the heating system
+    of the entire building following EN 15316.
+    '''
+    gas_consumption = 0
+    electric_consumption = 0
+    wood_consumption = 0
+    oil_consumption = 0
+    coal_consumption = 0
+    DH_consumption = 0
+    def __init__(self,LT_ratio=1):
+        self.refrigerators_electric_consumption=0
+        self.refrigerators_heat_absorbed=0 
+        self.refrigerators_heat_rejected=0
+        self.LT_ratio=LT_ratio
+        self._LR_MT=[0.99,0.93,0.86,0.82,0.86,0.84,
+                     0.77,0.85,1.01,1.04,0.96,0.99,
+                     1.10,1.10,1.03,1.06,1.14,1.12,
+                     1.02,0.98,1.07,1.17,1.15,1.05]
+        self._LR_LT=[1.02,1.13,0.94,0.86,0.89,0.84,
+                     0.90,0.87,0.92,1.33,1.09,1.03,
+                     1.21,0.93,0.98,0.89,0.88,1.11,
+                     1.04,0.92,1.00,1.19,0.99,1.01]
+        self._Open=[False,False,False,False,False,False,
+                    False,False,False,True,True,True,
+                    True,True,True,True,True,True,
+                    True,True,True,True,False,False,]
+        pass
+    def get_interpolated_value(self,LR,hour):
+        if hour < 0:
+            return LR[0]
+        elif hour >= len(LR) - 1:
+            return LR[-1]
+    
+        index_below = int(np.floor(hour))
+        index_above = min(index_below + 1, len(LR) - 1)
+
+        # Linear interpolation
+        weight_above = hour - index_below
+        weight_below = 1 - weight_above
+        interpolated_value = LR[index_below] * weight_below + LR[index_above] * weight_above
+        
+        return interpolated_value
+
+    def set_system_capacity(self, area, EER_mean, T_network=20, T_int_mean=19.5, T_LT=-18,T_MT=4 ,refrigeration_electric_ratio=0.29, working_hour_ratio=0.7):
+        "Building Energy Efficiency Survey UK 2015"
+        total_yearly_electric_consumption=390*area
+        refrigeration_electric_energy_consumed = refrigeration_electric_ratio*total_yearly_electric_consumption
+        mean_refrigeration_electric_power = refrigeration_electric_energy_consumed / (8760 * working_hour_ratio)
+        self.Installed_refrigeration_capacity=mean_refrigeration_electric_power * EER_mean *1000 #[W]
+        Carnot_multiplier=-((self.LT_ratio+1)/((self.LT_ratio)*((T_LT+273+T_MT+273)/((T_LT+273)*(T_MT+273)))-(self.LT_ratio+1)))/(EER_mean)
+        self.EER_LT= Carnot_multiplier*((T_LT+273)/(T_network-T_LT))
+        self.EER_MT= Carnot_multiplier*((T_MT+273)/(T_network-T_MT))
+
+        
+    def solve_system(self, weather,t,T_des=30):
+        T_ext = weather.hourly_data["out_air_db_temperature"][t]
+        Low_temperature_installed_capacity=self.Installed_refrigeration_capacity*(self.LT_ratio/(self.LT_ratio+1))/(CONFIG.ts_per_hour)
+        Medium_temperature_installed_capacity=self.Installed_refrigeration_capacity*(1/(self.LT_ratio+1))/(CONFIG.ts_per_hour)
+        open_or_close=self._Open
+        hour=(t/CONFIG.ts_per_hour)-((t/CONFIG.ts_per_hour)//24)+CONFIG.start_date.hour+CONFIG.start_date.minute/60
+        k_T_MT_open=1.75
+        k_T_LT_open=1.18
+        k_T_MT=1.75 if open_or_close else 1.7
+        k_T_LT=1.18 if open_or_close else 1.05
+        LR_MT=self.get_interpolated_value(self._LR_MT,hour)
+        LR_LT=self.get_interpolated_value(self._LR_LT,hour)
+        self.Medium_temperature_absorbed_heat=(LR_MT/k_T_MT_open)\
+                                                *((30-0)/(T_des-0)+(k_T_MT-1)*(T_ext-0)/(T_des-0))\
+                                                *Medium_temperature_installed_capacity
+        self.Low_temperature_absorbed_heat=(LR_LT/k_T_LT_open)\
+                                                *((30-0)/(T_des-0)+(k_T_LT-1)*(T_ext-0)/(T_des-0))\
+                                                *Low_temperature_installed_capacity 
+        self.heat_absorbed=self.Medium_temperature_absorbed_heat+self.Low_temperature_absorbed_heat
+        self.Medium_temperature_rejected_heat=self.Medium_temperature_absorbed_heat*(self.EER_MT+1)/(self.EER_MT)
+        self.Low_temperature_rejected_heat=self.Low_temperature_absorbed_heat*(self.EER_LT+1)/(self.EER_LT)
+
+        self.heat_rejected=self.Medium_temperature_rejected_heat+self.Low_temperature_rejected_heat
+

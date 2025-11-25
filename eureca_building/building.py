@@ -21,7 +21,7 @@ from eureca_building.thermal_zone import ThermalZone
 from eureca_building.pv_system import PV_system
 from eureca_building.solar_thermal_system import SolarThermal_Collector
 from eureca_building.weather import WeatherFile
-from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System
+from eureca_building.systems import hvac_heating_systems_classes, hvac_cooling_systems_classes, System, Refrigerator
 from eureca_building.exceptions import SimulationError
 # %% Building class
 class Building:
@@ -45,7 +45,7 @@ class Building:
         self.name = name
         self._thermal_zones_list = thermal_zones_list
         self._model = model
-
+        self._total_area=sum(tz._net_floor_area for tz in thermal_zones_list)
 
     @property
     def _thermal_zones_list(self) -> list:
@@ -71,9 +71,8 @@ class Building:
         try:
             value = str(value)
         except ValueError:
-            raise TypeError(f"Building {self.name}, the model must be a str: {type(value)}")
-        if not value in ["1C","2C"]:
-            raise TypeError(f"Building {self.name}, model must be 1C or 2C. Model = {value}")
+            if not value in ["1C","2C"]:
+                raise TypeError(f"Building {self.name}, model must be 1C or 2C. Model = {value}")
         self.__model = value
 
     @property
@@ -95,6 +94,16 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
+        
+    @property
+    def refrigerator_system(self) -> System:
+        return self._refrigerator_system
+
+    @refrigerator_system.setter
+    def refrigerator_system(self, value: System):
+        if not isinstance(value, System):
+            raise TypeError(f"Building {self.name}, the refrigerator system must be a System object: {type(value)}")
+        self._refrigerator_system = value
     
     def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
@@ -134,7 +143,13 @@ class Building:
         for tz in self._thermal_zones_list:
             tz.heating_sigma = self.heating_system.sigma
             tz.cooling_sigma = self.cooling_system.sigma
-
+    def add_refrigeration(self, LT_ratio=1):
+        print(1)
+        self.refrigeration_system=Refrigerator()
+    
+    def set_refrigerator_capacity(self, EER_mean, refrigeration_electric_ratio=0.29, working_hour_ratio=0.6):
+        self.refrigeration_system.set_system_capacity(self._total_area, EER_mean)
+        
     def set_hvac_system_capacity(self, weather_object):
         f"""Calls the thermal zone heating and cooling capacity for all themrmal zones (must be run after the calculation of zone loads)
 
@@ -145,7 +160,6 @@ class Building:
             
 
         Raises
-        ------
         SimulationError
             if thermal_zone design load calculation has not been carried out yet
 
@@ -220,6 +234,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
         """
+
         heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0., 0.
         for tz in self._thermal_zones_list:
             tz.solve_timestep(t, weather, model = self._model)
@@ -249,12 +264,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             # DHW
             dhw_load += tz.domestic_hot_water_demand[t]
+            Refrigerated_end_uses=["supermarket"]
+
 
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
+        if hasattr(self,'refrigeration_system'):          
+            self.refrigeration_system.solve_system( weather,t,T_des=30)
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
-
     def simulate(self,
                  weather_object: WeatherFile,
                  t_start: int = CONFIG.start_time_step,
@@ -303,13 +321,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ DHW volume flow rate [L/s]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ DHW demand [W]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
 
-            'DHW tank charging mode [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'DHW tank charge [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'DHW tank charge [-]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'DHW tank charging rate [W]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+
+            'DHW tank charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
 
             # 'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Solar Thermal Production [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Surplus [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Non-Renewable DHW [Wh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -325,9 +342,12 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'AHU electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Refrigerator Heat Rejected [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
             'Primary Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Primary Non-Renewable Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'CO2 Emission [kg CO2]':np.zeros([CONFIG.number_of_time_steps, 1])
+
         }
         
         
@@ -359,15 +379,14 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['TZ AHU electric load [W]'][t - t_start, :] = [tz.AHU_electric_consumption for tz in
                                                                       self._thermal_zones_list]
 
-            results['DHW tank charging mode [-]'][t - t_start, 0] = self.heating_system.charging_mode
-            results['DHW tank charge [-]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
-            results['DHW tank charge [Wh]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge
+            results['DHW tank charge [%]'][t - t_start, 0] = self.heating_system.dhw_tank_current_charge_perc
             results['Non-Renewable DHW [Wh]'][t - t_start,0] = self.heating_system.dhw_capacity_to_tank
             try:
                 results['Solar Thermal Production [Wh]'][t - t_start,0] = self.heating_system.solar_gain_out
+                results['Solar Surplus [Wh]'][t - t_start,0] = self.heating_system.tank_discharge
             except AttributeError:
                 results['Solar Thermal Production [Wh]'][t - t_start, 0] = 0
-
+                results['Solar Surplus [Wh]'][t - t_start,0] = 0
 
             results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
@@ -380,6 +399,9 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             results['Heating system electric consumption [Wh]'][t - t_start,0] = self.heating_system.electric_consumption
             results['Cooling system electric consumption [Wh]'][t - t_start,0] = self.cooling_system.electric_consumption
             results['AHU electric consumption [Wh]'][t - t_start,0] = results['TZ AHU electric load [W]'][t - t_start, :].sum() / CONFIG.ts_per_hour
+            if hasattr(self,'refrigeration_system'):          
+                results['Refrigerator Heat Absorbed [Wh]'][t - t_start,0]=self.refrigeration_system.heat_absorbed
+                results['Refrigerator Heat Rejected [Wh]'][t - t_start,0]=self.refrigeration_system.heat_rejected
 
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
         # print((np.max(results['Solar Thermal Production [Wh]'])))

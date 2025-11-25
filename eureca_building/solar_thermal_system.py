@@ -62,6 +62,8 @@ class SolarThermal_Collector():
             tot_area=tot_area+Surface._area
         self.sized_coverage_factor=sized_area/tot_area
         coverage_factor=min(self.sized_coverage_factor,max_coverage_factor)
+
+
         self.installed_area = coverage_factor * tot_area 
         for Surface in self._surfaces: 
             tilt=Surface._height_round
@@ -80,6 +82,7 @@ class SolarThermal_Collector():
             poa_global = poa_direct+poa_diffuse
             denominator=1-0.5*b*poa_global/(global_design*Efficiency_design)*(Fluid_design_max_outlet_temperature-Fluid_inlet_temperature)
             Efficiency=nominator/denominator
+            # print(Efficiency)
             # fluid_outlet_temperature=Fluid_inlet_temperature\
             #     +(Fluid_design_max_outlet_temperature)/global_design*poa_global
             # fluid_mean_temperature=0.5*(fluid_outlet_temperature+Fluid_inlet_temperature)
@@ -90,11 +93,9 @@ class SolarThermal_Collector():
 
 
             
-            max_Area=Surface._area*coverage_factor
+
             Absorbed_heat=max_Area*poa_global*Efficiency # W 
-            
             self.gained_heat+=Absorbed_heat
-            
  
         
         
