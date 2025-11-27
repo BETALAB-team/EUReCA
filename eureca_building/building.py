@@ -272,7 +272,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         if hasattr(self,'refrigeration_system'):          
             self.refrigeration_system.solve_system( weather,t,T_des=30)
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
-        self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
+        self.cooling_system.solve_system(cool_load, weather, t, air_t, RH_int= air_rh)
     def simulate(self,
                  weather_object: WeatherFile,
                  t_start: int = CONFIG.start_time_step,
@@ -343,7 +343,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'Appliances electric consumption [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Electric consumption [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
             'Refrigerator Heat Absorbed [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Refrigerator Heat Rejected [Wh]':np.zeros([CONFIG.number_of_time_steps, 1])
+            'Refrigerator Heat Rejected [Wh]':np.zeros([CONFIG.number_of_time_steps, 1]),
             'Primary Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'Primary Non-Renewable Energy [Wh]': np.zeros([CONFIG.number_of_time_steps, 1]),
             'CO2 Emission [kg CO2]':np.zeros([CONFIG.number_of_time_steps, 1])
@@ -402,6 +402,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             if hasattr(self,'refrigeration_system'):          
                 results['Refrigerator Heat Absorbed [Wh]'][t - t_start,0]=self.refrigeration_system.heat_absorbed
                 results['Refrigerator Heat Rejected [Wh]'][t - t_start,0]=self.refrigeration_system.heat_rejected
+                results['TZ sensible load [W]'][t - t_start, :] =  results['TZ sensible load [W]'][t - t_start, :] - self.refrigeration_system.heat_absorbed
 
         # results[ 'Solar Thermal PRoduction [Wh]'] = np.array(self.heating_system.solar_gain)
         # print((np.max(results['Solar Thermal Production [Wh]'])))
