@@ -445,7 +445,7 @@ fig, [ax1,ax2, ax3] = plt.subplots(nrows = 3, figsize =(15,10))
 
 df_res = df_res.droplevel(axis = 1, level = 1)
 
-df_res['Heating system gas consumption [Nm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
+df_res['Heating system gas consumption [Sm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
 df_res[['Heating system electric consumption [Wh]',
        'Cooling system electric consumption [Wh]',
        'Appliances electric consumption [Wh]', ]].plot(ax = ax1, legend = True)
@@ -464,7 +464,7 @@ fig, [ax1,ax2, ax3] = plt.subplots(nrows = 3, figsize =(15,10))
 
 df_res_2 = df_res_2.droplevel(axis = 1, level = 1)
 
-df_res_2['Heating system gas consumption [Nm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
+df_res_2['Heating system gas consumption [Sm3]'].plot(ax = ax1.twinx(), legend = True, color = 'purple')
 df_res_2[['Heating system electric consumption [Wh]',
        'Cooling system electric consumption [Wh]',
        'Appliances electric consumption [Wh]', ]].plot(ax = ax1, legend = True)

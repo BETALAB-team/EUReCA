@@ -311,7 +311,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             # 'Storage Tank Charge [%]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Solar Thermal Production [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Non-Renewable DHW [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
-            'Heating system gas consumption [Nm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Heating system gas consumption [Sm3]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system oil consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system gasoline consumption [L]' : np.zeros([CONFIG.number_of_time_steps, 1]),
             'Heating system coal consumption [kg]' : np.zeros([CONFIG.number_of_time_steps, 1]),
@@ -369,7 +369,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 results['Solar Thermal Production [kWh]'][t - t_start, 0] = 0
 
 
-            results['Heating system gas consumption [Nm3]'][t - t_start,0] = self.heating_system.gas_consumption
+            results['Heating system gas consumption [Sm3]'][t - t_start,0] = self.heating_system.gas_consumption/1.055
             results['Heating system oil consumption [L]'][t - t_start,0] = self.heating_system.oil_consumption
             results['Heating system gasoline consumption [L]'][t - t_start,0] = self.heating_system.gasoline_consumption
             results['Heating system LPG consumption [kg]'][t - t_start,0] = self.heating_system.lpg_consumption
@@ -410,7 +410,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=1000*total['Electric consumption [kWh]'].iloc[:, 0].values,pv_prod=pv_production)
         else:
             pv_production = 0.
-            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Nm3]"][:, 0].shape) for _ in range(6)]
+            [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Sm3]"][:, 0].shape) for _ in range(6)]
             fromgrid = total[("Electric consumption [kWh]", f"Bd {self.name}")].values
             togrid = 0.
 
@@ -423,37 +423,127 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Taken from the Gird [kWh]",f"Bd {self.name}"]=fromgrid/1000
         total["directly from the PV [kWh]",f"Bd {self.name}"]=directsolar/1000
         total["PV System self consumption",f"Bd {self.name}"]=(frombattery+directsolar)/(fromgrid+frombattery+directsolar)
-        # in case of static renewable energy factor:
-        total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid/1000\
-                                                        +1.05 * 11200 * results ["Heating system gas consumption [Nm3]"][:, 0] \
-                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
-                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
-                                                        +0.20 * 4860 * results ["Heating system wood consumption [kg]"][:, 0]\
-                                                        +0.00 * directsolar
-                                                        
-                                                        
-        total["Primary Energy [kWh]",f"Bd {self.name}"]= 2.42 * fromgrid/1000 \
-                                                        +1.05 * 11200 *  results ["Heating system gas consumption [Nm3]"][:, 0] \
-                                                        +1.07 * 9333 * results ["Heating system oil consumption [L]"][:, 0] \
-                                                        +1.10 * 8140 * results ["Heating system coal consumption [kg]"][:, 0] \
-                                                        +1.00 * 4860 * results ["Heating system wood consumption [kg]"][:, 0] \
-                                                        +1.00 * directsolar
+
         try:
             total["Primary Energy [kWh]",f"Bd {self.name}"] = total["Primary Energy [kWh]",f"Bd {self.name}"]+results['Solar Thermal Production [kWh]'][:, 0]
         except AttributeError:
-            total["Primary Energy [Wh]",f"Bd {self.name}"] = total["Primary Energy [kWh]",f"Bd {self.name}"]
+            total["Primary Energy [kWh]",f"Bd {self.name}"] = total["Primary Energy [kWh]",f"Bd {self.name}"]
+            
+        
                                                         
         # Fattori di Emissione from ISPRA 2024 https://emissioni.sina.isprambiente.it/news/
-        total["CO2 Emission [kg CO2]",f"Bd {self.name}"]= 1.95 * 61.2 / 277778 * fromgrid \
-                                                        +1.05 * 11200 * 58.9 / 277778 * results ["Heating system gas consumption [Nm3]"][:, 0] \
-                                                        +1.07 * 9333 * 74.1 / 277778 * results ["Heating system oil consumption [L]"][:, 0] \
-                                                        +1.10 * 8140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
-                                                        +1.00 * 4860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
-                                                        +0.00 * directsolar
+        total["CO2 Emission [kg CO2]",f"Bd {self.name}"]= (1.95 * 612 / 277778000 * fromgrid \
+                                                        +1.05 * 1.055* 11.200 * 58.9 / 277778 * results ["Heating system gas consumption [Sm3]"][:, 0]  \
+                                                        +1.07 * 9.333 * 74.1 / 277778 * results ["Heating system oil consumption [L]"][:, 0] \
+                                                        +1.10 * 8.140 * 932 / 277778 * results ["Heating system coal consumption [kg]"][:, 0] \
+                                                        +1.00 * 4.860 * 88.9 / 277778 * results ["Heating system wood consumption [kg]"][:, 0] \
+                                                        +0.00 * directsolar)*1000*60
                                                         
          
         #total = pd.concat([total, pv_production], axis=1)
         #pv_production=tz.pv_production.interpolate(method="time")
+        # if output_folder != None:
+        #     if not os.path.isdir(output_folder):
+        #         os.mkdir(output_folder)
+        #     if output_type == 'csv':
+        #         total.to_csv(os.path.join(output_folder, f"Results {self.name}.csv"), float_format='%.2f', index = False, sep =";")
+        #     elif output_type == 'parquet':
+        #         total.to_parquet(os.path.join(output_folder, f"Results {self.name}.parquet.snappy"), engine="pyarrow", compression = "snappy")
+        #     else:
+        #         raise KeyError(f"Building simulation: output file type can be either 'csv' or 'parquet'. Current output type: {output_type}")
+                
+        results.update({
+            'Gas Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Oil Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Wood Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Coal Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Grid Electricity Primary Non-Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+        
+            'Gas Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Oil Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Wood Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Coal Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Grid Electricity Primary Renewable Energy [kWh]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+        
+            'Gas CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Oil CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Wood CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Coal CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Grid CO2 Emission Scope 1 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+        
+            'Gas CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Oil CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Wood CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Coal CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Grid CO2 Emission Scope 2 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+        
+            'Gas CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Oil CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Wood CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Coal CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Solar CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+            'Grid CO2 Emission Scope 3 [kg CO2]' : np.zeros([CONFIG.number_of_time_steps, 1]),
+        })
+                
+        # SCOPE 1 direct burns from ISPRA 
+        # SCOPE 2 Elec from ISPRA 
+        # SCOPE 2 direct burns form 
+        # SCOPE 3 from IPCC :  GAS // Gas transport for heating and processes Residential and Industrial Sector
+        # OIL: oil Refinement and transport for household usage 
+        # COAL: Hard Coal Stove burn 
+        # From Slovenian https://doi.org/10.1016/j.scitotenv.2019.06.420 // Life cycle assessment of wood split logs. 
+        # From IEA report, upstream electricty grid 
+        # From IEA Report on PV life cycle
+                
+        total["Gas Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.05 * 11.200 *1.055* results ["Heating system gas consumption [Sm3]"][:, 0]
+        total["Oil Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.07 * 9.333 * results ["Heating system oil consumption [L]"][:, 0] 
+        total["Wood Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=0.20 * 4.860 * results ["Heating system wood consumption [kg]"][:, 0]
+        total["Coal Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.10 * 8.140 * results ["Heating system coal consumption [kg]"][:, 0]
+        total["Solar Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=0
+        total["Grid Electricity Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid/100000
+        total["Gas Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
+        total["Oil Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
+        total["Wood Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
+        total["Coal Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
+        total["Solar Primary Renewable Energy [kWh]",f"Bd {self.name}"]= +1.00 * directsolar/100
+        total["Grid Electricity Primary Renewable Energy [kWh]"]=0.47 * fromgrid/100000
+        total["Gas CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.05 * 1.055* 11.200 * 58.9 / 277778 * results ["Heating system gas consumption [Sm3]"][:, 0] /1000*60
+        total["Oil CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.07 * 9.333 * 741 / 277778 * results ["Heating system oil consumption [L]"][:, 0]/1000*60
+        total["Wood CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.00 * 4.860 * 889 / 277778 * results ["Heating system wood consumption [kg]"][:, 0]/1000*60
+        total["Coal CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.10 * 8.140 * 932 / 277778 * results ["Heating system coal consumption [kg]"][:, 0]/1000*60
+        total["Solar CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]= 0
+        total["Grid  CO2 Emission Scope 1 [kg CO2]"]= 0 * fromgrid/1000*60
+        total["Gas CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
+        total["Oil CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
+        total["Wood CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
+        total["Coal CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
+        total["Solar CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0.00 * directsolar/1000*60
+        total["Grid  CO2 Emission Scope 2 [kg CO2]"]=1.95 * 612 / 277778000 * fromgrid/1000*60
+        total["Gas CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.05 * 1.055* 11.200 * 12.3 / 277778 * results ["Heating system gas consumption [Sm3]"][:, 0] /1000*60
+        total["Oil CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.07 * 9.333 * 12 / 277778 * results ["Heating system oil consumption [L]"][:, 0]/1000*60
+        total["Wood CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.00 * 4.860 * 32 / 277778 * results ["Heating system wood consumption [kg]"][:, 0]/1000*60
+        total["Coal CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.10 * 8.140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0]/1000*60
+        total["Solar CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=0.020 *0.00001* directsolar/1000*60
+        total["Grid  CO2 Emission Scope 3 [kg CO2]"]=0.2* 1.95 * 612 / 277778000 * fromgrid/1000*60
+        # in case of static renewable energy factor:
+        total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=total["Gas Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
+            +        total["Oil Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
+            +        total["Wood Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
+             +       total["Coal Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
+              +      total["Solar Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]
+                                                        
+                                                        
+        total["Primary Energy [kWh]",f"Bd {self.name}"]= total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
+            +total["Gas Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
+                +        total["Oil Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
+                +        total["Wood Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
+                 +       total["Coal Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
+                  +      total["Solar Primary Renewable Energy [kWh]",f"Bd {self.name}"]
+        
         if output_folder != None:
             if not os.path.isdir(output_folder):
                 os.mkdir(output_folder)
@@ -529,7 +619,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['TZ cooling demand [Wh]'] = cool_demand
         results['TZ DHW demand [Wh]'] = DHW_Demand
 
-        results['Heating system gas consumption [Nm3]'] = self.heating_system.gas_consumption
+        results['Heating system gas consumption [Sm3]'] = self.heating_system.gas_consumption
         results['Heating system oil consumption [L]'] = self.heating_system.oil_consumption
         results['Heating system coal consumption [kg]'] = self.heating_system.coal_consumption
         results['Heating system wood consumption [kg]'] = self.heating_system.wood_consumption

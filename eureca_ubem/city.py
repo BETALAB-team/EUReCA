@@ -794,8 +794,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
         index = pd.date_range(start = CONFIG.start_date,periods = CONFIG.number_of_time_steps, freq = f"{CONFIG.time_step}s")
         district_hourly_results = pd.DataFrame(0., index = index, columns = [
-            "Gas consumption [Nm3]",
-            "Electric consumption [MWh]",
+            "Gas consumption [Sm3]",
+            "Electric Load [MW]",
             "Oil consumption [L]",
             "Wood consumption [kg]",
             "TZ sensible load [kW]",
@@ -803,8 +803,49 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             "TZ AHU pre heater load [kW]",
             "TZ AHU post heater load [kW]",
             "TZ DHW demand [kW]",
-            "Net PV production to grid [MWh]"
+            "Net PV production to grid [MW]",
+            "Total Primary Energy [MW]",
+            "Non-Renewable Primary Energy [MW]",
+            "CO2 Emission [ton CO2]"
         ])
+        district_hourly_results[
+        [
+            "Gas Primary Non-Renewable Energy [MW]",
+            "Oil Primary Non-Renewable Energy [MW]",
+            "Wood Primary Non-Renewable Energy [MW]",
+            "Coal Primary Non-Renewable Energy [MW]",
+            "Solar Primary Non-Renewable Energy [MW]",
+            "Grid Electricity Primary Non-Renewable Energy [MW]",
+        
+            "Gas Primary Renewable Energy [MW]",
+            "Oil Primary Renewable Energy [MW]",
+            "Wood Primary Renewable Energy [MW]",
+            "Coal Primary Renewable Energy [MW]",
+            "Solar Primary Renewable Energy [MW]",
+            "Grid Electricity Primary Renewable Energy [MW]",
+        
+            "Gas CO2 Emission Scope 1 [ton CO2]",
+            "Oil CO2 Emission Scope 1 [ton CO2]",
+            "Wood CO2 Emission Scope 1 [ton CO2]",
+            "Coal CO2 Emission Scope 1 [ton CO2]",
+            "Solar CO2 Emission Scope 1 [ton CO2]",
+            "Grid CO2 Emission Scope 1 [ton CO2]",
+        
+            "Gas CO2 Emission Scope 2 [ton CO2]",
+            "Oil CO2 Emission Scope 2 [ton CO2]",
+            "Wood CO2 Emission Scope 2 [ton CO2]",
+            "Coal CO2 Emission Scope 2 [ton CO2]",
+            "Solar CO2 Emission Scope 2 [ton CO2]",
+            "Grid CO2 Emission Scope 2 [ton CO2]",
+        
+            "Gas CO2 Emission Scope 3 [ton CO2]",
+            "Oil CO2 Emission Scope 3 [ton CO2]",
+            "Wood CO2 Emission Scope 3 [ton CO2]",
+            "Coal CO2 Emission Scope 3 [ton CO2]",
+            "Solar CO2 Emission Scope 3 [ton CO2]",
+            "Grid CO2 Emission Scope 3 [ton CO2]",
+        ]
+        ] = 0.0  
         n_buildings = len(self.buildings_objects)
         counter = 0
         for bd_id, building_info in self.buildings_info.items():
@@ -822,9 +863,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info[i] = info["TZ info"].loc[i]["Total"]
             info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
-            #self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
-                          #output_folder= os.path.join(self.output_folder,"qss"),
-                          #output_type= "csv")
+            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+                          output_folder= os.path.join(self.output_folder,"qss"),
+                          output_type= "csv")
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
@@ -855,33 +896,71 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             wood_consumption = pd.concat([wood_consumption, pd.Series([wood_consumption.sum()], index = ["Total"])])
             for i in gas_consumption.index:
                 if i == "Total":
-                    info[f"{i} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i} gas consumption [Sm3]"] = gas_consumption.loc[i]
                     info[f"{i} electric consumption [MWh]"] = el_consumption.loc[i]/1000
                     info[f"{i} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i} wood consumption [kg]"] = wood_consumption.loc[i]
                     info[f"{i} Heating Demand [MWh]"] = heat_demand.loc[i]/1000
                     info[f"{i} Cooling Demand [MWh]"] = cooling_demand.loc[i]/1000
                 else:
-                    info[f"{i.month_name()} gas consumption [Nm3]"] = gas_consumption.loc[i]
+                    info[f"{i.month_name()} gas consumption [Sm3]"] = gas_consumption.loc[i]
                     info[f"{i.month_name()} electric consumption [MWh]"] = el_consumption.loc[i]/1000
                     info[f"{i.month_name()} oil consumption [L]"] = oil_consumption.loc[i]
                     info[f"{i.month_name()} wood consumption [kg]"] = wood_consumption.loc[i]
                     info[f"{i.month_name()} Heating Demand [MWh]"] = heat_demand.loc[i]/1000
                     info[f"{i.month_name()} Cooling Demand [MWh]"] = cooling_demand.loc[i]/1000
             final_results[bd_id] = info
-            district_hourly_results["Gas consumption [Nm3]"] += results["Heating system gas consumption [Nm3]"].iloc[:,0]
+            district_hourly_results["Gas consumption [Sm3]"] += results["Heating system gas consumption [Sm3]"].iloc[:,0]
             district_hourly_results["Oil consumption [L]"] += results["Heating system oil consumption [L]"].iloc[:,0]
             district_hourly_results["Wood consumption [kg]"] += results["Heating system wood consumption [kg]"].iloc[:,0]
-            district_hourly_results["Electric consumption [MWh]"] += (results["Heating system electric consumption [kWh]"].iloc[:,0] \
+            district_hourly_results["Electric Load [MW]"] += (results["Heating system electric consumption [kWh]"].iloc[:,0] \
                                                                     + results["Cooling system electric consumption [kWh]"].iloc[:,0] \
                                                                     + results["Appliances electric consumption [kWh]"].iloc[:,0] \
-                                                                    + results['AHU electric consumption [kWh]'].iloc[:,0])/1000
+                                                                    + results['AHU electric consumption [kWh]'].iloc[:,0])/1000* CONFIG.ts_per_hour
             district_hourly_results["TZ sensible load [kW]"] += results["TZ sensible load [kW]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ latent load [kW]"] += results["TZ latent load [kW]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ AHU pre heater load [kW]"] += results["TZ AHU pre heater load [kW]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ AHU post heater load [kW]"] += results["TZ AHU post heater load [kW]"].iloc[:,0:1].sum(axis = 1)
             district_hourly_results["TZ DHW demand [kW]"] += results["TZ DHW demand [kW]"].iloc[:,0:1].sum(axis = 1)
-            district_hourly_results["Net PV production to grid [MWh]"] += results["Given to Grid [kWh]"].iloc[:,0]/1000
+            district_hourly_results["Net PV production to grid [MW]"] +=  CONFIG.ts_per_hour*results["Given to Grid [kWh]"].iloc[:,0]/1000
+            district_hourly_results["Total Primary Energy [MW]"] +=  CONFIG.ts_per_hour* results["Primary Energy [kWh]"].iloc[:,0]/1000
+            district_hourly_results["Non-Renewable Primary Energy [MW]"] +=  CONFIG.ts_per_hour* results["Primary Non-Renewable Energy [kWh]"].iloc[:,0]/1000
+            district_hourly_results["CO2 Emission [ton CO2]"] +=   results["CO2 Emission [kg CO2]"].iloc[:,0]/1000/ CONFIG.ts_per_hour
+            
+      
+            district_hourly_results["Gas Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Gas Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Oil Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Oil Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Wood Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Wood Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Coal Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Coal Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Solar Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Solar Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Grid Electricity Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Non-Renewable Energy [kWh]"].iloc[:,0] 
+            
+            district_hourly_results["Gas Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Gas Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Oil Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Oil Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Wood Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Wood Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Coal Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Coal Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Solar Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Solar Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
+            district_hourly_results["Grid Electricity Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Renewable Energy [kWh]"]
+            district_hourly_results["Gas CO2 Emission Scope 1 [ton CO2]"] += results["Gas CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Oil CO2 Emission Scope 1 [ton CO2]"] += results["Oil CO2 Emission Scope 1 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Wood CO2 Emission Scope 1 [ton CO2]"] += results["Wood CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Coal CO2 Emission Scope 1 [ton CO2]"] += results["Coal CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Solar CO2 Emission Scope 1 [ton CO2]"] += results["Solar CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Grid CO2 Emission Scope 1 [ton CO2]"] += results['Grid  CO2 Emission Scope 1 [kg CO2]'] / 1000
+            
+            district_hourly_results["Gas CO2 Emission Scope 2 [ton CO2]"] += results["Gas CO2 Emission Scope 2 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Oil CO2 Emission Scope 2 [ton CO2]"] += results["Oil CO2 Emission Scope 2 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Wood CO2 Emission Scope 2 [ton CO2]"] += results["Wood CO2 Emission Scope 2 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Coal CO2 Emission Scope 2 [ton CO2]"] += results["Coal CO2 Emission Scope 2 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Solar CO2 Emission Scope 2 [ton CO2]"] += results["Solar CO2 Emission Scope 2 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Grid CO2 Emission Scope 2 [ton CO2]"] += results['Grid  CO2 Emission Scope 2 [kg CO2]'] 
+            
+            district_hourly_results["Gas CO2 Emission Scope 3 [ton CO2]"] += results["Gas CO2 Emission Scope 3 [kg CO2]"].iloc[:,0]
+            district_hourly_results["Oil CO2 Emission Scope 3 [ton CO2]"] += results["Oil CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Wood CO2 Emission Scope 3 [ton CO2]"] += results["Wood CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Coal CO2 Emission Scope 3 [ton CO2]"] += results["Coal CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Solar CO2 Emission Scope 3 [ton CO2]"] += results["Solar CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
+            district_hourly_results["Grid CO2 Emission Scope 3 [ton CO2]"] += results['Grid  CO2 Emission Scope 3 [kg CO2]']
 
 
 
@@ -894,7 +973,10 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         new_geojson.to_file(os.path.join(self.output_folder,"Buildings_summary.geojson"), driver = "GeoJSON")
         new_geojson.drop("geometry",axis = 1).to_csv(os.path.join(self.output_folder, "Buildings_summary.csv"), sep =";")
 
-        print(f"Standard simulation : {(time.time() - start)/60:0.2f} min")
+
+        district_hourly_results.to_csv(os.path.join(self.output_folder,"District_hourly_summary2.csv"), sep =";")
+
+
 
         # def bd_parallel_solve(x):
         #     # Local function to be used in ThreadPoolExecutor
@@ -904,6 +986,127 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             # bd_parallel_list = [[t, bd, self.weather_file] for bd in self.buildings_objects.values()]
             # with concurrent.futures.ThreadPoolExecutor() as executor:
             #     bd_executor = executor.map(bd_parallel_solve, bd_parallel_list)
+
+        def make_district_summary(district_hourly_results, CONFIG, out_path):
+            gas_Sm3 = district_hourly_results["Gas consumption [Sm3]"].sum()
+            elec_MWh = district_hourly_results["Electric Load [MW]"].sum()/CONFIG.ts_per_hour
+            oil_L = district_hourly_results["Oil consumption [L]"].sum()
+            wood_kg = district_hourly_results["Wood consumption [kg]"].sum()
+        
+            pe_tot_MWh = district_hourly_results["Total Primary Energy [MW]"].sum()/CONFIG.ts_per_hour
+            pe_nren_MWh = district_hourly_results["Non-Renewable Primary Energy [MW]"].sum()/CONFIG.ts_per_hour
+            pe_ren_MWh = (
+                district_hourly_results[
+                    [
+                        "Gas Primary Renewable Energy [MW]",
+                        "Oil Primary Renewable Energy [MW]",
+                        "Wood Primary Renewable Energy [MW]",
+                        "Coal Primary Renewable Energy [MW]",
+                        "Solar Primary Renewable Energy [MW]",
+                        "Grid Electricity Primary Renewable Energy [MW]",
+                    ]
+                ].sum()
+            ).sum()
+        
+            co2_tot_ton = district_hourly_results["CO2 Emission [ton CO2]"].sum()
+        
+            pe_fuels_ren = {
+                "Gas": district_hourly_results["Gas Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Electricity": district_hourly_results["Grid Electricity Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Coal": district_hourly_results["Coal Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Oil": district_hourly_results["Oil Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Wood": district_hourly_results["Wood Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Solar": district_hourly_results["Solar Primary Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+            }
+        
+            pe_fuels_nren = {
+                "Gas": district_hourly_results["Gas Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Electricity": district_hourly_results["Grid Electricity Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Coal": district_hourly_results["Coal Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Oil": district_hourly_results["Oil Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Wood": district_hourly_results["Wood Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+                "Solar": district_hourly_results["Solar Primary Non-Renewable Energy [MW]"].sum()/CONFIG.ts_per_hour,
+            }
+        
+            co2_scope1 = {
+                "Gas": district_hourly_results["Gas CO2 Emission Scope 1 [ton CO2]"].sum(),
+                "Electricity": district_hourly_results["Grid CO2 Emission Scope 1 [ton CO2]"].sum(),
+                "Coal": district_hourly_results["Coal CO2 Emission Scope 1 [ton CO2]"].sum(),
+                "Oil": district_hourly_results["Oil CO2 Emission Scope 1 [ton CO2]"].sum(),
+                "Wood": district_hourly_results["Wood CO2 Emission Scope 1 [ton CO2]"].sum(),
+                "Solar": district_hourly_results["Solar CO2 Emission Scope 1 [ton CO2]"].sum(),
+            }
+        
+            co2_scope2 = {
+                "Gas": district_hourly_results["Gas CO2 Emission Scope 2 [ton CO2]"].sum(),
+                "Electricity": district_hourly_results["Grid CO2 Emission Scope 2 [ton CO2]"].sum(),
+                "Coal": district_hourly_results["Coal CO2 Emission Scope 2 [ton CO2]"].sum(),
+                "Oil": district_hourly_results["Oil CO2 Emission Scope 2 [ton CO2]"].sum(),
+                "Wood": district_hourly_results["Wood CO2 Emission Scope 2 [ton CO2]"].sum(),
+                "Solar": district_hourly_results["Solar CO2 Emission Scope 2 [ton CO2]"].sum(),
+            }
+        
+            co2_scope3 = {
+                "Gas": district_hourly_results["Gas CO2 Emission Scope 3 [ton CO2]"].sum(),
+                "Electricity": district_hourly_results["Grid CO2 Emission Scope 3 [ton CO2]"].sum(),
+                "Coal": district_hourly_results["Coal CO2 Emission Scope 3 [ton CO2]"].sum(),
+                "Oil": district_hourly_results["Oil CO2 Emission Scope 3 [ton CO2]"].sum(),
+                "Wood": district_hourly_results["Wood CO2 Emission Scope 3 [ton CO2]"].sum(),
+                "Solar": district_hourly_results["Solar CO2 Emission Scope 3 [ton CO2]"].sum(),
+            }
+        
+            energy_values_MWh = [
+                elec_MWh,
+                pe_tot_MWh,
+                pe_nren_MWh,
+                pe_ren_MWh,
+                *pe_fuels_ren.values(),
+                *pe_fuels_nren.values(),
+            ]
+            energy_div = 1000.0 if max(energy_values_MWh) >= 10000 else 1.0
+            energy_unit = "GWh" if energy_div == 1000.0 else "MWh"
+        
+            oil_div = 1000.0 if oil_L >= 10000 else 1.0
+            oil_unit = "m3" if oil_div == 1000.0 else "L"
+        
+            wood_div = 1000.0 if wood_kg >= 10000 else 1.0
+            wood_unit = "ton" if wood_div == 1000.0 else "kg"
+        
+        
+            co2_div = 1000.0 if co2_tot_ton >= 10000 else 1.0
+            co2_unit = "kton CO2" if wood_div == 1000.0 else "ton CO2"
+            rows = []
+        
+            rows.append([f"Gas consumption [Sm3]", gas_Sm3])
+            rows.append([f"Electric consumption [{energy_unit}]", elec_MWh / energy_div])
+            rows.append([f"Oil consumption [{oil_unit}]", oil_L / oil_div])
+            rows.append([f"Wood consumption [{wood_unit}]", wood_kg / wood_div])
+            rows.append([f"Primary Energy [{energy_unit}]", pe_tot_MWh / energy_div])
+            rows.append([f"Non Renewable Primary Energy [{energy_unit}]", pe_nren_MWh / energy_div])
+            rows.append([f"Renewable Primary Energy [{energy_unit}]", pe_ren_MWh / energy_div])
+            rows.append([f"Scope 1 and 2 Carbon Emission [{co2_unit}]", co2_tot_ton / 1000.0])
+            rows.append([])
+            rows.append([])
+            rows.append(["", f"Renewable Primary Energy [{energy_unit}]", f"Non Renewable Primary Energy [{energy_unit}]", f"Carbon Emission Scope 1 [{co2_unit}]",
+                         f"Carbon Emission Scope 2 [{co2_unit}]", f"Carbon Emission Scope 3 [{co2_unit}]"])
+        
+            fuels_order = ["Gas", "Electricity", "Coal", "Oil", "Wood", "Solar"]
+        
+            for fuel in fuels_order:
+                rows.append(
+                    [
+                        fuel,
+                        pe_fuels_ren[fuel] / energy_div,
+                        pe_fuels_nren[fuel] / energy_div,
+                        co2_scope1[fuel] /co2_div*1000,
+                        co2_scope2[fuel] / co2_div*1000,
+                        co2_scope3[fuel] / co2_div*1000,
+                    ]
+                )
+        
+            summary_df = pd.DataFrame(rows)
+            summary_df.to_csv(out_path, sep=";", header=False, index=False)
+        make_district_summary(district_hourly_results,CONFIG,os.path.join(self.output_folder,"District_summary.csv") )
 
     @staticmethod
     def calc_TSI(rejected_ST, rejected_Other, demand_Other, demand_DH, demand_SH, demand_DHW):
