@@ -1054,7 +1054,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 "Wood": district_hourly_results["Wood CO2 Emission Scope 3 [ton CO2]"].sum(),
                 "Solar": district_hourly_results["Solar CO2 Emission Scope 3 [ton CO2]"].sum(),
             }
-        
+            co2_indirect = sum(co2_scope2.values())+sum(co2_scope3.values())
+            co2_direct = sum(co2_scope1.values())
             energy_values_MWh = [
                 elec_MWh,
                 pe_tot_MWh,
@@ -1084,8 +1085,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             rows.append([f"Primary Energy [{energy_unit}]", pe_tot_MWh / energy_div])
             rows.append([f"Non Renewable Primary Energy [{energy_unit}]", pe_nren_MWh / energy_div])
             rows.append([f"Renewable Primary Energy [{energy_unit}]", pe_ren_MWh / energy_div])
-            rows.append([f"Scope 1 and 2 Carbon Emission [{co2_unit}]", co2_tot_ton / 1000.0])
-            rows.append([])
+            rows.append([f"Direct Carbon Emission [{co2_unit}]", co2_direct ])
+            rows.append([f"Indirect Carbon Emission [{co2_unit}]", co2_indirect ])
             rows.append([])
             rows.append(["", f"Renewable Primary Energy [{energy_unit}]", f"Non Renewable Primary Energy [{energy_unit}]", f"Carbon Emission Scope 1 [{co2_unit}]",
                          f"Carbon Emission Scope 2 [{co2_unit}]", f"Carbon Emission Scope 3 [{co2_unit}]"])
