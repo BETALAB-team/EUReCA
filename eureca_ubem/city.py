@@ -1085,8 +1085,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             rows.append([f"Primary Energy [{energy_unit}]", pe_tot_MWh / energy_div])
             rows.append([f"Non Renewable Primary Energy [{energy_unit}]", pe_nren_MWh / energy_div])
             rows.append([f"Renewable Primary Energy [{energy_unit}]", pe_ren_MWh / energy_div])
-            rows.append([f"Direct CO2 Emission [{co2_unit}]", co2_direct ])
-            rows.append([f"Indirect CO2 Emission [{co2_unit}]", co2_indirect ])
+            rows.append([f"Direct CO2 Emission Scope 1 [{co2_unit}]", co2_direct ])
+            rows.append([f"Indirect CO2 Emission Scope 2 and 3 [{co2_unit}]", co2_indirect ])
             rows.append([])
             rows.append(["", f"Renewable Primary Energy [{energy_unit}]", f"Non Renewable Primary Energy [{energy_unit}]", f"CO2 Emission Scope 1 [{co2_unit}]",
                          f"CO2 Emission Scope 2 [{co2_unit}]", f"CO2 Emission Scope 3 [{co2_unit}]"])
