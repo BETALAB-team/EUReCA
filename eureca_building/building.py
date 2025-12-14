@@ -259,7 +259,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                  weather_object: WeatherFile,
                  t_start: int = CONFIG.start_time_step,
                  t_stop: int = CONFIG.final_time_step,
-                 preprocessing_ts: int = 100 * CONFIG.ts_per_hour,
+                 preprocessing_ts: int = 50*(CONFIG.final_time_step-CONFIG.start_time_step)//365,
                  output_folder: str = None,
                  output_type: str = "csv",
                  ):
@@ -413,7 +413,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Sm3]"][:, 0].shape) for _ in range(6)]
             fromgrid = total[("Electric consumption [kWh]", f"Bd {self.name}")].values
             togrid = 0.
-
+        
         total["PV production [kWh]",f"Bd {self.name}"]=pv_production/1000
         total["Battery State [%]",f"Bd {self.name}"]=BatteryState
         total["Given to Batteries [kWh]",f"Bd {self.name}"]=tobattery/1000

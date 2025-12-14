@@ -1411,12 +1411,12 @@ Thermal zone {self.name} 2C params:
         #                          'open_area' : np.zeros([CONFIG.number_of_time_steps]),
         #                          },
         #     }
+
         self.nat_vent_info['airflow_rate']['kg/s'][t] = nat_vent_mass_flow
         self.nat_vent_info['airflow_rate']['m3/s'][t] = nat_vent_vol_flow
         self.nat_vent_info['airflow_rate']['L/s'][t] = nat_vent_vol_flow/1000
         self.nat_vent_info['airflow_rate']['m3/h'][t] = nat_vent_vol_flow*3600
         self.nat_vent_info['airflow_rate']['vol/h'][t] = nat_vent_vol_flow/self._volume*3600
-
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 
