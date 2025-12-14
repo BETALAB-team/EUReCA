@@ -1,0 +1,13 @@
+Appliances electric consumption [Wh];TZ heating demand [Wh];TZ cooling demand [Wh];TZ DHW demand [Wh];Heating system gas consumption [Sm3];Heating system oil consumption [L];Heating system coal consumption [kg];Heating system wood consumption [kg];Heating system pellet consumption [kg];Heating system DH consumption [kWh];Heating system electric consumption [kWh];Cooling system electric consumption [kWh]
+1035420.00;0.00;0.00;67496.84;0;0;0;0;0;0.00;25.99;0.00
+938720.00;0.00;0.00;60964.89;0;0;0;0;0;0.00;23.48;0.00
+1042780.00;0.00;0.00;67496.84;0;0;0;0;0;0.00;25.99;0.00
+989080.00;0.00;0.00;65319.52;0;0;0;0;0;0.00;25.16;0.00
+1030360.00;0.00;0.00;67496.84;0;0;0;0;0;0.00;25.99;0.00
+998740.00;0.00;-1135072.12;65319.52;0;0;0;0;0;0.00;25.16;579.41
+1035420.00;0.00;-1177589.22;67496.84;0;0;0;0;0;0.00;25.99;601.11
+1040480.00;0.00;-1183916.91;67496.84;0;0;0;0;0;0.00;25.99;604.34
+1003800.00;0.00;-1141394.09;65319.52;0;0;0;0;0;0.00;25.16;582.64
+1040480.00;0.00;0.00;67496.84;0;0;0;0;0;0.00;25.99;0.00
+1001500.00;0.00;0.00;65319.52;0;0;0;0;0;0.00;25.16;0.00
+1027600.00;0.00;0.00;67496.84;0;0;0;0;0;0.00;25.99;0.00

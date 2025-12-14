@@ -282,7 +282,7 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
         self.outdoor_air_ratio = outdoor_air_ratio
         self.tag = tag
 
-
+        
         self.air_flow_rate_kg_S, self.vapour_flow_rate_kg_S = self.mechanical_ventilation.get_flow_rate(weather, volume = thermal_zone._volume, area = thermal_zone._net_floor_area)
         self.electric_consumption_W = self.electric_consumption_based_on_mass_flow_rate(self.air_flow_rate_kg_S)
 
@@ -438,6 +438,7 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
 
         AHU_operation = self.ahu_operation.schedule[t]
         self.T_sup = self.supply_temperature.schedule[t]
+
         self.x_sup = self.supply_specific_humidity.schedule[t]
         m_vent = self.air_flow_rate_kg_S[t]
 
@@ -484,7 +485,7 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
         self.h_mix = OutAirRatio*self.h_hr + (1 - OutAirRatio)*self.h_z
         self.x_mix = OutAirRatio*self.x_hr + (1 - OutAirRatio)*x_int
         self.T_mix = (self.h_mix - self.r_0*self.x_mix)/(self.cp_air + self.cpv*self.x_mix)
-        
+
         
         # BATTERIES DEMAND CALCULATION
         
@@ -652,7 +653,7 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
             
             # Heating mode
             if AHU_operation == 1:
-                
+
                 
                 # Pre-Heater and Adiabatic Saturator doesn't exist!!
                 self.h_ph = self.h_mix
@@ -661,15 +662,14 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
                 self.h_as = self.h_ph
                 self.x_as = self.x_ph
                 self.T_as = self.T_ph
-                
-                
+          
                 # Post-Heater
                 if self.T_sup <self.T_as:
                     self.T_sup = self.T_as
-                
+
                 self.x_sup = self.x_as
                 self.h_sup = self.cp_air*self.T_sup+(self.r_0+self.cpv*self.T_sup)*self.x_sup
-
+   
                 # Pre-Heater
                 self.preh_deu_Dem = 0.
                 self.preh_deu_Dem_sens = 0.
@@ -683,7 +683,6 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
                 self.posth_Dem_sens = m_vent * self.cp_air * (self.T_sup - self.T_as)
                 self.posth_Dem_lat = 0.
 
-
                 # Batteries Demand [kW]
                 self.AHU_demand = m_vent*self.cp_air*(self.T_sup-self.T_as)
                 self.AHU_demand_sens = self.AHU_demand
@@ -695,7 +694,7 @@ class AirHandlingUnit(_BaseAirHandlingUnit):
                 self._chart_T_preh_deu, self._chart_x_preh_deu =    self.T_ph, self.x_ph
                 self._chart_T_as,       self._chart_x_as =          self.T_as, self.x_as
                 self._chart_T_posth,    self._chart_x_posth =       self.T_sup, self.x_sup
-
+     
     
             elif AHU_operation == -1:
                 # Cooling mode

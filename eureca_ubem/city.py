@@ -5,7 +5,7 @@ import os
 import json
 import concurrent.futures
 # import psutil
-
+from tqdm import tqdm
 import pickle as pickle
 import pandas as pd
 import shapely
@@ -35,7 +35,7 @@ from eureca_ubem.electric_load_italian_distribution import get_italian_random_el
 class City():
     '''This class manages the city simulation via json input file: geojson or cityjson
     '''
-    
+    print(CONFIG.heating_season_end_time_step)
     # class variables
     T_w_0 = 15.          # Starting average temperature of the walls [°C]
     T_out_inf = 15.      # Starting average temperature outgoing the buildings [°C]
@@ -73,6 +73,12 @@ class City():
         shading_calculation : bool, default False
             whether to do or not the mutual shading calculation
         """
+        self.end_use_calc_case = "Classic"
+        if end_uses_types_file.lower().endswith(".csv"):
+            end_uses_csv = pd.read_csv(end_uses_types_file, sep=";")
+            end_uses_csv_tag = end_uses_csv["tag"].iloc[0]
+            if end_uses_csv_tag == "Markov_UU":
+                self.end_use_calc_case = "Markov_UU"
         self.__city_surfaces = []  # List of all the external surfaces of a city
         # Loading weather file
         self.weather_file = WeatherFile(
@@ -87,7 +93,6 @@ class City():
 
         # Loading Envelope and Schedule Data
         self.envelopes_dict = load_envelopes(envelope_types_file)  # Envelope file loading
-        self.end_uses_dict = load_schedules(end_uses_types_file)
         self.systems_templates = load_system_templates(systems_templates_file) if systems_templates_file is not None else None
 
         self.building_model = building_model
@@ -99,6 +104,7 @@ class City():
             self.buildings_creation_from_geojson(city_model)
         else:
             raise TypeError(f"City object creation: city model file must be a cityjson or a geojson. City_model: {city_model}")
+        self.end_uses_dict = load_schedules(self, end_uses_types_file)
 
         if not os.path.isdir(output_folder):
             os.mkdir(output_folder)
@@ -225,7 +231,7 @@ class City():
                             # TODO: Update wwr calculation
 
                             if surface.surface_type == "ExtWall":
-                                surface._wwr = 0.125
+                                surface._wwr = 0.225
 
                             surface.construction = {
                                 "ExtWall": envelope.external_wall,
@@ -420,7 +426,7 @@ class City():
                     "footprint area": 0.,
                 },
             }
-
+            
             for g in building_parts:
                 x,y = g.exterior.coords.xy
                 coords = np.dstack((x,y)).tolist()
@@ -520,7 +526,7 @@ class City():
                         # TODO: Update wwr calculation
 
                         if surface.surface_type == "ExtWall":
-                            surface._wwr = 0.125
+                            surface._wwr = 0.225
 
                         if bd_data["Simulate"]:
                             if surface.surface_type in ["GroundFloor","ExtWall", "Roof"]:
@@ -595,6 +601,8 @@ class City():
                     tz_list = [building_parts_data["upper End Use"]["tz"], building_parts_data["lower End Use"]["tz"]]
                 else:
                     tz_list = [building_parts_data["single End Use"]["tz"]]
+                if self.end_use_calc_case == "Markov_UU":
+                    tz_list = [building_parts_data["single End Use"]["tz"]]
 
 
                 
@@ -638,17 +646,22 @@ class City():
         for bd_id, building_info in self.buildings_info.items():
             # iiii=iiii+1
             building_obj = self.buildings_objects[bd_id]
-
-            if len(building_obj._thermal_zones_list) > 1:
-                zones_objs = [
-                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["Upper End Use"]]],
-                    [building_obj._thermal_zones_list[1], self.end_uses_dict[building_info["Lower End Use"]]],
-                ]
-            else:
-                zones_objs = [
-                    [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["End Use"]]],
-                ]
-
+            
+            
+            if self.end_uses_dict["tag"] == "Classic":
+                if len(building_obj._thermal_zones_list) > 1:
+                    zones_objs = [
+                        [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["Upper End Use"]]],
+                        [building_obj._thermal_zones_list[1], self.end_uses_dict[building_info["Lower End Use"]]],
+                    ]
+                else:
+                    zones_objs = [
+                        [building_obj._thermal_zones_list[0], self.end_uses_dict[building_info["End Use"]]],
+                    ]
+            if self.end_uses_dict["tag"] == "Markov UU":
+                    zones_objs = [
+                        [building_obj._thermal_zones_list[0], self.end_uses_dict[bd_id]],
+                    ]
             for tz, use in zones_objs:
 
                 # TODO: copy.deepcopy
@@ -706,12 +719,12 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     thermal_zone = tz,
                 )
                 
+                tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
 
                 tz.design_sensible_cooling_load(self.weather_file, model=self.building_model)
                 
                 tz.design_heating_load(self.weather_file)
                 
-                tz.add_domestic_hot_water(self.weather_file, use.domestic_hot_water['domestic_hot_water'])
 
 
             hs_params = None
@@ -723,7 +736,6 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                     hs_params = self.systems_templates["heating_systems_templates"][building_info["Heating System"]]
                 if building_info["Cooling System"] in self.systems_templates["cooling_systems_templates"].keys():
                     cs_params = self.systems_templates["cooling_systems_templates"][building_info["Cooling System"]]
-
 
             building_obj.set_hvac_system(
                 building_info["Heating System"],
@@ -848,10 +860,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         ] = 0.0  
         n_buildings = len(self.buildings_objects)
         counter = 0
-        for bd_id, building_info in self.buildings_info.items():
-            if counter%10 == 0:
-                print(f"{counter} buildings simulated out of {n_buildings}")
-            counter += 1
+        for bd_id, building_info in tqdm(self.buildings_info.items(), desc="Simulating the Buildings"):    
+
 
             info = {}
             info["TZ info"] = {}
@@ -863,9 +873,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 info[i] = info["TZ info"].loc[i]["Total"]
             info["TZ info"] = info["TZ info"].to_dict()
             info["Name"] = self.buildings_objects[bd_id].name
-            self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
-                          output_folder= os.path.join(self.output_folder,"qss"),
-                          output_type= "csv")
+            # self.qss_result=self.buildings_objects[bd_id].simulate_quasi_steady_state(weather_object= self.weather_file,
+            #               output_folder= os.path.join(self.output_folder,"qss"),
+            #               output_type= "csv")
             if print_single_building_results:
                 results = self.buildings_objects[bd_id].simulate(self.weather_file, output_folder=self.output_folder, output_type=output_type)
             else:
@@ -1256,7 +1266,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         list_of_centroids = [obj._centroid for obj in self.__city_surfaces]
         plg_kdtree=cKDTree(list_of_centroids)
         max_number_of_neighborhoods = len(self.__city_surfaces) if len(self.__city_surfaces) < 500 else 500
-        for x in range(len(self.__city_surfaces)):
+        for x in tqdm(range(len(self.__city_surfaces)), desc="Processing the surfaces"):
             # jjjj=jjjj+1
             # print(f"{int(10000*jjjj/len(self.__city_surfaces))/100} percent: geometry")
            

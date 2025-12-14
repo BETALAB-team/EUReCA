@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "grasloken1",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32633" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "Floors": 2, "Height": 6.4, "Heating System": "IdealLoad", "Cooling System": "IdealLoad", "End Use": "residential", "Envelope": "B", "ExtWallCoeff": 0.77054794520547942, "VolCoeff": 0.75513698630136983, "Solar Technologies": null, "Number of occupants": 24, "Name": "BD_1", "area": 584 }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ 650201.872108942363411, 6639889.835868613794446 ], [ 650207.069522522040643, 6639876.400403447449207 ], [ 650169.242687486461364, 6639861.82351285032928 ], [ 650164.050994773046114, 6639875.259256042540073 ], [ 650201.872108942363411, 6639889.835868613794446 ] ] ] ] } }
+]
+}

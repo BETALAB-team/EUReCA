@@ -85,6 +85,8 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the heating system must be a System object: {type(value)}")
         self._heating_system = value
+        
+
 
     @property
     def cooling_system(self) -> System:
@@ -95,6 +97,8 @@ class Building:
         if not isinstance(value, System):
             raise TypeError(f"Building {self.name}, the cooling system must be a System object: {type(value)}")
         self._cooling_system = value
+
+
     
     def set_hvac_system(self, heating_system, cooling_system, **kwargs):
         f"""Sets using roperties the heating and cooling system type (strings)
@@ -219,10 +223,11 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             timestep
         weather_object : eureca_building.weather.WeatherFile
             WeatherFile object to use to simulate
+        flag shows the previous situation of the system (it can be off, heating on, heating maxed, cooling on, cooling maxed)
         """
         heat_load, dhw_load, cool_load, air_t, air_rh = 0., 0., 0., 0., 0.
-        for tz in self._thermal_zones_list:
-            tz.solve_timestep(t, weather, model = self._model)
+        for i, tz in enumerate(self._thermal_zones_list):
+            tz.solve_timestep(t, weather, flag = self._thermal_zones_flag[i], model = self._model)
             air_t += tz.zone_air_temperature
             air_rh += tz.zone_air_rel_humidity
             if tz.sensible_zone_load > 0.:
@@ -232,6 +237,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
             if tz.air_handling_unit.preh_deu_Dem > 0.:
                 heat_load += tz.air_handling_unit.preh_deu_Dem
+
             else:
                 cool_load += tz.air_handling_unit.preh_deu_Dem
             heat_load += tz.air_handling_unit.posth_Dem
@@ -242,18 +248,16 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             else:
                 cool_load += tz.latent_zone_load
 
-            if tz.latent_zone_load > 0.:
-                heat_load += tz.latent_zone_load
-            else:
-                cool_load += tz.latent_zone_load
-
             # DHW
             dhw_load += tz.domestic_hot_water_demand[t]
-
+            self._thermal_zones_flag[i] = tz.flag
         air_t /= len(self._thermal_zones_list)
         air_rh /= len(self._thermal_zones_list)
+
         self.heating_system.solve_system(heat_load, dhw_load, weather, t, air_t, air_rh)
         self.cooling_system.solve_system(cool_load, weather, t, air_t, air_rh)
+        
+
 
     def simulate(self,
                  weather_object: WeatherFile,
@@ -296,6 +300,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             'TZ Tmr [°C]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ RH [-]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ sensible load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
+            'TZ flag' : ["off"] * CONFIG.number_of_time_steps,
             'TZ latent load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU pre heater load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
             'TZ AHU post heater load [kW]' : np.zeros([CONFIG.number_of_time_steps, len(self._thermal_zones_list)]),
@@ -331,7 +336,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         }
         
         
-        
+        self._thermal_zones_flag = ["off"] * len(self._thermal_zones_list)
         # # Associate solar thermal to the building
         # self.add_solar_thermal(weather_object)
 
@@ -341,16 +346,15 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
 
         results['TZ DHW volume flow rate [L/s]'] = 1000 * np.array([tz.domestic_hot_water_volume_flow_rate for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]
         results['TZ DHW demand [kW]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]/1000
-
         for t in range(t_start - preprocessing_ts, t_stop):
             self.solve_timestep(t, weather_object)
 
                  
-            results['TZ Ta [°C]'][t - t_start,:] = [tz.zone_air_temperature for tz in self._thermal_zones_list]
-            results['TZ To [°C]'][t - t_start,:] = [tz.zone_operative_temperature for tz in self._thermal_zones_list]
+            results['TZ Ta [°C]'][t - t_start,:] = [tz.zoneventilation for tz in self._thermal_zones_list]
+            results['TZ To [°C]'][t - t_start,:] = [tz.zoneinfiltration for tz in self._thermal_zones_list]
             results['TZ Tmr [°C]'][t - t_start,:] = [tz.zone_mean_radiant_temperature for tz in self._thermal_zones_list]
             results['TZ RH [-]'][t - t_start,:] = [tz.zone_air_rel_humidity for tz in self._thermal_zones_list]
-
+            results['TZ flag'][t - t_start] = [str(tz.flag) for tz in self._thermal_zones_list]
             results['TZ sensible load [kW]'][t - t_start, :] = [tz.sensible_zone_load/1000 for tz in self._thermal_zones_list]
             results['TZ latent load [kW]'][t - t_start, :] = [tz.latent_zone_load/1000 for tz in self._thermal_zones_list]
 

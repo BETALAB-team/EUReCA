@@ -1,0 +1,17 @@
+Gas consumption [Sm3];0.0;;;;
+Electric consumption [MWh];17.985885373679167;;;;
+Oil consumption [L];0.0;;;;
+Wood consumption [kg];0.0;;;;
+Primary Energy [MWh];0.0;;;;
+Non Renewable Primary Energy [MWh];0.0;;;;
+Renewable Primary Energy [MWh];0.08453366125629205;;;;
+Scope 1 and 2 Carbon Emission [ton CO2];0.004636297101631241;;;;
+;;;;;
+;;;;;
+;Renewable Primary Energy [MWh];Non Renewable Primary Energy [MWh];Carbon Emission Scope 1 [ton CO2];Carbon Emission Scope 2 [ton CO2];Carbon Emission Scope 3 [ton CO2]
+Gas;0.0;0.0;0.0;0.0;0.0
+Electricity;0.08453366125629205;0.35072476478674375;0.0;4.636297101631241;0.9272594203262483
+Coal;0.0;0.0;0.0;0.0;0.0
+Oil;0.0;0.0;0.0;0.0;0.0
+Wood;0.0;0.0;0.0;0.0;0.0
+Solar;0.0;0.0;0.0;0.0;0.0

@@ -100,6 +100,7 @@ class ThermalZone(object):
             '2C': [0., 0., 1.],
         }  # Default convective load
         self.reset_init_values()
+        self.flag = "off"
 
     @property
     def _surface_list(self) -> float:
@@ -1146,7 +1147,7 @@ Thermal zone {self.name} 2C params:
         # % Resistances and capacitances of the 7R2C model
         R_lue_ve = 1e20 if Hve[0] == 0 else 1 / Hve[0]
         R_lue_inf = 1e20 if Hve[1] == 0 else 1 / Hve[1]
-
+        
         Q_il_kon = phi_load[0]  # convective heat gains (internal)
         Q_il_str_aw = phi_load[1]  # radiant heat gains on surface node AW (internal + solar)
         Q_il_str_iw = phi_load[2]  # radiant heat gains on surface node IW (internal + solar)
@@ -1156,7 +1157,6 @@ Thermal zone {self.name} 2C params:
         theta_A_eq = T_e_eq  # equivalent outdoor temperature (sol-air temperature)
         theta_lue = T_e  # outdoor air temperature
         theta_sup = T_sup_AHU
-
         if flag == 'Tset':
             theta_I_lu = T_set  # internal air setpoint
 
@@ -1204,6 +1204,7 @@ Thermal zone {self.name} 2C params:
             # OUTPUT (UNKNOWN) VARIABLES OF THE LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
+            
             # Seems to be more computationally efficient then np.insert
             return np.array([a for a in y[:3]] + [T_set] + [a for a in y[3:]]) # np.insert(y, 3, T_set)
 
@@ -1241,6 +1242,7 @@ Thermal zone {self.name} 2C params:
             Y[5, 4] = 1 / self.R1IW
             Y[5, 5] = -1 / self.R1IW - self.C1IW / tau
 
+
             # VECTOR OF KNOWN TERMS
 
             q = np.zeros(6)
@@ -1254,6 +1256,7 @@ Thermal zone {self.name} 2C params:
             # OUTPUT LINEAR SYSTEM
 
             y = np.linalg.inv(Y).dot(q)
+
             # Seems to be more computationally efficient then np.insert
             return np.array([num for num in y[:4]] + [phi_HC_set] + [num for num in y[4:]]) # np.insert(y, 4, phi_HC_set)
 
@@ -1300,6 +1303,8 @@ Thermal zone {self.name} 2C params:
         """
 
         x_int_set, p_intsat = self.get_specific_humidity(t_air_int, rh_int_set, p_atm)
+        if x_int_set<0.001:
+            x_int_set = 0.001
 
         G_da_vent = G_ve[0]
         G_da_inf = G_ve[1]
@@ -1359,7 +1364,7 @@ Thermal zone {self.name} 2C params:
         self.zone_air_temperature = 22.
         self.zone_air_spec_humidity = 0.0105
 
-    def solve_timestep(self, t, weather, model='2C'):
+    def solve_timestep(self, t, weather,flag,  model='2C', pot = 0, Ta = 0):
         '''Solves the thermal zone t - time step
 
         Parameters
@@ -1393,6 +1398,7 @@ Thermal zone {self.name} 2C params:
         else:
             T_ext_eq = self.theta_eq_tot[t]
             phi_load = [self.Q_il_kon_I[t], self.Q_il_str_aw[t], self.Q_il_str_iw[t]]
+            
 
         # Natural Ventilation
         # nat_vent_mass_flow = self.natural_ventilation.get_timestep_ventilation_mass_flow(t, self.zone_air_temperature, weather)
@@ -1416,7 +1422,6 @@ Thermal zone {self.name} 2C params:
         self.nat_vent_info['airflow_rate']['L/s'][t] = nat_vent_vol_flow/1000
         self.nat_vent_info['airflow_rate']['m3/h'][t] = nat_vent_vol_flow*3600
         self.nat_vent_info['airflow_rate']['vol/h'][t] = nat_vent_vol_flow/self._volume*3600
-
         G_OA_nat_vent = self.infiltration_air_flow_rate[t] + nat_vent_mass_flow # kg/s outdoor air
         H_ve_nat_vent = G_OA_nat_vent * air_properties['specific_heat']  # W/K
 
@@ -1429,52 +1434,165 @@ Thermal zone {self.name} 2C params:
         # for now the whole ahu flow rate to zone
         G_OA_mec_vent = self.air_handling_unit.air_flow_rate_kg_S[t] # kg/s supply air
         H_ve_mec_vent = G_OA_mec_vent * air_properties['specific_heat']  # W/K
-
-        H_ve = [H_ve_mec_vent, H_ve_nat_vent]
-
+        coeff = 4
+        H_ve = [H_ve_mec_vent*0, H_ve_nat_vent*coeff]
         # Set points
         T_set_heat = self._temperature_setpoint.schedule_lower.schedule[t]
         T_set_cool = self._temperature_setpoint.schedule_upper.schedule[t]
+        T_set_cool = 27
+        T_set_heat = 22
         RH_set_int_H = self._humidity_setpoint.schedule_lower.schedule[t]
         RH_set_int_C = self._humidity_setpoint.schedule_upper.schedule[t]
 
         # Definition if the zone terminal is on or off for heating and cooling
         zone_equipment_heating_mode = True
-        zone_equipment_cooling_mode = True
+        zone_equipment_cooling_mode = False
         zone_humidity_equipment_heating_mode = True
         zone_humidity_equipment_cooling_mode = True
-        P_max = self.design_heating_system_power
+        # P_max = self.design_heating_system_power
+        P_max = 10000000000000
         P_min = self.design_sensible_cooling_system_power
+        
+        # def sensible_balance_1C(self, flag, Hve, T_e, T_sup_AHU, phi_load, sigma=[0., 1.], T_set=20., phi_HC_set=0.):
+            # '''Solves ISO 13790 network for a specific time step
 
+            # Parameters
+            # ----------
+            # flag : string
+            #     flag to set the calculation method string 'Tset' or 'phiset'
+            # Hve : list
+            #     list of two ositive floats. Ventilation and infiltration heat tranfer coeff [W/K]
+            #     [Hve_vent, Hve_inf]
+            # T_e : float
+            #     timestep external temperature [°C]
+            # T_sup_AHU : float
+            #     timestep ventilation supply temperature [°C]
+            # phi_load : list
+            #     list of three floats. The load on the three nodes network (ia, sm, m respectively) [W]
+            #     [phi_ia, phi_sm, phi_m]
+            # sigma : list, default [0., 1.]
+            #     list of 2 floats
+            #     portion of the heating/cooling load to:
+            #     sigma[0]: radiant to surface
+            #     sigma[1]: convective to air node
+            #     sum must be 1
+            # T_set : float, default 20.
+            #     time step setpoint temperature [°C]
+            # phi_HC_set : float, default 0.
+            #     time step thermal load to the ambient [W]
+
+            # Returns
+            # -------
+            # numpy.array
+            #     array with system load, air temperature, surfaces equivalent temperature and mass equivalent temperature
+            #     e.g.
+            #     [
+            #     demand [W],
+            #     T_air [°C],
+            #     T_s [°C],
+            #     T_m [°C]
+            #     ]
+            # '''
+
+            # # Check input data type
+
+            # if flag != 'Tset' and flag != 'phiset':
+            #     raise TypeError(
+            #         f"ERROR Thermal zone {self.name}, Sensible1C flag input is not a 'Tset' or 'phiset': flag {flag}")
+            # # if np.abs((np.array(sigma).sum() - 1)) > 1e-3:
+            # #     raise ValueError(
+            # #         f"Thermal Zone {self.name}, Sensible1C: sigma total must be 1. Sigma = {sigma}"
+            # #     )
+            # # Set some data and build up the system
+
+            # phi_ia = phi_load[0]
+            # phi_st = phi_load[1]
+            # phi_m = phi_load[2]
+            # Hve_vent = Hve[0]
+            # Hve_inf = Hve[1]
+            # tau = CONFIG.time_step
+            # rad_factor = sigma[0]
+            # conv_factor = sigma[1]
+            # Y = np.zeros((3, 3))
+            # q = np.zeros(3)
+
+            # if flag == 'Tset':
+            #     Y[0, 0] = conv_factor
+            #     Y[0, 1] = self.Htr_is
+            #     Y[1, 0] = rad_factor
+            #     Y[1, 1] = -(self.Htr_is + self.Htr_w + self.Htr_ms)
+            #     Y[1, 2] = self.Htr_ms
+            #     Y[2, 1] = self.Htr_ms
+            #     Y[2, 2] = -self.Cm / tau - self.Htr_em - self.Htr_ms
+
+            #     q[0] = Hve_inf * (T_set - T_e) + Hve_vent * (T_set - T_sup_AHU) - phi_ia + self.Htr_is * T_set \
+            #            + self._air_thermal_capacity * (T_set - self.Ta0) / tau
+            #     q[1] = -self.Htr_is * T_set - phi_st - self.Htr_w * T_e
+            #     q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
+            #     x = np.linalg.inv(Y).dot(q)
+            #     # Seems to be more computationally efficient then np.insert
+            #     return np.array([num for num in x[:1]] + [T_set] + [num for num in x[1:]]) # np.insert(x, 1, T_set)
+
+            # elif flag == 'phiset':
+            #     Y[0, 0] = -(self.Htr_is + Hve_inf + Hve_vent) - self._air_thermal_capacity / tau
+            #     Y[0, 1] = self.Htr_is
+            #     Y[1, 0] = self.Htr_is
+            #     Y[1, 1] = -(self.Htr_is + self.Htr_w + self.Htr_ms)
+            #     Y[1, 2] = self.Htr_ms
+            #     Y[2, 1] = self.Htr_ms
+            #     Y[2, 2] = -self.Cm / tau - self.Htr_em - self.Htr_ms
+
+            #     q[0] = -phi_HC_set * conv_factor - Hve_inf * T_e - Hve_vent * T_sup_AHU - phi_ia \
+            #            - self._air_thermal_capacity * self.Ta0 / tau
+            #     q[1] = -phi_HC_set * rad_factor - phi_st - self.Htr_w * T_e
+            #     q[2] = -self.Htr_em * T_e - phi_m - self.Cm * self.Tm0[0] / tau
+            #     y = np.linalg.inv(Y).dot(q)
+            #     # Seems to be more computationally efficient then np.insert
+            #     return np.array([phi_HC_set] + [num for num in y]) # np.insert(y, 0, phi_HC_set)
+        
+        Ventilation = H_ve[0] * (T_set_heat - T_sup) 
+        Infiltration = H_ve[1] * (T_set_heat - T_ext)
         # Start the zone system solution.. The logic depends on the heating cooling and latent sensible
-
         # while flag_AHU:
-
         # SENSIBLE HEAT LOAD CALCULATION
-
         # First calc without plant (phi_HC_set = 0)
-        if model == '1C':
-            pot, Ta, Ts, Tm = self.sensible_balance_1C(
-                'phiset',
-                H_ve,
-                T_ext,
-                T_sup,
-                phi_load,
-                sigma=[0.5,0.5],
-                phi_HC_set=0.)
-        elif model == '2C':
-            Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
-                'phiset',
-                H_ve,
-                T_ext,
-                T_ext_eq,
-                T_sup,
-                phi_load,
-                sigma=[0.25,0.25,0.5],
-                phi_HC_set=0.)
+        
+        
+        if self.flag == "off":
+            if model == '1C':
+                pot, Ta, Ts, Tm = self.sensible_balance_1C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_sup,
+                    phi_load,
+                    sigma=[0.5,0.5],
+                    phi_HC_set=0.)
 
-        # Check if heating mode and heating calc
-        if Ta < T_set_heat and zone_equipment_heating_mode:
+            elif model == '2C':
+                Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_ext_eq,
+                    T_sup,
+                    phi_load,
+                    sigma=[0.25,0.25,0.5],
+                    phi_HC_set=0.)
+
+                
+            if (Ta < T_set_heat and zone_equipment_heating_mode):
+                self.flag = "heating on"
+
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+            if (Ta > T_set_cool and zone_equipment_cooling_mode):
+                self.flag = "cooling on"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+
+                
+        if self.flag == "heating on":
             # This means that we are under setpoint and hetaing is active
             if model == '1C':
                 pot, Ta, Ts, Tm = self.sensible_balance_1C(
@@ -1495,31 +1613,20 @@ Thermal zone {self.name} 2C params:
                     phi_load,
                     sigma=self.heating_sigma[model],
                     T_set=T_set_heat)
-            if pot > P_max:
-                # If the system reaches the maximum power
-                if model == '1C':
-                    pot, Ta, Ts, Tm = self.sensible_balance_1C(
-                        'phiset',
-                        H_ve,
-                        T_ext,
-                        T_sup,
-                        phi_load,
-                        sigma=self.heating_sigma[model],
-                        phi_HC_set=P_max)
-                elif model == '2C':
-                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
-                        'phiset',
-                        H_ve,
-                        T_ext,
-                        T_ext_eq,
-                        T_sup,
-                        phi_load,
-                        sigma=self.heating_sigma[model],
-                        phi_HC_set=P_max)
+                
+            if (pot>P_max):
+                self.flag = "heating maxed"
+                T,_,_,pot,_ = self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+            if (pot < 0):
+                self.flag = "off"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
 
-        # Check if cooling mode and cooling calc
-        if Ta > T_set_cool and zone_equipment_cooling_mode:
-            # This means that we are over cooling setpoint and cooling is active
+
+        
+        if self.flag == "cooling on":
+
             if model == '1C':
                 pot, Ta, Ts, Tm = self.sensible_balance_1C(
                     'Tset',
@@ -1538,31 +1645,68 @@ Thermal zone {self.name} 2C params:
                     T_sup,
                     phi_load,
                     sigma=self.cooling_sigma[model],
-                    T_set=T_set_cool)
-            if pot < P_min:
-                # If the system reaches the maximum cooling power
-                if model == '1C':
-                    pot, Ta, Ts, Tm = self.sensible_balance_1C(
-                        'phiset',
-                        H_ve,
-                        T_ext,
-                        T_sup,
-                        phi_load,
-                        sigma=self.cooling_sigma[model],
-                        phi_HC_set=P_min)
-                elif model == '2C':
-                    Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
-                        'phiset',
-                        H_ve,
-                        T_ext,
-                        T_ext_eq,
-                        T_sup,
-                        phi_load,
-                        sigma=self.cooling_sigma[model],
-                        phi_HC_set=P_min)
+                    T_set=T_set_cool)              
+            if (pot<P_min):
+                self.flag = "cooling maxed"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+            if (pot > 0):
+                self.flag = "off"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+                
+        if self.flag == "heating maxed":
+            if model == '1C':
+                pot, Ta, Ts, Tm = self.sensible_balance_1C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_sup,
+                    phi_load,
+                    sigma=self.heating_sigma[model],
+                    phi_HC_set=P_max)
+            elif model == '2C':
+                Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_ext_eq,
+                    T_sup,
+                    phi_load,
+                    sigma=self.heating_sigma[model],
+                    phi_HC_set=P_max)           
+            if (Ta>T_set_heat):
+                self.flag = "heating on"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
+                
+        if self.flag == "cooling maxed":
+            # If the system reaches the maximum cooling power
+            if model == '1C':
+                pot, Ta, Ts, Tm = self.sensible_balance_1C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_sup,
+                    phi_load,
+                    sigma=self.cooling_sigma[model],
+                    phi_HC_set=P_min)
+            elif model == '2C':
+                Tm_aw, Ts_aw, T_lu_star, Ta, pot, Ts_iw, Tm_iw = self.sensible_balance_2C(
+                    'phiset',
+                    H_ve,
+                    T_ext,
+                    T_ext_eq,
+                    T_sup,
+                    phi_load,
+                    sigma=self.cooling_sigma[model],
+                    phi_HC_set=P_min)
+            if (Ta<T_set_cool):
+                self.flag = "cooling on"
+                T,_,_,pot,_ =self.solve_timestep(t, weather,self.flag,model)
+                Ta = T[0]
 
         # LATENT HEAT LOAD CALCULATION
-
         # First calc without plant (phi_HC_set = 0)
         x_int, rh_int, lat_pot = self.latent_balance('phiset',
                                                      [G_OA_mec_vent, G_OA_nat_vent],
@@ -1630,17 +1774,22 @@ Thermal zone {self.name} 2C params:
         flag_AHU = False
 
         self.sensible_zone_load = pot
-        self.latent_zone_load = lat_heat_flow
+        self.latent_zone_load = lat_pot
 
         self.sensible_AHU_load = self.air_handling_unit.AHU_demand_sens
         self.latent_AHU_load = self.air_handling_unit.AHU_demand_lat
         self.AHU_electric_consumption = self.air_handling_unit.electric_consumption_W[t]
 
-        self.zone_air_temperature = air_temp
+        self.zone_air_temperature = Ta
+        Transmission = self.UA_tot * (Ta - T_ext)
         self.zone_operative_temperature = operative_temp
         self.zone_mean_radiant_temperature = mean_radiant_temp
         self.zone_air_rel_humidity = air_rel_humidity
         self.zone_air_spec_humidity = x_int
+        self.zonetransmission=Transmission
+        self.zoneventilation=Ventilation
+        self.zoneinfiltration=Infiltration
+
 
         return [air_temp,operative_temp,mean_radiant_temp], air_rel_humidity, self.Tm0, pot, lat_heat_flow
 

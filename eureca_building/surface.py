@@ -184,6 +184,8 @@ class Surface:
             self._wwr = wwr
         else:
             self._wwr = 0.0
+            
+
         # Param Solar Calc
         if subdivisions_solar_calc is not None:
             self.subdivisions_solar_calc = subdivisions_solar_calc

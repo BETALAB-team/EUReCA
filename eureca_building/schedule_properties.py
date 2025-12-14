@@ -20,7 +20,8 @@ schedule_types = {
         "capacity",
         "power",
         "availability",
-        "mass_flow_rate"
+        "mass_flow_rate",
+        "occupants"
     ]
 }
 
@@ -84,7 +85,7 @@ ventilation_prop = {
 
 domestic_hot_water_prop = {
     "calculation_method": ["Schedule", "UNI-TS 11300-2", "Number of occupants", "DHW calc"],
-    "unit": ["L/s", "m3/s", "L/(m2 h)"],
+    "unit": ["L/s", "m3/s", "L/(m2 h)", "px"],
     "tags": [],
     "total_days": 365,  # number of days for the simulation
     "nuses" : 4,  # number of uses

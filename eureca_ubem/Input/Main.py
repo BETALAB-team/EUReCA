@@ -18,20 +18,30 @@ def main():
 
     #User Settings
     config_path = os.path.join(".","Example_District_Config.json")                 #Simulation Settings Given as JSON file 
-    weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")          #Path to weatherfile in epw energyplus format
-    schedules_file = os.path.join(".","Schedules_total.xlsx")                       #Path to the schedules for the end use
-    materials_file = os.path.join(".","Materials.xlsx")                              #Path to the construction material information
-    city_model_file = os.path.join(".","Example_District.geojson")                  #Path to the geoindexed file of the footprints of buildings
-    systems_file = os.path.join(".","systems.xlsx")                                 #Path to the HVAC systems specifications
-    output_folder = os.path.join(".","output_folder")                                #Path to the output folder
-    log_file = os.path.join(output_folder , "run_log.txt")
     
-    building_model = "1C"
+    
+    weather_file = os.path.join(".","SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw ")          #Path to weatherfile in epw energyplus format
+    schedules_file = "TransitionMatrixSchedule.csv"                     #Path to the schedules for the end use
+    materials_file = os.path.join(".","materials_uppsala_sodermans.xlsx")                              #Path to the construction material information
+    city_model_file = os.path.join(".","grasloken_rip.geojson")                  #Path to the geoindexed file of the footprints of buildings
+    
+    
+    # weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")          #Path to weatherfile in epw energyplus format
+    # schedules_file = "Schedules_total.xlsx"                     #Path to the schedules for the end use
+    # materials_file = os.path.join(".","Materials.xlsx")                              #Path to the construction material information
+    # city_model_file = os.path.join(".","Example_District.geojson")    
+
+    systems_file = os.path.join(".","systems.xlsx")                                 #Path to the HVAC systems specifications
+    output_folder = os.path.join(".","grasloken_check")                                #Path to the output folder
+    log_file = os.path.join(output_folder , "run_log.txt")
+    building_model = "2C"
     shading_calculation = True
     quasi_steady_state = False
     output_type = "csv"
 
     load_config(config_path) 
+    from eureca_building.config import CONFIG
+    print(CONFIG.heating_season_end_time_step)
 
     from eureca_ubem.city import City
 
@@ -51,9 +61,9 @@ def main():
         city.simulate_quasi_steady_state()
     else:
         city.simulate(output_type=output_type)
-
+    return city
     
 if __name__ == "__main__":
-    main()   
+    mycity = main()   
 
 

@@ -220,6 +220,8 @@ class DomesticHotWater:
 
         if self.calculation_method == "Schedule":
             schedule = self.schedule.schedule
+            if self.unit == "px":
+                volume = 0.04/24/3600 *schedule # to convert to m3/s
             if self.unit == "L/s":
                 volume = schedule / 1000 # to converto to m3/s
             if self.unit == "L/(m2 h)":

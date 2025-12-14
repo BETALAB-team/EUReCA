@@ -60,7 +60,7 @@ def load_envelopes(path):
                 )   
             envelopes_dict[envelope.name] = envelope
 
-        except (KeyError, TypeError, ValueError):   
+        except (KeyError, TypeError, ValueError):  
             # Currently, URBEM data is incomplete. until the cells get complete... 
             continue
     return envelopes_dict

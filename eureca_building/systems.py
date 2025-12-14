@@ -1292,6 +1292,7 @@ class Heating_EN15316(System):
 
 
         self.dhw_tank_solver(dhw_flow, weather,t)
+
         heat_flow += self.dhw_capacity_to_tank
 
         total_energy = heat_flow / self.total_efficiency
