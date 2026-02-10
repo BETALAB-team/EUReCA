@@ -44,6 +44,11 @@ def load_schedules(City, path):
     
     # Check input data type  
     Case = "Classic EUReCA"
+    if City.end_use_calc_case == "From_City":
+        Case= "From City"
+        end_uses_dict = City.end_use_parent.end_uses_dict
+        return end_uses_dict
+    
     if path.lower().endswith(".csv"):
         end_uses_csv = pd.read_csv(path, sep=";")
         end_uses_csv_tag = end_uses_csv["tag"].iloc[0]
@@ -84,6 +89,7 @@ def load_schedules(City, path):
             individual_enduse_object = load_daily_sched_individual(str(building_id), individual_schedule, holidays_list,  settings, setpoints)
             end_uses_dict[building_id]=individual_enduse_object
         return end_uses_dict
+    
 
 
 #%%--------------------------------------------------------------------------------------------------- 

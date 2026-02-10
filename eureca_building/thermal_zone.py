@@ -101,6 +101,8 @@ class ThermalZone(object):
         }  # Default convective load
         self.reset_init_values()
         self.flag = "off"
+        self.sensible_load_hourly = np.zeros(CONFIG.number_of_time_steps)
+        self.external_temperature = np.zeros(CONFIG.number_of_time_steps)
 
     @property
     def _surface_list(self) -> float:
@@ -1775,7 +1777,8 @@ Thermal zone {self.name} 2C params:
 
         self.sensible_zone_load = pot
         self.latent_zone_load = lat_pot
-
+        self.sensible_load_hourly[t]=pot
+        self.external_temperature[t] = T_ext
         self.sensible_AHU_load = self.air_handling_unit.AHU_demand_sens
         self.latent_AHU_load = self.air_handling_unit.AHU_demand_lat
         self.AHU_electric_consumption = self.air_handling_unit.electric_consumption_W[t]
