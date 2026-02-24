@@ -760,25 +760,17 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
 
     def make_district_summary(self, district_hourly_results, CONFIG, out_path):
     
-        # --------------------------------------------------
-        # 1) Compute total net floor area
-        # --------------------------------------------------
+
         total_area_m2 = 0.0
         for b in self.buildings_objects.values():
             for tz in b._thermal_zones_list:
                 total_area_m2 += tz._net_floor_area
-    
-        # --------------------------------------------------
-        # 2) Basic consumptions
-        # --------------------------------------------------
+
         gas_Sm3 = district_hourly_results["Gas consumption [Sm3]"].sum()
         elec_MWh = district_hourly_results["Electric Load [MW]"].sum() / CONFIG.ts_per_hour
         oil_L = district_hourly_results["Oil consumption [L]"].sum()
         wood_kg = district_hourly_results["Wood consumption [kg]"].sum()
     
-        # --------------------------------------------------
-        # 3) Primary Energy totals
-        # --------------------------------------------------
         pe_tot_MWh = district_hourly_results["Total Primary Energy [MW]"].sum() / CONFIG.ts_per_hour
         pe_nren_MWh = district_hourly_results["Non-Renewable Primary Energy [MW]"].sum() / CONFIG.ts_per_hour
     
@@ -796,9 +788,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             / CONFIG.ts_per_hour
         )
     
-        # --------------------------------------------------
-        # 4) CO2 totals (from per-fuel scopes)
-        # --------------------------------------------------
+
         fuels = ["Gas", "Grid", "Coal", "Oil", "Wood", "Solar"]
     
         co2_scope1 = sum(
@@ -818,11 +808,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     
         co2_scope23 = co2_scope2 + co2_scope3
         co2_tot_ton = co2_scope1 + co2_scope23
-    
-        # --------------------------------------------------
-        # 5) CONSISTENT UNIT SCALING
-        # --------------------------------------------------
-        # ---- Primary Energy ----
+
         pe_values = [pe_tot_MWh, pe_nren_MWh, pe_ren_MWh]
         pe_div = 1000.0 if max(pe_values) >= 10000 else 1.0
         pe_unit = "GWh" if pe_div == 1000.0 else "MWh"
@@ -830,8 +816,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         pe_tot_scaled = pe_tot_MWh / pe_div
         pe_nren_scaled = pe_nren_MWh / pe_div
         pe_ren_scaled = pe_ren_MWh / pe_div
-    
-        # ---- CO2 ----
+
         co2_values = [co2_scope1, co2_scope23, co2_tot_ton]
         co2_div = 1000.0 if max(co2_values) >= 10000 else 1.0
         co2_unit = "kton CO2" if co2_div == 1000.0 else "ton CO2"
@@ -840,9 +825,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         co2_s23_scaled = co2_scope23 / co2_div
         co2_tot_scaled = co2_tot_ton / co2_div
     
-        # --------------------------------------------------
-        # 6) Specific values (ALL PE + ALL CO2)
-        # --------------------------------------------------
+
         if total_area_m2 > 0:
             pe_tot_spec = (pe_tot_MWh * 1000) / total_area_m2
             pe_nren_spec = (pe_nren_MWh * 1000) / total_area_m2
@@ -854,10 +837,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         else:
             pe_tot_spec = pe_nren_spec = pe_ren_spec = 0.0
             co2_s1_spec = co2_s23_spec = co2_tot_spec = 0.0
-    
-        # --------------------------------------------------
-        # 7) Build summary table
-        # --------------------------------------------------
+
         rows = []
     
         rows.append(["Gas consumption", gas_Sm3, "Sm3", "", ""])
@@ -873,9 +853,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         rows.append(["Indirect CO2 Emission Scope 2+3", co2_s23_scaled, co2_unit, co2_s23_spec, "kg/m2"])
         rows.append(["Total CO2 Emission", co2_tot_scaled, co2_unit, co2_tot_spec, "kg/m2"])
     
-        # --------------------------------------------------
-        # 8) Restore lower fuel breakdown table
-        # --------------------------------------------------
+
         rows.append([])
         rows.append(["",
                      f"Renewable Primary Energy [{pe_unit}]",
@@ -907,12 +885,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 co2_s3_f / co2_div,
             ])
     
-        # --------------------------------------------------
-        # 9) Export
-        # --------------------------------------------------
-        summary_df = pd.DataFrame(rows)
-        summary_df.to_csv(out_path, sep=";", header=False, index=False)
 
+        summary_df = pd.DataFrame(rows)
+        summary_df.to_csv(out_path, sep=";", header=False, index=False, decimal=",")
 
 
 
