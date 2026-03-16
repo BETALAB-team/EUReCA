@@ -506,13 +506,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Wood Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=0.20 * 4.860 * results ["Heating system wood consumption [kg]"][:, 0]
         total["Coal Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.10 * 8.140 * results ["Heating system coal consumption [kg]"][:, 0]
         total["Solar Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=0
-        total["Grid Electricity Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid/100000
+        total["Grid Electricity Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=1.95 * fromgrid
         total["Gas Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
         total["Oil Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
         total["Wood Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
         total["Coal Primary Renewable Energy [kWh]",f"Bd {self.name}"]=0
         total["Solar Primary Renewable Energy [kWh]",f"Bd {self.name}"]= +1.00 * directsolar/100
-        total["Grid Electricity Primary Renewable Energy [kWh]"]=0.47 * fromgrid/100000
+        total["Grid Electricity Primary Renewable Energy [kWh]"]=0.47 * fromgrid
         total["Gas CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.05 * 1.055* 11.200 * 58.9 / 277778 * results ["Heating system gas consumption [Sm3]"][:, 0] /1000*60
         total["Oil CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.07 * 9.333 * 741 / 277778 * results ["Heating system oil consumption [L]"][:, 0]/1000*60
         total["Wood CO2 Emission Scope 1 [kg CO2]",f"Bd {self.name}"]=1.00 * 4.860 * 889 / 277778 * results ["Heating system wood consumption [kg]"][:, 0]/1000*60
