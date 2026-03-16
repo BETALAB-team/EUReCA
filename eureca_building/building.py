@@ -408,6 +408,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         if hasattr(self, 'pv_system'):
             pv_production=self.pv_system.pv_production()
             [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]=self.pv_system.Battery_charge(electricity=1000*total['Electric consumption [kWh]'].iloc[:, 0].values,pv_prod=pv_production)
+            for x in [BatteryState , tobattery, frombattery, togrid, fromgrid, directsolar]:
+                x = x * 1000
         else:
             pv_production = 0.
             [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Sm3]"][:, 0].shape) for _ in range(6)]
