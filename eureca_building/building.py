@@ -413,7 +413,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         else:
             pv_production = 0.
             [BatteryState, tobattery, frombattery, togrid, fromgrid, directsolar] = [np.zeros(results["Heating system gas consumption [Sm3]"][:, 0].shape) for _ in range(6)]
-            fromgrid = total[("Electric consumption [kWh]", f"Bd {self.name}")].values
+            fromgrid = 1000* total[("Electric consumption [kWh]", f"Bd {self.name}")].values
             togrid = 0.
         
         total["PV production [kWh]",f"Bd {self.name}"]=pv_production/1000
