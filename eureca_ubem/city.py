@@ -866,11 +866,11 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             co2_s3_f = district_hourly_results[f"{f} CO2 Emission Scope 3 [ton CO2]"].sum()
 
             if f == "Gird Electricity":
-                pe_ren_f=pe_ren_f/1000
-                pe_nren_f=pe_nren_f/1000
-                co2_s1_f=co2_s1_f
-                co2_s2_f=co2_s2_f
-                co2_s3_f=co2_s3_f
+                pe_ren_f=pe_ren_f/1000000
+                pe_nren_f=pe_nren_f/1000000
+                co2_s1_f=co2_s1_f/1000
+                co2_s2_f=co2_s2_f/1000
+                co2_s3_f=co2_s3_f/1000
         
             rows.append([
                 f,
