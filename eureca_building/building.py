@@ -524,13 +524,13 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         total["Wood CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
         total["Coal CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0
         total["Solar CO2 Emission Scope 2 [kg CO2]",f"Bd {self.name}"]=0.00 * directsolar/1000*60
-        total["Grid  CO2 Emission Scope 2 [kg CO2]"]=0.4164 * total["Taken from the Gird [kWh]",f"Bd {self.name}"]
+        total["Grid  CO2 Emission Scope 2 [kg CO2]"]=0.04164 * total["Taken from the Gird [kWh]",f"Bd {self.name}"]
         total["Gas CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.05 * 1.055* 11.200 * 12.3 / 277778 * results ["Heating system gas consumption [Sm3]"][:, 0] /1000*60
         total["Oil CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.07 * 9.333 * 12 / 277778 * results ["Heating system oil consumption [L]"][:, 0]/1000*60
         total["Wood CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.00 * 4.860 * 32 / 277778 * results ["Heating system wood consumption [kg]"][:, 0]/1000*60
         total["Coal CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=1.10 * 8.140 * 93.2 / 277778 * results ["Heating system coal consumption [kg]"][:, 0]/1000*60
         total["Solar CO2 Emission Scope 3 [kg CO2]",f"Bd {self.name}"]=0.020 *0.00001* directsolar/1000*60
-        total["Grid  CO2 Emission Scope 3 [kg CO2]"]=0.2*0.4164 * total["Taken from the Gird [kWh]",f"Bd {self.name}"]
+        total["Grid  CO2 Emission Scope 3 [kg CO2]"]=0.2*0.04164 * total["Taken from the Gird [kWh]",f"Bd {self.name}"]
         # in case of static renewable energy factor:
         total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]=total["Gas Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
             +        total["Oil Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
