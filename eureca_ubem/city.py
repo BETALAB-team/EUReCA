@@ -855,7 +855,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         fuels = ["Gas", "Grid", "Coal", "Oil", "Wood", "Solar"]
         
         for f in fuels:
-        
+            if f == "Grid": 
+                f="Grid Electricity"
             pe_ren_f = district_hourly_results[f"{f} Primary Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
             pe_nren_f = district_hourly_results[f"{f} Primary Non-Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
         
