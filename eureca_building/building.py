@@ -536,7 +536,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
             +        total["Oil Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
             +        total["Wood Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
              +       total["Coal Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
-              +      total["Solar Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]
+              +      total["Solar Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]'
+                +    total["Grid Electricity Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]
                                                         
                                                         
         total["Primary Energy [kWh]",f"Bd {self.name}"]= total["Primary Non-Renewable Energy [kWh]",f"Bd {self.name}"]\
@@ -544,7 +545,8 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
                 +        total["Oil Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
                 +        total["Wood Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
                  +       total["Coal Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
-                  +      total["Solar Primary Renewable Energy [kWh]",f"Bd {self.name}"]
+                  +      total["Solar Primary Renewable Energy [kWh]",f"Bd {self.name}"]\
+                     +   total["Grid Electricity Primary Renewable Energy [kWh]"]
         
         if output_folder != None:
             if not os.path.isdir(output_folder):
