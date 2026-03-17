@@ -774,19 +774,7 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
         pe_tot_MWh = district_hourly_results["Total Primary Energy [MW]"].sum() / CONFIG.ts_per_hour
         pe_nren_MWh = district_hourly_results["Non-Renewable Primary Energy [MW]"].sum() / CONFIG.ts_per_hour
     
-        pe_ren_MWh = (
-            district_hourly_results[
-                [
-                    "Gas Primary Renewable Energy [MW]",
-                    "Oil Primary Renewable Energy [MW]",
-                    "Wood Primary Renewable Energy [MW]",
-                    "Coal Primary Renewable Energy [MW]",
-                    "Solar Primary Renewable Energy [MW]",
-                    "Grid Electricity Primary Renewable Energy [MW]",
-                ]
-            ].sum().sum()
-            / CONFIG.ts_per_hour
-        )
+        pe_ren_MWh = pe_tot_MWh-pe_nren_MWh
     
 
         fuels = ["Gas", "Grid", "Coal", "Oil", "Wood", "Solar"]
@@ -872,6 +860,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             pe_nren_f = district_hourly_results[f"{f} Primary Non-Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
             if f== "Grid Electricity" :
                 f = "Grid"
+                pe_ren_f = pe_ren_f/1000
+                pe_nren_f = pe_nren_f/1000
             co2_s1_f = district_hourly_results[f"{f} CO2 Emission Scope 1 [ton CO2]"].sum()
             co2_s2_f = district_hourly_results[f"{f} CO2 Emission Scope 2 [ton CO2]"].sum()
             co2_s3_f = district_hourly_results[f"{f} CO2 Emission Scope 3 [ton CO2]"].sum()
