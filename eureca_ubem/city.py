@@ -859,7 +859,8 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
                 f="Grid Electricity"
             pe_ren_f = district_hourly_results[f"{f} Primary Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
             pe_nren_f = district_hourly_results[f"{f} Primary Non-Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
-        
+            if f== "Grid Electricity" : 
+                f = "Grid"
             co2_s1_f = district_hourly_results[f"{f} CO2 Emission Scope 1 [ton CO2]"].sum()
             co2_s2_f = district_hourly_results[f"{f} CO2 Emission Scope 2 [ton CO2]"].sum()
             co2_s3_f = district_hourly_results[f"{f} CO2 Emission Scope 3 [ton CO2]"].sum()
