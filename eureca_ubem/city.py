@@ -868,9 +868,9 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             if f == "Gird Electricity":
                 pe_ren_f=pe_ren_f/1000
                 pe_nren_f=pe_nren_f/1000
-                co2_s1_f=co2_s1_f/1000
-                co2_s2_f=co2_s2_f/1000
-                co2_s3_f=co2_s3_f/1000
+                co2_s1_f=co2_s1_f
+                co2_s2_f=co2_s2_f
+                co2_s3_f=co2_s3_f
         
             rows.append([
                 f,
