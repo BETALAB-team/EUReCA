@@ -1062,14 +1062,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["Wood Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Wood Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Coal Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Coal Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Solar Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Solar Primary Non-Renewable Energy [kWh]"].iloc[:,0] / 1000
-            district_hourly_results["Grid Electricity Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Non-Renewable Energy [kWh]"].iloc[:,0] 
+            district_hourly_results["Grid Electricity Primary Non-Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Non-Renewable Energy [kWh]"].iloc[:,0]/ 1000 
             
             district_hourly_results["Gas Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Gas Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Oil Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Oil Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Wood Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Wood Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Coal Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Coal Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
             district_hourly_results["Solar Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Solar Primary Renewable Energy [kWh]"].iloc[:,0] / 1000
-            district_hourly_results["Grid Electricity Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Renewable Energy [kWh]"]
+            district_hourly_results["Grid Electricity Primary Renewable Energy [MW]"] += CONFIG.ts_per_hour * results["Grid Electricity Primary Renewable Energy [kWh]"]/ 1000
             district_hourly_results["Gas CO2 Emission Scope 1 [ton CO2]"] += results["Gas CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
             district_hourly_results["Oil CO2 Emission Scope 1 [ton CO2]"] += results["Oil CO2 Emission Scope 1 [kg CO2]"].iloc[:,0] 
             district_hourly_results["Wood CO2 Emission Scope 1 [ton CO2]"] += results["Wood CO2 Emission Scope 1 [kg CO2]"].iloc[:,0]
@@ -1082,14 +1082,14 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
             district_hourly_results["Wood CO2 Emission Scope 2 [ton CO2]"] += results["Wood CO2 Emission Scope 2 [kg CO2]"].iloc[:,0]
             district_hourly_results["Coal CO2 Emission Scope 2 [ton CO2]"] += results["Coal CO2 Emission Scope 2 [kg CO2]"].iloc[:,0] 
             district_hourly_results["Solar CO2 Emission Scope 2 [ton CO2]"] += results["Solar CO2 Emission Scope 2 [kg CO2]"].iloc[:,0]
-            district_hourly_results["Grid CO2 Emission Scope 2 [ton CO2]"] += results['Grid  CO2 Emission Scope 2 [kg CO2]'] 
+            district_hourly_results["Grid CO2 Emission Scope 2 [ton CO2]"] += results['Grid  CO2 Emission Scope 2 [kg CO2]']/ 1000 
             
             district_hourly_results["Gas CO2 Emission Scope 3 [ton CO2]"] += results["Gas CO2 Emission Scope 3 [kg CO2]"].iloc[:,0]
             district_hourly_results["Oil CO2 Emission Scope 3 [ton CO2]"] += results["Oil CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
             district_hourly_results["Wood CO2 Emission Scope 3 [ton CO2]"] += results["Wood CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
             district_hourly_results["Coal CO2 Emission Scope 3 [ton CO2]"] += results["Coal CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
             district_hourly_results["Solar CO2 Emission Scope 3 [ton CO2]"] += results["Solar CO2 Emission Scope 3 [kg CO2]"].iloc[:,0] 
-            district_hourly_results["Grid CO2 Emission Scope 3 [ton CO2]"] += results['Grid  CO2 Emission Scope 3 [kg CO2]']
+            district_hourly_results["Grid CO2 Emission Scope 3 [ton CO2]"] += results['Grid  CO2 Emission Scope 3 [kg CO2]']/ 1000
 
 
 
