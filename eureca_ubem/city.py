@@ -843,38 +843,34 @@ Lazio, Campania, Basilicata, Molise, Puglia, Calabria, Sicilia, Sardegna
     
 
         rows.append([])
-        rows.append(["",
-                     f"Renewable Primary Energy [{pe_unit}]",
-                     f"Non Renewable Primary Energy [{pe_unit}]",
-                     f"CO2 Scope 1 [{co2_unit}]",
-                     f"CO2 Scope 2 [{co2_unit}]",
-                     f"CO2 Scope 3 [{co2_unit}]"])
-        fuels = ["Gas", "Grid Electricity", "Coal", "Oil", "Wood", "Solar"]
-
+        rows.append([
+            "",
+            "Renewable Primary Energy [MWh]",
+            "Non Renewable Primary Energy [MWh]",
+            "CO2 Scope 1 [ton CO2]",
+            "CO2 Scope 2 [ton CO2]",
+            "CO2 Scope 3 [ton CO2]"
+        ])
+        
+        fuels = ["Gas", "Grid", "Coal", "Oil", "Wood", "Solar"]
+        
         for f in fuels:
-            
-            if f == "Grid": 
-                f="Grid Electricity"
-
+        
             pe_ren_f = district_hourly_results[f"{f} Primary Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
             pe_nren_f = district_hourly_results[f"{f} Primary Non-Renewable Energy [MW]"].sum() / CONFIG.ts_per_hour
-            if f== "Grid Electricity" :
-                f = "Grid"
-                pe_ren_f = pe_ren_f/1000
-                pe_nren_f = pe_nren_f/1000
+        
             co2_s1_f = district_hourly_results[f"{f} CO2 Emission Scope 1 [ton CO2]"].sum()
             co2_s2_f = district_hourly_results[f"{f} CO2 Emission Scope 2 [ton CO2]"].sum()
             co2_s3_f = district_hourly_results[f"{f} CO2 Emission Scope 3 [ton CO2]"].sum()
-    
+        
             rows.append([
                 f,
-                pe_ren_f / pe_div,
-                pe_nren_f / pe_div,
-                co2_s1_f / co2_div,
-                co2_s2_f / co2_div,
-                co2_s3_f / co2_div,
+                pe_ren_f,
+                pe_nren_f,
+                co2_s1_f,
+                co2_s2_f,
+                co2_s3_f,
             ])
-    
 
         summary_df = pd.DataFrame(rows)
         summary_df.to_csv(out_path, sep=";", header=False, index=False, decimal=",")
