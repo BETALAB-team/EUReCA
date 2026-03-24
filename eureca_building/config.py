@@ -244,7 +244,7 @@ class Config(configparser.ConfigParser):
             if isinstance(file_path, dict):
                 config_dict.read_dict(file_path)
             else:
-                with open(file_path, "r") as json_data_file:
+                with open(file_path, "r", encoding="utf-8") as json_data_file:
                     config_dict.read_dict(json.load(json_data_file))
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file {file_path} not found")
