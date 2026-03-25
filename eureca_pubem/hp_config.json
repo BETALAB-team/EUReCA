@@ -1,0 +1,64 @@
+{
+  "le": [
+    {
+      "model": "LE_8",
+      "max_heating_capacity_kW": 8,
+      "SCOP": 2.6,
+      "cost_eur": 6000
+    },
+    {
+      "model": "LE_12",
+      "max_heating_capacity_kW": 12,
+      "SCOP": 2.8,
+      "cost_eur": 7500
+    },
+    {
+      "model": "LE_18",
+      "max_heating_capacity_kW": 20,
+      "SCOP": 3.0,
+      "cost_eur": 9800
+    }
+  ],
+
+  "me": [
+    {
+      "model": "ME_10",
+      "max_heating_capacity_kW": 10,
+      "SCOP": 3.2,
+      "cost_eur": 9000
+    },
+    {
+      "model": "ME_16",
+      "max_heating_capacity_kW": 16,
+      "SCOP": 3.5,
+      "cost_eur": 11500
+    },
+    {
+      "model": "ME_25",
+      "max_heating_capacity_kW": 25,
+      "SCOP": 3.8,
+      "cost_eur": 16500
+    }
+  ],
+
+  "he": [
+    {
+      "model": "HE_12",
+      "max_heating_capacity_kW": 12,
+      "SCOP": 4.0,
+      "cost_eur": 13000
+    },
+    {
+      "model": "HE_20",
+      "max_heating_capacity_kW": 20,
+      "SCOP": 4.3,
+      "cost_eur": 18000
+    },
+    {
+      "model": "HE_35",
+      "max_heating_capacity_kW": 35,
+      "SCOP": 4.6,
+      "cost_eur": 26000
+    }
+  ]
+}

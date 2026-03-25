@@ -1,0 +1,313 @@
+[
+  {
+    "id": 50,
+    "name": "LV_Cu_2",
+    "material": "copper",
+    "section_mm2": 2,
+    "r_ohm_per_km": 7.41,
+    "x_ohm_per_km": 0.097389372,
+    "max_current_a": 26.0,
+    "cost_per_m": 0.02
+  },
+  {
+    "id": 28,
+    "name": "LV_Cu_6",
+    "material": "copper",
+    "section_mm2": 6,
+    "r_ohm_per_km": 3.08,
+    "x_ohm_per_km": 0.09424778,
+    "max_current_a": 42.0,
+    "cost_per_m": 0.06
+  },
+  {
+    "id": 53,
+    "name": "LV_Cu_6",
+    "material": "copper",
+    "section_mm2": 6,
+    "r_ohm_per_km": 3.08,
+    "x_ohm_per_km": 0.09424778,
+    "max_current_a": 42.0,
+    "cost_per_m": 0.06
+  },
+  {
+    "id": 4,
+    "name": "LV_Cu_9",
+    "material": "copper",
+    "section_mm2": 9,
+    "r_ohm_per_km": 1.875,
+    "x_ohm_per_km": 0.091106187,
+    "max_current_a": 45.0,
+    "cost_per_m": 0.09
+  },
+  {
+    "id": 29,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.087964594,
+    "max_current_a": 55.0,
+    "cost_per_m": 0.1
+  },
+  {
+    "id": 51,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.087964594,
+    "max_current_a": 55.0,
+    "cost_per_m": 0.1
+  },
+  {
+    "id": 83,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.087964594,
+    "max_current_a": 55.0,
+    "cost_per_m": 0.1
+  },
+  {
+    "id": 72,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.09000663,
+    "max_current_a": 70.0,
+    "cost_per_m": 0.1
+  },
+  {
+    "id": 27,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.76,
+    "x_ohm_per_km": 0.376991118,
+    "max_current_a": 78.0,
+    "cost_per_m": 0.1
+  },
+  {
+    "id": 60,
+    "name": "LV_Cu_10",
+    "material": "copper",
+    "section_mm2": 10,
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.085011497,
+    "max_current_a": 78.0,
+    "cost_per_m": 0.1
+  },
+
+  {
+    "id": 5,
+    "name": "LV_Cu_15",
+    "material": "copper",
+    "section_mm2": 15,
+    "r_ohm_per_km": 1.205,
+    "x_ohm_per_km": 0.091106187,
+    "max_current_a": 71.0,
+    "cost_per_m": 0.15
+  },
+  {
+    "id": 59,
+    "name": "LV_Cu_16",
+    "material": "copper",
+    "section_mm2": 16,
+    "r_ohm_per_km": 1.08,
+    "x_ohm_per_km": 0.097389372,
+    "max_current_a": 78.0,
+    "cost_per_m": 0.16
+  },
+  {
+    "id": 6,
+    "name": "LV_Cu_20",
+    "material": "copper",
+    "section_mm2": 20,
+    "r_ohm_per_km": 0.857,
+    "x_ohm_per_km": 0.084823002,
+    "max_current_a": 85.0,
+    "cost_per_m": 0.2
+  },
+  {
+    "id": 37,
+    "name": "LV_Cu_24",
+    "material": "copper",
+    "section_mm2": 24,
+    "r_ohm_per_km": 0.727,
+    "x_ohm_per_km": 0.081681409,
+    "max_current_a": 100.0,
+    "cost_per_m": 0.24
+  },
+  {
+    "id": 66,
+    "name": "LV_Cu_25",
+    "material": "copper",
+    "section_mm2": 25,
+    "r_ohm_per_km": 0.69,
+    "x_ohm_per_km": 0.087964594,
+    "max_current_a": 100.0,
+    "cost_per_m": 0.25
+  },
+  {
+    "id": 57,
+    "name": "LV_Cu_26",
+    "material": "copper",
+    "section_mm2": 26,
+    "r_ohm_per_km": 0.677,
+    "x_ohm_per_km": 0.369985367,
+    "max_current_a": 125.0,
+    "cost_per_m": 0.26
+  },
+  {
+    "id": 7,
+    "name": "LV_Cu_27",
+    "material": "copper",
+    "section_mm2": 27,
+    "r_ohm_per_km": 0.641,
+    "x_ohm_per_km": 0.084823002,
+    "max_current_a": 100.0,
+    "cost_per_m": 0.27
+  },
+  {
+    "id": 38,
+    "name": "LV_Cu_33",
+    "material": "copper",
+    "section_mm2": 33,
+    "r_ohm_per_km": 0.524,
+    "x_ohm_per_km": 0.081681409,
+    "max_current_a": 125.0,
+    "cost_per_m": 0.33
+  },
+  {
+    "id": 46,
+    "name": "LV_Cu_35",
+    "material": "copper",
+    "section_mm2": 35,
+    "r_ohm_per_km": 0.493,
+    "x_ohm_per_km": 0.075398224,
+    "max_current_a": 125.0,
+    "cost_per_m": 0.35
+  },
+  {
+    "id": 39,
+    "name": "LV_Cu_45",
+    "material": "copper",
+    "section_mm2": 45,
+    "r_ohm_per_km": 0.387,
+    "x_ohm_per_km": 0.078539816,
+    "max_current_a": 155.0,
+    "cost_per_m": 0.45
+  },
+  {
+    "id": 45,
+    "name": "LV_Cu_51",
+    "material": "copper",
+    "section_mm2": 51,
+    "r_ohm_per_km": 0.345,
+    "x_ohm_per_km": 0.075398224,
+    "max_current_a": 155.0,
+    "cost_per_m": 0.51
+  },
+  {
+    "id": 10,
+    "name": "LV_Cu_55",
+    "material": "copper",
+    "section_mm2": 55,
+    "r_ohm_per_km": 0.32,
+    "x_ohm_per_km": 0.075398224,
+    "max_current_a": 147.0,
+    "cost_per_m": 0.55
+  },
+  {
+    "id": 40,
+    "name": "LV_Cu_65",
+    "material": "copper",
+    "section_mm2": 65,
+    "r_ohm_per_km": 0.268,
+    "x_ohm_per_km": 0.075398224,
+    "max_current_a": 185.0,
+    "cost_per_m": 0.65
+  },
+  {
+    "id": 30,
+    "name": "LV_Cu_71",
+    "material": "copper",
+    "section_mm2": 71,
+    "r_ohm_per_km": 0.247,
+    "x_ohm_per_km": 0.081681409,
+    "max_current_a": 185.0,
+    "cost_per_m": 0.71
+  },
+  {
+    "id": 11,
+    "name": "LV_Cu_85",
+    "material": "copper",
+    "section_mm2": 85,
+    "r_ohm_per_km": 0.206,
+    "x_ohm_per_km": 0.072256631,
+    "max_current_a": 188.0,
+    "cost_per_m": 0.85
+  },
+  {
+    "id": 41,
+    "name": "LV_Cu_91",
+    "material": "copper",
+    "section_mm2": 91,
+    "r_ohm_per_km": 0.193,
+    "x_ohm_per_km": 0.075398224,
+    "max_current_a": 225.0,
+    "cost_per_m": 0.91
+  },
+  {
+    "id": 71,
+    "name": "LV_Cu_96",
+    "material": "copper",
+    "section_mm2": 96,
+    "r_ohm_per_km": 0.182,
+    "x_ohm_per_km": 0.09424778,
+    "max_current_a": 240.0,
+    "cost_per_m": 0.96
+  },
+  {
+    "id": 12,
+    "name": "LV_Cu_107",
+    "material": "copper",
+    "section_mm2": 107,
+    "r_ohm_per_km": 0.164,
+    "x_ohm_per_km": 0.072256631,
+    "max_current_a": 214.0,
+    "cost_per_m": 1.07
+  },
+  {
+    "id": 42,
+    "name": "LV_Cu_114",
+    "material": "copper",
+    "section_mm2": 114,
+    "r_ohm_per_km": 0.153,
+    "x_ohm_per_km": 0.072256631,
+    "max_current_a": 255.0,
+    "cost_per_m": 1.14
+  },
+  {
+    "id": 13,
+    "name": "LV_Cu_140",
+    "material": "copper",
+    "section_mm2": 140,
+    "r_ohm_per_km": 0.125,
+    "x_ohm_per_km": 0.072256631,
+    "max_current_a": 247.0,
+    "cost_per_m": 1.4
+  },
+  {
+    "id": 44,
+    "name": "LV_Cu_177",
+    "material": "copper",
+    "section_mm2": 177,
+    "r_ohm_per_km": 0.0991,
+    "x_ohm_per_km": 0.072256631,
+    "max_current_a": 335.0,
+    "cost_per_m": 1.77
+  }
+]

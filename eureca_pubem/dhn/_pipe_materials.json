@@ -1,0 +1,42 @@
+{
+  "_meta": {
+    "description": "Pipe material properties for district heating network modeling",
+    "primary_standard_reference": [
+      "ASHRAE Handbook – District Heating",
+      "Çengel & Cimbala – Fluid Mechanics"
+    ],
+    "notes": [
+      "Material properties are assumed constant with temperature",
+      "Roughness values represent aged pipes",
+      "Catalog supports future multi-material networks"
+    ],
+    "units": {
+      "pipe_conductivity": "W/mK",
+      "roughness": "m",
+      "pipe_specific_heat_capacity": "MJ/kgK"
+    }
+  },
+
+  "materials": {
+    "carbon_steel": {
+      "description": "Standard carbon steel carrier pipe",
+      "pipe_conductivity": 10.0,
+      "roughness": 0.0003,
+      "pipe_specific_heat_capacity": 0.03
+    },
+
+    "stainless_steel": {
+      "description": "Stainless steel carrier pipe",
+      "pipe_conductivity": 16.0,
+      "roughness": 0.00015,
+      "pipe_specific_heat_capacity": 0.05
+    },
+
+    "pex": {
+      "description": "Cross-linked polyethylene",
+      "pipe_conductivity": 0.4,
+      "roughness": 0.00001,
+      "pipe_specific_heat_capacity": 1.9
+    }
+  }
+}

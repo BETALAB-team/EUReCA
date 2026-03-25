@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "description": "Standard DN pipe geometry (inner and outer diameters only)",
+    "standard_reference": [
+      "EN 10220 (Steel tubes — dimensions)"
+    ],
+    "notes": "",
+    "units": {
+      "diameter": "m"
+    }
+  },
+
+  "pipes": [
+    { "dn": "DN20",  "inner_diameter": 0.020, "outer_diameter": 0.0259 },
+    { "dn": "DN25",  "inner_diameter": 0.025, "outer_diameter": 0.0327 },
+    { "dn": "DN32",  "inner_diameter": 0.032, "outer_diameter": 0.0424 },
+    { "dn": "DN40",  "inner_diameter": 0.040, "outer_diameter": 0.0483 },
+    { "dn": "DN50",  "inner_diameter": 0.050, "outer_diameter": 0.0603 },
+    { "dn": "DN65",  "inner_diameter": 0.065, "outer_diameter": 0.0761 },
+    { "dn": "DN80",  "inner_diameter": 0.080, "outer_diameter": 0.0889 },
+    { "dn": "DN100", "inner_diameter": 0.100, "outer_diameter": 0.1145 },
+    { "dn": "DN125", "inner_diameter": 0.125, "outer_diameter": 0.1367 },
+    { "dn": "DN150", "inner_diameter": 0.150, "outer_diameter": 0.1682 },
+    { "dn": "DN200", "inner_diameter": 0.200, "outer_diameter": 0.2181 },
+    { "dn": "DN250", "inner_diameter": 0.250, "outer_diameter": 0.2758 },
+    { "dn": "DN300", "inner_diameter": 0.300, "outer_diameter": 0.3239 },
+    { "dn": "DN350", "inner_diameter": 0.350, "outer_diameter": 0.3688 },
+    { "dn": "DN400", "inner_diameter": 0.400, "outer_diameter": 0.4100 },
+    { "dn": "DN450", "inner_diameter": 0.450, "outer_diameter": 0.4672 },
+    { "dn": "DN500", "inner_diameter": 0.500, "outer_diameter": 0.5100 },
+    { "dn": "DN600", "inner_diameter": 0.600, "outer_diameter": 0.6100 },
+    { "dn": "DN700", "inner_diameter": 0.700, "outer_diameter": 0.7118 },
+    { "dn": "DN800", "inner_diameter": 0.800, "outer_diameter": 0.8130 },
+    { "dn": "DN900", "inner_diameter": 0.900, "outer_diameter": 0.9140 },
+    { "dn": "DN1000","inner_diameter": 1.000, "outer_diameter": 1.0160 }
+  ]
+}

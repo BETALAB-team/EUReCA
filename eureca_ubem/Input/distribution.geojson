@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "distribution",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "type": "dhn", "capacity": 100 }, "geometry": { "type": "Point", "coordinates": [ 17.6165344634665, 59.816041139622357 ] } },
+{ "type": "Feature", "properties": { "id": 2, "type": "electrical", "capacity": null }, "geometry": { "type": "Point", "coordinates": [ 17.617888041617867, 59.815476933822808 ] } },
+{ "type": "Feature", "properties": { "id": 3, "type": "dhn", "capacity": 50 }, "geometry": { "type": "Point", "coordinates": [ 17.617290834940466, 59.814741583620687 ] } }
+]
+}

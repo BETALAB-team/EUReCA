@@ -1,0 +1,14 @@
+{
+  "A": {
+    "module_area": 1.0,
+    "max_power": 150,
+    "noct": 47,
+    "temperature_coefficient": -0.0047
+  },
+  "B": {
+    "module_area": 3.0,
+    "max_power": 500,
+    "noct": 50,
+    "temperature_coefficient": -0.0051
+  }
+}

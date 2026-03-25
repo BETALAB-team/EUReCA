@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "description": "Insulation classes for pre-insulated DHN pipes",
+    "standard_reference": [
+      "EN 253 – Series 1 / 2 / 3 insulation"
+    ],
+    "units": {
+      "thickness": "m",
+      "thermal_conductivity": "W/mK"
+    }
+  },
+
+  "classes": {
+    "series_1": {
+      "insulation_thickness": 0.005,
+      "insulation_conductivity": 0.03,
+      "_notes": "Thin insulation, urban short-distance networks"
+    },
+    "series_2": {
+      "insulation_thickness": 0.008,
+      "insulation_conductivity": 0.03,
+      "_notes": "Standard DHN insulation"
+    },
+    "series_3": {
+      "insulation_thickness": 0.011,
+      "insulation_conductivity": 0.03,
+      "_notes": "Extra insulation, low-temperature or long-distance DHN"
+    }
+  }
+}
