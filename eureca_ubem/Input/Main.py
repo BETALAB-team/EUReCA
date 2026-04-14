@@ -21,7 +21,7 @@ def main():
     weather_file = os.path.join(".","ITA_Venezia-Tessera.161050_IGDG.epw")          #Path to weatherfile in epw energyplus format
     schedules_file = os.path.join(".","Schedules_total.xlsx")                       #Path to the schedules for the end use
     materials_file = os.path.join(".","Materials.xlsx")                              #Path to the construction material information
-    city_model_file = os.path.join(".","Example_District.geojson")                  #Path to the geoindexed file of the footprints of buildings
+    city_model_file = os.path.join(".","Example_District - Copia.geojson")                  #Path to the geoindexed file of the footprints of buildings
     systems_file = os.path.join(".","systems.xlsx")                                 #Path to the HVAC systems specifications
     output_folder = os.path.join(".","output_folder")                                #Path to the output folder
     log_file = os.path.join(output_folder , "run_log.txt")

@@ -367,6 +367,18 @@ class City():
             self.cityjson["Lower End Use"] = ''
         if "Upper End Use" not in self.cityjson.columns:
             self.cityjson["Upper End Use"] = ''
+            
+        solar_col = next(
+            (c for c in self.cityjson.columns if c.lower().strip() == "solar technologies"),
+            None
+        )
+        
+        if solar_col is None:
+            self.cityjson["Solar technologies"] = ''
+        else:
+            if solar_col != "Solar technologies":
+                self.cityjson.rename(columns={solar_col: "Solar technologies"}, inplace=True)
+        
         if "Solar technologies" not in self.cityjson.columns:
             self.cityjson["Solar technologies"] = ''
         self.cityjson["Solar technologies"] = self.cityjson["Solar technologies"].fillna('')
