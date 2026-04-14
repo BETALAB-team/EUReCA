@@ -184,8 +184,10 @@ class PV_system():
 
         '''
         solar_save_window=days_of_solar_save*24*CONFIG.ts_per_hour
+        # print(pv_prod, len(pv_prod))
 
-        pv_prod=pv_prod[CONFIG.start_time_step:CONFIG.final_time_step]
+        # pv_prod=pv_prod[CONFIG.start_time_step:CONFIG.final_time_step]
+        # print(pv_prod, CONFIG.start_time_step, CONFIG.final_time_step)
         electricity=electricity
         state_evolution = -pv_prod + electricity
         solar_save_window_evolution=np.array([np.min(np.cumsum(state_evolution[x:x+solar_save_window])) for x in range(len(state_evolution))])

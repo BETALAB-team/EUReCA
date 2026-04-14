@@ -343,6 +343,7 @@ Please run thermal zones design_sensible_cooling_load and design_heating_load
         results['TZ DHW demand [kW]'] = np.array([tz.domestic_hot_water_demand for tz in self._thermal_zones_list]).T[CONFIG.start_time_step:CONFIG.final_time_step]/1000
 
         for t in range(t_start - preprocessing_ts, t_stop):
+            # print(range(t_start - preprocessing_ts, t_stop))
             self.solve_timestep(t, weather_object)
 
                  
