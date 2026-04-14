@@ -1,0 +1,73 @@
+{
+   "none":{
+       "window" : "none",
+       "wall" : "none",
+       "roof" : "none", 
+       "roof cost per square meter" : 0,
+       "wall cost per square meter" : 0,
+       "window cost per square meter" : 0,
+       "roof cost constant" : 0,
+       "wall cost constant" : 0,
+       "window cost constant" : 0
+   },
+   
+   "shallow":{
+       "window" : "triple glazed",
+       "wall" : "none",
+       "roof" : "none", 
+       "roof cost per square meter" : 0,
+       "wall cost per square meter" : 0,
+       "window cost per square meter" : 20,
+       "roof cost constant" : 0,
+       "wall cost constant" : 0,
+       "window cost constant" : 2375
+   },
+   
+   "medium SFH":{
+       "window" : "triple glazed",
+       "wall" : "44.5 mm insulation + wood panel",
+       "roof" : "200 mm loose wool", 
+       "roof cost per square meter" : 250,
+       "wall cost per square meter" : 800,
+       "window cost per square meter" : 20,
+       "roof cost constant" : 15000,
+       "wall cost constant" : 30000,
+       "window cost constant" : 2375
+   },
+   
+   "medium MFH":{
+       "window" : "triple glazed",
+       "wall" : "50 mm insulation + brick",
+       "roof" : "200 mm loose wool", 
+       "roof cost per square meter" : 200,
+       "wall cost per square meter" : 600,
+       "window cost per square meter" : 20,
+       "roof cost constant" : 50000,
+       "wall cost constant" : 80000,
+       "window cost constant" : 2375
+   },
+   
+   "deep SFH":{
+       "window" : "double double glazed",
+       "wall" : "70 mm insulation + wood panel",
+       "roof" : "500 mm loose wool", 
+       "roof cost per square meter" : 400,
+       "wall cost per square meter" : 1200,
+       "window cost per square meter" : 40,
+       "roof cost constant" : 20000,
+       "wall cost constant" : 40000,
+       "window cost constant" : 5000
+   },
+   
+   "deep MFH":{
+       "window" : "double double glazed",
+       "wall" : "300 mm insulation + brick",
+       "roof" : "500 mm loose wool", 
+       "roof cost per square meter" : 350,
+       "wall cost per square meter" : 1000,
+       "window cost per square meter" : 40,
+       "roof cost constant" : 80000,
+       "wall cost constant" : 120000,
+       "window cost constant" : 5000
+   }
+}

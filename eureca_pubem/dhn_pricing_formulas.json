@@ -1,0 +1,13 @@
+{
+  "1": {
+    "buy": {
+      "area fee per m2": 21,
+      "fixed heat price per MWh": 140,
+      "variable heat price per MWh": 384,
+      "admin fee yearly": 500,
+      "subscription fixed yearly per unit": 1415.48,
+      "subscription variable price per MWh": 94.37,
+      "VAT": 0.25
+    }
+  }
+}

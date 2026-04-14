@@ -1,0 +1,64 @@
+{
+  "gas": {
+    "carrier": "gas",
+    "unit": "kWh",
+    "energy_to_mass": 0.072, 
+    "energy_to_volume": 0.10, 
+    "emission_factor": {
+      "value": 0.202,
+      "unit": "kgCO2_per_kWh"
+    },
+    "price": {
+      "variable": {
+        "value": 0.08,
+        "unit": "EUR_per_kWh"
+      },
+      "fixed": {
+        "value": 120,
+        "unit": "EUR_per_year"
+      }
+    }
+  },
+  
+  "oil": {
+    "carrier": "liquid",
+    "unit": "kWh",
+    "energy_to_mass": 0.085,
+    "energy_to_volume": 10.0,
+    "emission_factor": {
+      "value": 0.267,
+      "unit": "kgCO2_per_kWh"
+    },
+    "price": {
+      "variable": {
+        "value": 0.11,
+        "unit": "EUR_per_kWh"
+      },
+      "fixed": {
+        "value": 80,
+        "unit": "EUR_per_year"
+      }
+    }
+  },
+
+  "bio": {
+    "carrier": "solid",
+    "unit": "kWh",
+    "energy_to_mass": 0.20,
+    "energy_to_volume": null,
+    "emission_factor": {
+      "value": 0.02,
+      "unit": "kgCO2_per_kWh"
+    },
+    "price": {
+      "variable": {
+        "value": 0.06,
+        "unit": "EUR_per_kWh"
+      },
+      "fixed": {
+        "value": 50,
+        "unit": "EUR_per_year"
+      }
+    }
+  }
+}

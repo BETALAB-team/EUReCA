@@ -576,7 +576,126 @@ def create_baseline(input_gdf,
 
 def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_path, mode="dictionary", intervention_dictionary = None):
     if mode == "dictionary" :
-        interv_dict = intervention_dictionary,
+        # interv_dict = intervention_dictionary
+        def load_buildings(input_data):
+
+            if isinstance(input_data, gpd.GeoDataFrame):
+                gdf = input_data.copy()
+            elif isinstance(input_data, str):
+                gdf = gpd.read_file(input_data)
+            else:
+                raise ValueError("invalid_input")
+        
+            required_columns = [
+                "Name",
+                "EEdepth",
+                "SHSource",
+                "DHWsource",
+                "PVType",
+                "PVpercentage"
+            ]
+        
+            missing = [c for c in required_columns if c not in gdf.columns]
+        
+            if missing:
+                raise ValueError(f"{missing}")
+        
+            return gdf
+        def build_intervention_dict(baseline, gdf):
+
+            interventions = {}
+        
+            for idx in gdf.index:
+        
+                base = baseline.loc[idx]
+                new  = gdf.loc[idx]
+        
+                changes = {}
+        
+                if base["EEdepth"] != new["EEdepth"]:
+                    changes["envelope"] = (base["EEdepth"], new["EEdepth"])
+        
+                if base["SHSource"] != new["SHSource"]:
+                    changes["sh_source"] = (base["SHSource"], new["SHSource"])
+        
+                if base["DHWsource"] != new["DHWsource"]:
+                    changes["dhw_source"] = (base["DHWsource"], new["DHWsource"])
+        
+                if base["PVType"] != new["PVType"]:
+                    changes["PVtype"] = (base["PVType"], new["PVType"])
+        
+                if float(base["PVpercentage"]) != float(new["PVpercentage"]):
+                    changes["PVpercentage"] = (
+                        float(base["PVpercentage"]),
+                        float(new["PVpercentage"])
+                    )
+        
+                interventions[idx] = changes
+        
+            return interventions
+        def building_editor_from_dict(geojson_path, config):
+        
+            gdf = load_buildings(baseline_geojson)
+            baseline = gdf.copy()
+        
+            _validate_config(gdf, config)
+        
+            gdf = _apply_config(gdf, config)
+        
+            interventions = build_intervention_dict(baseline, gdf)
+        
+            return {"gdf": gdf}, interventions
+        
+        
+        def _validate_config(gdf, config):
+            pass
+        
+        
+        def _apply_config(gdf, config):
+        
+            for idx, row in config.items():
+                if idx not in gdf["id"].values:
+                    raise ValueError(f"{idx}")
+        
+                env  = row.get("env")
+                heat = row.get("heat")
+                dhw  = row.get("dhw")
+                fuel = row.get("fuel")
+                pv_type = row.get("pv_type")
+                pv_perc = row.get("pv_percentage")
+        
+                if env is not None:
+                    gdf.loc[gdf["id"] == idx, "EEdepth"] = env
+        
+                if heat is not None:
+                    if heat == "boiler":
+                        if not fuel:
+                            raise ValueError(f"{idx}")
+                        gdf.loc[gdf["id"] ==idx, "SHSource"] = f"boiler_{fuel}"
+                    else:
+                        gdf.loc[gdf["id"] ==idx, "SHSource"] = heat
+        
+                if dhw is not None:
+                    if dhw == "boiler":
+                        if not fuel:
+                            raise ValueError(f"{idx}")
+                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = f"boiler_{fuel}"
+                    else:
+                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = dhw
+        
+                if pv_type is not None:
+                    gdf.loc[gdf["id"] ==idx, "PVType"] = pv_type
+        
+                if pv_perc is not None:
+                    gdf.loc[gdf["id"] ==idx, "PVpercentage"] = max(
+                        float(gdf.loc[gdf["id"] ==idx, "PVpercentage"]),
+                        float(pv_perc)
+                    )
+            return gdf
+        
+        q , interv_dict = building_editor_from_dict(baseline_geojson, intervention_dictionary)
+        a = demand_aggregation(q["gdf"], city)
+        b = dataframes (a)
         #something to make the intervention dataframe
     if mode == "app":
         q, interv_dict = app.building_editor(baseline_geojson)
@@ -593,5 +712,135 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
     
     return NEW, a, interv_dict
 
+
+def make_dictionary(baseline_geojson, city, baseline_scenario, weatherfile_path, mode="dictionary", intervention_dictionary = None):
+    if mode == "dictionary" :
+        # interv_dict = intervention_dictionary
+        def load_buildings(input_data):
+
+            if isinstance(input_data, gpd.GeoDataFrame):
+                gdf = input_data.copy()
+            elif isinstance(input_data, str):
+                gdf = gpd.read_file(input_data)
+            else:
+                raise ValueError("invalid_input")
+        
+            required_columns = [
+                "Name",
+                "EEdepth",
+                "SHSource",
+                "DHWsource",
+                "PVType",
+                "PVpercentage"
+            ]
+        
+            missing = [c for c in required_columns if c not in gdf.columns]
+        
+            if missing:
+                raise ValueError(f"{missing}")
+        
+            return gdf
+        def build_intervention_dict(baseline, gdf):
+
+            interventions = {}
+            gdf = gdf.set_index("id")
+            baseline = baseline.set_index("id")
+        
+            for idx in gdf.index:
+        
+                base = baseline.loc[idx]
+                new  = gdf.loc[idx]
+        
+                changes = {}
+        
+                if base["EEdepth"] != new["EEdepth"]:
+                    changes["envelope"] = (base["EEdepth"], new["EEdepth"])
+        
+                if base["SHSource"] != new["SHSource"]:
+                    changes["sh_source"] = (base["SHSource"], new["SHSource"])
+        
+                if base["DHWsource"] != new["DHWsource"]:
+                    changes["dhw_source"] = (base["DHWsource"], new["DHWsource"])
+        
+                if base["PVType"] != new["PVType"]:
+                    changes["PVtype"] = (base["PVType"], new["PVType"])
+        
+                if float(base["PVpercentage"]) != float(new["PVpercentage"]):
+                    changes["PVpercentage"] = (
+                        float(base["PVpercentage"]),
+                        float(new["PVpercentage"])
+                    )
+        
+                interventions[idx] = changes
+        
+            return interventions
+        def building_editor_from_dict(geojson_path, config):
+        
+            gdf = load_buildings(baseline_geojson)
+            baseline = gdf.copy()
+        
+            _validate_config(gdf, config)
+        
+            gdf = _apply_config(gdf, config)
+        
+            interventions = build_intervention_dict(baseline, gdf)
+        
+            return {"gdf": gdf}, interventions
+        
+        
+        def _validate_config(gdf, config):
+            pass
+        
+        
+        def _apply_config(gdf, config):
+        
+            for idx, row in config.items():
+                if idx not in gdf["id"].values:
+                    raise ValueError(f"{idx}")
+        
+                env  = row.get("env")
+                heat = row.get("heat")
+                dhw  = row.get("dhw")
+                fuel = row.get("fuel")
+                pv_type = row.get("pv_type")
+                pv_perc = row.get("pv_percentage")
+        
+                if env is not None:
+                    gdf.loc[gdf["id"] == idx, "EEdepth"] = env
+        
+                if heat is not None:
+                    if heat == "boiler":
+                        if not fuel:
+                            raise ValueError(f"{idx}")
+                        gdf.loc[gdf["id"] ==idx, "SHSource"] = f"boiler_{fuel}"
+                    else:
+                        gdf.loc[gdf["id"] ==idx, "SHSource"] = heat
+        
+                if dhw is not None:
+                    if dhw == "boiler":
+                        if not fuel:
+                            raise ValueError(f"{idx}")
+                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = f"boiler_{fuel}"
+                    else:
+                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = dhw
+        
+                if pv_type is not None:
+                    gdf.loc[gdf["id"] ==idx, "PVType"] = pv_type
+        
+                if pv_perc is not None:
+                    gdf.loc[gdf["id"] ==idx, "PVpercentage"] = max(
+                        float(gdf.loc[gdf["id"] ==idx, "PVpercentage"]),
+                        float(pv_perc)
+                    )
+            return gdf
+        
+        q , interv_dict = building_editor_from_dict(baseline_geojson, intervention_dictionary)
+        a = demand_aggregation(q["gdf"], city)
+    if mode == "app":
+        q, interv_dict = app.building_editor(baseline_geojson)
+
+
+    
+    return  interv_dict, a
 
 

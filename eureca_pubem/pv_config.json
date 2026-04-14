@@ -3,12 +3,16 @@
     "module_area": 1.0,
     "max_power": 150,
     "noct": 47,
-    "temperature_coefficient": -0.0047
+    "temperature_coefficient": -0.0047,
+      "cost_per_m2": 4200,
+      "cost_fixed": 1250
   },
   "B": {
     "module_area": 3.0,
     "max_power": 500,
     "noct": 50,
-    "temperature_coefficient": -0.0051
+    "temperature_coefficient": -0.0051,
+    "cost_per_m2": 4850,
+    "cost_fixed": 2500
   }
 }

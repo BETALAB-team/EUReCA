@@ -1,0 +1,15 @@
+{"1":
+    {"buy" : { 
+        "grid local distribution cost monthly fix" : 0,
+        "grid local distribution cost monthly per kW peak" : 78,
+        "grid local distribution cost monthly per kWh usage" : 0.11,
+        "energy tax per kWh": 0.36,
+        "electricity certificate cost per kWh" : 0.005,
+        "VAT" : 0.25
+        },
+     "sell" :{
+         "grid compensation" : 0.05,
+         "tax credit" : 0
+         }
+    }
+}
