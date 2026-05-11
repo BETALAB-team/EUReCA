@@ -1,0 +1,121 @@
+[
+  {
+    "id": 1,
+    "name": "N1XV(E) 4x10-CU 0.4 kV",
+    "material": "copper",
+    "section_mm2": 10,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 1.83,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 86,
+    "cost_per_m": 94.348,
+    "total_cost_per_m_by_area_type": {
+      "city": 96.685,
+      "town": 94.348,
+      "rural_normal": 150.157
+    }
+  },
+  {
+    "id": 2,
+    "name": "N1XV(E) 4x150 0.4 kV",
+    "material": "copper",
+    "section_mm2": 150,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 0.122,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 402,
+    "cost_per_m": 180.902,
+    "total_cost_per_m_by_area_type": {
+      "city": 179.532,
+      "town": 180.902,
+      "rural_normal": 167.336
+    }
+  },
+  {
+    "id": 3,
+    "name": "N1XV(E) 4x16-CU 0.4 kV",
+    "material": "copper",
+    "section_mm2": 16,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 1.15,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 112,
+    "cost_per_m": 139.528,
+    "total_cost_per_m_by_area_type": {
+      "city": 141.865,
+      "town": 139.528,
+      "rural_normal": 201.813
+    }
+  },
+  {
+    "id": 4,
+    "name": "N1XV(E) 4x240 0.4 kV",
+    "material": "copper",
+    "section_mm2": 240,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 0.076,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 526,
+    "cost_per_m": 256.913,
+    "total_cost_per_m_by_area_type": {
+      "city": 253.713,
+      "town": 256.913,
+      "rural_normal": 238.665
+    }
+  },
+  {
+    "id": 5,
+    "name": "N1XV(E) 4x25 0.4 kV",
+    "material": "copper",
+    "section_mm2": 25,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 0.727,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 145,
+    "cost_per_m": 66.496,
+    "total_cost_per_m_by_area_type": {
+      "city": 69.638,
+      "town": 66.496,
+      "rural_normal": 115.638
+    }
+  },
+  {
+    "id": 6,
+    "name": "N1XV(E) 4x50 0.4 kV",
+    "material": "copper",
+    "section_mm2": 50,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 0.366,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 215,
+    "cost_per_m": 78.41,
+    "total_cost_per_m_by_area_type": {
+      "city": 82.67,
+      "town": 78.41,
+      "rural_normal": 74.75
+    }
+  },
+  {
+    "id": 7,
+    "name": "N1XV(E) 4x95 0.4 kV",
+    "material": "copper",
+    "section_mm2": 95,
+    "voltage_kv": 0.4,
+    "system": "LV",
+    "r_ohm_per_km": 0.193,
+    "x_ohm_per_km": 0.08,
+    "max_current_a": 310,
+    "cost_per_m": 126.9,
+    "total_cost_per_m_by_area_type": {
+      "city": 125.53,
+      "town": 126.9,
+      "rural_normal": 116.5
+    }
+  }
+]

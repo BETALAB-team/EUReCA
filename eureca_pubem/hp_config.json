@@ -17,6 +17,30 @@
       "max_heating_capacity_kW": 20,
       "SCOP": 3.0,
       "cost_eur": 9800
+    },
+    {
+      "model": "LE_24",
+      "max_heating_capacity_kW": 26,
+      "SCOP": 2.6,
+      "cost_eur": 12000
+    },
+    {
+      "model": "LE_36",
+      "max_heating_capacity_kW": 38,
+      "SCOP": 2.8,
+      "cost_eur": 18700
+    },
+    {
+      "model": "LE_48",
+      "max_heating_capacity_kW": 50,
+      "SCOP": 3.0,
+      "cost_eur": 25300
+    },
+    {
+      "model": "LE_96",
+      "max_heating_capacity_kW": 100,
+      "SCOP": 3.0,
+      "cost_eur": 55200
     }
   ],
 
@@ -38,6 +62,24 @@
       "max_heating_capacity_kW": 25,
       "SCOP": 3.8,
       "cost_eur": 16500
+    },
+    {
+      "model": "ME_36",
+      "max_heating_capacity_kW": 40,
+      "SCOP": 3.5,
+      "cost_eur": 22000
+    },
+    {
+      "model": "ME_48",
+      "max_heating_capacity_kW": 52,
+      "SCOP": 3.8,
+      "cost_eur": 30500
+    },
+    {
+      "model": "ME_96",
+      "max_heating_capacity_kW": 100,
+      "SCOP": 3.8,
+      "cost_eur": 63300
     }
   ],
 
@@ -59,6 +101,30 @@
       "max_heating_capacity_kW": 35,
       "SCOP": 4.6,
       "cost_eur": 26000
+    },
+    {
+      "model": "HE_48",
+      "max_heating_capacity_kW": 50,
+      "SCOP": 4.3,
+      "cost_eur": 36200
+    },
+    {
+      "model": "HE_64",
+      "max_heating_capacity_kW": 65,
+      "SCOP": 4.6,
+      "cost_eur": 56300
+    },
+    {
+      "model": "HE_96",
+      "max_heating_capacity_kW": 100,
+      "SCOP": 4.3,
+      "cost_eur": 81200
+    },
+    {
+      "model": "HE_120",
+      "max_heating_capacity_kW": 120,
+      "SCOP": 4.6,
+      "cost_eur": 90000
     }
   ]
 }

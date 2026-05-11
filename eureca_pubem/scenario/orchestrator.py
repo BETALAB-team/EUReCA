@@ -781,7 +781,7 @@ def upgrade_line_capacity(line, I_required, cable_confidence_factor=1.0):
     from pathlib import Path
     import numpy as np
 
-    base_path = Path(__file__).resolve().parent.parent / "grid/standard_cables_lv.json"
+    base_path = Path(__file__).resolve().parent.parent / "grid/swedish_cable.json"
     with open(base_path, "r") as f:
         catalog = json.load(f)
 

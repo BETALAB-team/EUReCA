@@ -216,6 +216,7 @@ def initialize_buildings(geo, mycity):
     for _, row in gdf.iterrows():
         bid = str(row["id"])
         level = row["EEdepth"]
+        # print(bid)
 
         buildings[bid] = {
             "meta": {
@@ -223,6 +224,7 @@ def initialize_buildings(geo, mycity):
                 "SHSource": row.get("SHSource"),
                 "DHWsource": row.get("DHWsource"),
                 "SCsource": row.get("SCsource"),
+                "n_occ": row.get("Number of occupants")
             },
             "base": mycity[level][bid],
         }
@@ -577,6 +579,7 @@ def create_baseline(input_gdf,
 def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_path, mode="dictionary", intervention_dictionary = None):
     if mode == "dictionary" :
         # interv_dict = intervention_dictionary
+        # print(1)
         def load_buildings(input_data):
 
             if isinstance(input_data, gpd.GeoDataFrame):
@@ -592,7 +595,8 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
                 "SHSource",
                 "DHWsource",
                 "PVType",
-                "PVpercentage"
+                "PVpercentage",
+                "Number of occupants"
             ]
         
             missing = [c for c in required_columns if c not in gdf.columns]
@@ -605,10 +609,10 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
 
             interventions = {}
         
-            for idx in gdf.index:
+            for idx in gdf["id"]:
         
-                base = baseline.loc[idx]
-                new  = gdf.loc[idx]
+                base = baseline.loc[baseline["id"] == idx].iloc[0]
+                new  = gdf.loc[gdf["id"] == idx].iloc[0]
         
                 changes = {}
         
@@ -629,6 +633,7 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
                         float(base["PVpercentage"]),
                         float(new["PVpercentage"])
                     )
+                # print(idx, changes)
         
                 interventions[idx] = changes
         
@@ -656,16 +661,15 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
             for idx, row in config.items():
                 if idx not in gdf["id"].values:
                     raise ValueError(f"{idx}")
-        
-                env  = row.get("env")
-                heat = row.get("heat")
-                dhw  = row.get("dhw")
+                env  = row.get("envelope")
+                heat = row.get("sh_source")
+                dhw  = row.get("dhw_source")
                 fuel = row.get("fuel")
                 pv_type = row.get("pv_type")
                 pv_perc = row.get("pv_percentage")
         
                 if env is not None:
-                    gdf.loc[gdf["id"] == idx, "EEdepth"] = env
+                    gdf.loc[gdf["id"] == idx, "EEdepth"] = env[1]
         
                 if heat is not None:
                     if heat == "boiler":
@@ -673,7 +677,7 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
                             raise ValueError(f"{idx}")
                         gdf.loc[gdf["id"] ==idx, "SHSource"] = f"boiler_{fuel}"
                     else:
-                        gdf.loc[gdf["id"] ==idx, "SHSource"] = heat
+                        gdf.loc[gdf["id"] ==idx, "SHSource"] = heat[1]
         
                 if dhw is not None:
                     if dhw == "boiler":
@@ -681,15 +685,15 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
                             raise ValueError(f"{idx}")
                         gdf.loc[gdf["id"] ==idx, "DHWsource"] = f"boiler_{fuel}"
                     else:
-                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = dhw
+                        gdf.loc[gdf["id"] ==idx, "DHWsource"] = dhw[1]
         
                 if pv_type is not None:
-                    gdf.loc[gdf["id"] ==idx, "PVType"] = pv_type
+                    gdf.loc[gdf["id"] ==idx, "PVType"] = pv_type[1]
         
                 if pv_perc is not None:
                     gdf.loc[gdf["id"] ==idx, "PVpercentage"] = max(
                         float(gdf.loc[gdf["id"] ==idx, "PVpercentage"]),
-                        float(pv_perc)
+                        float(pv_perc[1])
                     )
             return gdf
         
@@ -711,6 +715,9 @@ def analyze_intervention(baseline_geojson, city, baseline_scenario, weatherfile_
             )
     
     return NEW, a, interv_dict
+
+
+
 
 
 def make_dictionary(baseline_geojson, city, baseline_scenario, weatherfile_path, mode="dictionary", intervention_dictionary = None):

@@ -560,7 +560,7 @@ def populate_grid_system(
     *,
     voltage_lv: float,
     confidence_factor: float,
-    cable_catalogue_path: str = Path(__file__).parent / "standard_cables_lv.json",
+    cable_catalogue_path: str = Path(__file__).parent / "swedish_cable.json",
 ):
     consumption = load_consumption(consumption_path)
     production = load_production(production_path)

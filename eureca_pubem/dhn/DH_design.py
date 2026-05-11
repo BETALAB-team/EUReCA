@@ -14,17 +14,33 @@ def load_dhn_demand(csv_path):
     import pandas as pd
     df = csv_path if isinstance(csv_path, pd.DataFrame) else pd.read_csv(csv_path, sep=";")
     return df
+
+
 def get_buildings_to_attach(scenario, peak_demands):
-    demanded = {bid for bid, v in peak_demands.items() if v > 0.0}
+    demanded = {str(bid) for bid, v in peak_demands.items() if v > 0.0}
 
     served = {
-        n.node_id
+        str(n.node_id)
         for dhn in scenario.District_Heating_Systems.values()
         for n in dhn.nodes
         if n.node_type == "consumer" and n.active
     }
 
     return demanded - served
+
+
+def get_buildings_to_remove(scenario, peak_demands):
+    demanded = {str(bid) for bid, v in peak_demands.items() if v > 0.0}
+
+    served = {
+        str(n.node_id)
+        for dhn in scenario.District_Heating_Systems.values()
+        for n in dhn.nodes
+        if n.node_type == "consumer" and n.active
+    }
+
+    return served - demanded
+
 def find_closest_dhn_element(dhn, point):
     import numpy as np
 
@@ -112,7 +128,6 @@ def split_line(dhn, line, x, y):
     return next_node_id
 
 def attach_single_building(dhn, building, demand_array, closest, distance):
-    nodes = {n.node_id: n for n in dhn.nodes}
     next_line_id = max(l.line_id for l in dhn.lines) + 1
 
     if closest[0] == "node":
@@ -121,7 +136,6 @@ def attach_single_building(dhn, building, demand_array, closest, distance):
         line, (x, y) = closest[1], closest[2]
         target_id = split_line(dhn, line, x, y)
 
-    # new consumer node
     bn = type(dhn.nodes[0])(
         node_id=building.building_id,
         node_type="consumer",
@@ -131,9 +145,9 @@ def attach_single_building(dhn, building, demand_array, closest, distance):
     bn.demand = demand_array
     bn.active = True
     bn.is_new = True
+    bn.attached_by_algorithm = True
     dhn.nodes.append(bn)
 
-    # service line
     sl = type(dhn.lines[0])(
         line_id=next_line_id,
         start_node=target_id,
@@ -142,16 +156,81 @@ def attach_single_building(dhn, building, demand_array, closest, distance):
     )
     sl.active = True
     sl.is_new = True
-    sl.origin_line_id = None  # service pipe
+    sl.origin_line_id = None
+    sl.service_line = True
+    sl.consumer_node_id = building.building_id
     dhn.lines.append(sl)
+    
+import numpy as np
+
+
+def remove_single_building_from_dhn(dhn, bid):
+    bid = int(bid)
+
+    consumer_nodes = [
+        n for n in dhn.nodes
+        if int(n.node_id) == bid
+        and getattr(n, "node_type", None) == "consumer"
+        and getattr(n, "active", True)
+    ]
+
+    if not consumer_nodes:
+        return False
+
+    node = consumer_nodes[0]
+
+    connected_lines = [
+        l for l in dhn.lines
+        if int(l.start_node) == bid or int(l.end_node) == bid
+    ]
+
+    is_algorithm_added = getattr(node, "is_new", False) or getattr(node, "attached_by_algorithm", False)
+
+    if is_algorithm_added and len(connected_lines) == 1:
+        line_to_remove = connected_lines[0]
+
+        dhn.lines = [
+            l for l in dhn.lines
+            if int(l.line_id) != int(line_to_remove.line_id)
+        ]
+
+        dhn.nodes = [
+            n for n in dhn.nodes
+            if int(n.node_id) != bid
+        ]
+
+        return True
+
+    node.active = False
+
+    if hasattr(node, "demand"):
+        node.demand = np.zeros_like(node.demand)
+
+    return True
 
 def attach_missing_dhn_consumers(
     scenario,
     peak_demands: dict[int, float],
     csv_path,
 ):
+    
     df = load_dhn_demand(csv_path)
+
+    to_remove = get_buildings_to_remove(scenario, peak_demands)
     to_attach = get_buildings_to_attach(scenario, peak_demands)
+
+    changed_dhns = set()
+
+    for bid in to_remove:
+        for dhn in scenario.District_Heating_Systems.values():
+            removed = remove_single_building_from_dhn(dhn, bid)
+            if removed:
+                changed_dhns.add(id(dhn))
+                break
+
+    for dhn in scenario.District_Heating_Systems.values():
+        if id(dhn) in changed_dhns:
+            rebuild_spanning_tree_index(dhn)
 
     for bid in to_attach:
         b = scenario.buildings.get(bid)
@@ -162,7 +241,6 @@ def attach_missing_dhn_consumers(
         best_dist = float("inf")
         best_dhn = None
 
-        # IMPORTANT: search on CURRENT tree
         for dhn in scenario.District_Heating_Systems.values():
             res, d = find_closest_dhn_element(dhn, (b.x, b.y))
             if res is not None and d < best_dist:
@@ -181,7 +259,6 @@ def attach_missing_dhn_consumers(
             best_dist,
         )
 
-        # CRITICAL: rebuild tree after EACH attachment
         rebuild_spanning_tree_index(best_dhn)
 
 def rebuild_spanning_tree_index(system):

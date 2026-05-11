@@ -11,6 +11,7 @@ import logging
 #preload heavy dependencies
 import numpy as np 
 import geopandas as gpd
+from eureca_pubem import dhn_costs as dc
 
 # Import eureca libraries
 from eureca_building.config import load_config
@@ -18,6 +19,8 @@ from eureca_ubem import node_calculator, assign_runs
 from itertools import product
 from time import time
 from eureca_pubem import scenario_process as sc
+import warnings
+warnings.filterwarnings("ignore")
 
 _NO_CHANGE = "__NO_CHANGE__"
 
@@ -74,39 +77,12 @@ if __name__ == "__main__":
     
 #%%
 from eureca_pubem import scenario_process as sc
-
 import warnings
-warnings.filterwarnings("ignore")
-baseline = sc.create_baseline(input_gdf=mycity_gdf, 
-                            input_city=mycity, 
-                            distributions_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/distribution.geojson",
-                            baseline_gdf="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson", 
-                            weather_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw", 
-                            street_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/roads.geojson")
 
 #%%
 from eureca_pubem import scenario_process as sc
 from eureca_pubem import buildings_cost as bc
-# config = {
-#     1:  {"env": "deep",   "heat": "boiler", "dhw": "hp_he", "fuel": "gas", "pv_percentage": 60},
-#     2:  {"env": "shallow","heat": "hp_me", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     3:  {"env": "shallow","heat": "dhn", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     4:  {"env": "deep",   "heat": "dhn", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     5:  {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     7:  {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     25: {"env": "deep",   "heat": "hp_he", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     35: {"env": "shallow","heat": "dhn", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     36: {"env": "deep",   "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     38: {"env": "shallow","heat": "hp_me", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     40: {"env": "medium", "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     41: {"env": "medium", "heat": "dhn", "dhw": "dhn", "fuel": None, "pv_percentage": 70},
-#     45: {"env": "medium", "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     47: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     48: {"env": "medium", "heat": "hp_me", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     52: {"env": "deep",   "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     65: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     77: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-# }
+
 def load_buildings(input_data):
 
     if isinstance(input_data, gpd.GeoDataFrame):
@@ -132,20 +108,219 @@ def load_buildings(input_data):
 
     return gdf
 
+#%%
+from eureca_pubem import dhn_costs as dc
+from eureca_pubem import grid_costs  as gc
+from eureca_pubem import market
+from eureca_pubem import scenario_process as sc
+from eureca_pubem import buildings_cost as bc
+
+assumptions = {
+    "discount_rate": 0.04,
+    "horizon_years": 20,
+
+    "hp_scop": 3.0,
+    "boiler_efficiency": 0.9,
+
+    "pv_yield_kwh_per_m2_year": 160.0,
+    "pv_self_consumption_ratio": 0.6,
+
+    "dhn_connection_cost": 30_000.0,
+
+    "pv_capex_per_m2": 2500.0,
+    "hp_capex_sh": 90_000.0,
+    "hp_capex_dhw": 40_000.0,
+    "boiler_capex_sh": 35_000.0,
+    "boiler_capex_dhw": 20_000.0,
+    "generator_capex": 50_000.0,
+
+    "boiler_fuel_cost_per_kwh": 1.2,
+    "generator_cost_per_kwh": 2.5,
+    "generator_kwh_per_year": 0.0,
+
+    "electricity_spot_price_per_kwh": 1.0,
+}
+supplier_costs = {
+    "grids": {
+        0: {
+            "electricity_purchase_cost_per_kwh": 1.0,
+            "grid_fixed_cost_yearly": 0.0,
+        },
+    },
+    "dhns": {
+        "District Heating Supply 8": {
+            "heat_supply_cost_per_mwh": 500.0,
+            "fixed_cost_yearly": 0.0,
+        },
+    },
+}
+optimization_settings = {
+    "max_rounds": 1000,
+    "min_rounds": 2,
+    "tolerance": 1e-4,
+
+    "local_search": {
+        "grid": {
+            "active_levers": [
+                "pricing.buy.grid local distribution cost monthly fix",
+                "pricing.buy.grid local distribution cost monthly per kW peak",
+                "pricing.buy.grid local distribution cost monthly per kWh usage",
+            ],
+            "step_sizes": {
+                "pricing.buy.grid local distribution cost monthly fix": 25.0,
+                "pricing.buy.grid local distribution cost monthly per kW peak": 2.5,
+                "pricing.buy.grid local distribution cost monthly per kWh usage": 0.005,
+            },
+            "bounds": {
+                "pricing.buy.grid local distribution cost monthly fix": (0.0, 3000.0),
+                "pricing.buy.grid local distribution cost monthly per kW peak": (0.0, 500.0),
+                "pricing.buy.grid local distribution cost monthly per kWh usage": (0.0, 2.0),
+            },
+        },
+
+        "dhn": {
+            "active_levers": [
+                "pricing.area fee per m2",
+                "pricing.fixed heat price per MWh",
+                "pricing.variable heat price per MWh",
+                "pricing.admin fee yearly",
+                "pricing.subscription fixed yearly per unit",
+                "pricing.subscription variable price per MWh",
+                "connection_cost",
+            ],
+            "step_sizes": {
+                "pricing.area fee per m2": 1.0,
+                "pricing.fixed heat price per MWh": 5.0,
+                "pricing.variable heat price per MWh": 10.0,
+                "pricing.admin fee yearly": 50.0,
+                "pricing.subscription fixed yearly per unit": 100.0,
+                "pricing.subscription variable price per MWh": 5.0,
+                "connection_cost": 1000.0,
+            },
+            "bounds": {
+                "pricing.area fee per m2": (0.0, 200.0),
+                "pricing.fixed heat price per MWh": (0.0, 1000.0),
+                "pricing.variable heat price per MWh": (0.0, 5000.0),
+                "pricing.admin fee yearly": (0.0, 10000.0),
+                "pricing.subscription fixed yearly per unit": (0.0, 50000.0),
+                "pricing.subscription variable price per MWh": (0.0, 1000.0),
+                "connection_cost": (0.0, 50000.0),
+            },
+        },
+    },
+}
+
+grid_regulation = {
+    "allowed_revenue_yearly": 8_000_000.0,
+    "background_similarity_factor": 0.30,
+
+    "background_baseline_customer_count": 8_000.0,
+    "background_baseline_electricity_bought_kwh_year": 32_000_000.0,
+    "background_baseline_electricity_sold_kwh_year": 2_000_000.0,
+    "background_baseline_peak_kw": 12_000.0,
+
+    "revenue_gap_weight": 1.0,
+    "tariff_change_weight": 1_000.0,
+}
+zero_study_area_baseline_grid_totals = {
+    "customer_count": 0.0,
+    "electricity_bought_kwh_year": 0.0,
+    "electricity_sold_kwh_year": 0.0,
+    "peak_kw": 0.0,
+}
+
+
+
+
+
+#%%
+from eureca_pubem import scenario_process as sc
+
+#Initializing
+
+# 0.0. baseline generation 
+baseline = sc.create_baseline(input_gdf=mycity_gdf, 
+                            input_city=mycity, 
+                            distributions_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/distribution.geojson",
+                            baseline_gdf="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson", 
+                            weather_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw", 
+                            street_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/roads.geojson")
 baseline_gdf = load_buildings("C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson")
 config0 = bc.extract_config((baseline_gdf))
-
 interv_dict, building_info = sc.make_dictionary(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
                                                city=mycity,
                                                baseline_scenario=baseline,
                                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
                                                intervention_dictionary = config0)
-# retrofit, buildings, _ = sc.analyze_intervention(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
-#                                                city=mycity,
-#                                                baseline_scenario=baseline,
-#                                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
-#                                                intervention_dictionary = config)
+retrofit, buildings, _ = sc.analyze_intervention(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+                                               city=mycity,
+                                               baseline_scenario=baseline,
+                                               weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+                                               intervention_dictionary = interv_dict)
+retro_1 = retrofit
+#%%
+# 0.1. system capital cost initial
+# 0.1.1 dhn capital cost initial 
+dhn_pipe_costs = dc.build_cost_table(pipe_data = "C:\Works\EUReCA\EUReCA\eureca_pubem\dhn\_pipe_diameters.json")
+capital_costs_dhn = dc.compute_dhn_cost(
+        dhn_pipe_changes = retrofit.dhn_pipe_changes,
+        area_type = "urban",
+        assumptions = {
+        "replacement_factor_ground": 0.5,
+        "removal_factor": 0.3
+    },
+        pipe_json = dhn_pipe_costs
+        )
+capital_costs_grid = gc.compute_grid_cost(
+    grid_line_changes=retrofit.grid_line_changes,
+    area_type="town",
+    assumptions={
+        "replacement_factor_ground": 1.0,
+        "removal_factor": 0.2,
+        "ground_share": 0.55,
+        "rest_share": 0.45
+    },
+    cable_json="C:/Works/EUReCA/EUReCA/eureca_pubem/grid/swedish_cable.json",
+    cable_key="name"
+)
 
+# 0.1.2 grid capital cost initial 
+
+# 0.2. initial market 
+buildings = market.reachables (buildings, retrofit.District_Heating_Systems, retrofit.Electrical_Network)
+
+buildings = market.build_network_maps(buildings, 
+                          retrofit.District_Heating_Systems,
+                          retrofit.Electrical_Network)
+dhn_levers, grid_levers = market.initialize_market_levers(dhns = retrofit.District_Heating_Systems, grids=retrofit.Electrical_Network)
+building_option_cache = market.build_building_option_cache(
+    buildings=buildings,
+    grids=retrofit.Electrical_Network,
+    dhns=retrofit.District_Heating_Systems,
+    grid_levers=grid_levers,
+    dhn_levers=dhn_levers,
+    assumptions = assumptions
+)
+tech_data = market.prepare_global_assumptions(assumptions)
+avg_n_occ = sum(d["meta"]["n_occ"] for d in buildings.values()) / len(buildings)
+market_results = market.optimize_market_levers(
+    building_option_cache=building_option_cache,
+    initial_grid_levers=grid_levers,
+    initial_dhn_levers=dhn_levers,
+    tech_data=tech_data,
+    supplier_costs=supplier_costs,
+    optimization_settings=optimization_settings,
+    grid_regulation=grid_regulation,
+    zero_study_area_baseline_grid_totals=zero_study_area_baseline_grid_totals,
+    avg_n_occ=avg_n_occ,
+    study_area_grid_capex=capital_costs_grid,
+)
+
+
+
+#0.3. first building move 
+grid_pricing = {"1":market_results["grid_levers"][0]["pricing"]}
+dhn_pricing = {"1":{"buy": market_results["dhn_levers"][next(iter(market_results["dhn_levers"]))]["pricing"]}}
 
 Building_dict = bc.build_dict_gen(building_info,
                    interv_dict,
@@ -154,20 +329,22 @@ Building_dict = bc.build_dict_gen(building_info,
                    ee_measure_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json",
                    pv_type_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json",
                    hp_catalog_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json",
-                   grid_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\grid_pricing_formulas.json",
-                   dhn_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\dhn_pricing_formulas.json",
+                   grid_pricing_path = grid_pricing,
+                   dhn_pricing_path = dhn_pricing,
                    fuels_path =r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json",
                    spot_price_path="C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv"
                    )
 
-Apparent_optimal_config, Apparent_optimal_set = bc.optimize_configuration_per_building(config0 = config0,
-                                base_dictionary = Building_dict,
+
+current_optimal_config, current_optimal_set = bc.optimize_configuration_per_building_one_step(config_current = config0,
+                              current_dictionary=Building_dict,
+                                baseline_dictionary = Building_dict,
                                baseline_gdf_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
                                ee_measure_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json",
                                pv_type_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json",
                                hp_catalog_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json",
-                               grid_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\grid_pricing_formulas.json",
-                               dhn_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\dhn_pricing_formulas.json",
+                               grid_pricing_path = grid_pricing,
+                               dhn_pricing_path = dhn_pricing,
                                fuels_path =r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json",
                                spot_price_path="C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv",
                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
@@ -176,182 +353,188 @@ Apparent_optimal_config, Apparent_optimal_set = bc.optimize_configuration_per_bu
                                r = 0.04, 
                                T = 25
                                )
-retrofit, buildings, _ = sc.analyze_intervention(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
-                                               city=mycity,
-                                               baseline_scenario=baseline,
-                                               weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
-                                               intervention_dictionary = Apparent_optimal_config)
-
-
-# config = {
-#     1:  {"env": "deep",   "heat": "boiler", "dhw": "hp_he", "fuel": "gas", "pv_percentage": 60},
-#     2:  {"env": "shallow","heat": "hp_me", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     3:  {"env": "shallow","heat": "dhn", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     4:  {"env": "deep",   "heat": "dhn", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     5:  {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     7:  {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     25: {"env": "deep",   "heat": "hp_he", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     35: {"env": "shallow","heat": "dhn", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     36: {"env": "deep",   "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     38: {"env": "shallow","heat": "hp_me", "dhw": "dhn", "fuel": None, "pv_percentage": 60},
-#     40: {"env": "medium", "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 70},
-#     41: {"env": "medium", "heat": "dhn", "dhw": "dhn", "fuel": None, "pv_percentage": 70},
-#     45: {"env": "medium", "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     47: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     48: {"env": "medium", "heat": "hp_me", "dhw": "hp_me", "fuel": None, "pv_percentage": 60},
-#     52: {"env": "deep",   "heat": "dhn", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     65: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-#     77: {"env": "deep",   "heat": "hp_he", "dhw": "hp_he", "fuel": None, "pv_percentage": 60},
-# }
-# New = bc.compare_config_with_base(Building_dict,
-#                                baseline_gdf_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
-#                                configuration = config, 
-#                                ee_measure_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json",
-#                                pv_type_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json",
-#                                hp_catalog_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json",
-#                                grid_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\grid_pricing_formulas.json",
-#                                dhn_pricing_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\dhn_pricing_formulas.json",
-#                                fuels_path =r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json",
-#                                spot_price_path="C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv",
-#                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
-#                                mycity=mycity,
-#                                baseline_scenario=baseline
-#                                )
-# import json
-# import pandas as pd
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json", "r") as f:
-#     ee_measure = json.load(f)
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json", "r") as f:
-#     pv_installs = json.load(f)
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json", "r") as f:
-#     hp_catalog = json.load(f)
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\grid_pricing_formulas.json", "r") as f:
-#     pricing = json.load(f)
-    
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\dhn_pricing_formulas.json", "r") as f:
-#     dnn_pricing = json.load(f)
-    
-# with open(r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json", "r") as f:
-#     fuels = json.load(f)
-# baseline_gdf = load_buildings("C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson")
-
-    
-# prices = pd.read_csv(r"C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv") 
-# prices["price"] = prices["price"].astype(float)
-
-
-# Buildings_dict = {}
-
-# for idx, building in a.items():
-#     EUR_to_SEK = 10.86
-#     meta={}
-#     interventions = {}
-#     operation = {}
-#     costs = {}
-#     idx = int(idx)
-#     if idx in interv_dict.keys():
-#         interventions = interv_dict[idx]
-#     meta["PV_type"] = baseline_gdf.loc[baseline_gdf["id"] == idx, "PVType"].values[0]
-#     pv_production = building ["pv_production"]
-#     electricity_need = building["hp_electricity"] + building["base"]["appliance_electricity"]
-#     operation["electricity_bought"] = np.maximum(electricity_need - pv_production, 0)
-#     operation["electricity_sold"] = np.maximum(pv_production - electricity_need , 0)
-#     operation["dhn_bought"] = building["thermal"]["dhn_demand"]
-#     fuel = config[idx]["fuel"]
-#     if fuel != None:
-#         operation["fuel_bought"] = building["thermal"][f"{fuel}_demand"]
-#         meta["fuel"]=fuel
-        
-#     area = building["base"]["pv_available_area"]
-#     floors = baseline_gdf.loc[baseline_gdf["id"] == idx, "Floors"]
-#     used_area = area*floors
-
-#     efficiency_measure_cost = 0
-#     pv_install_cost = 0
-#     envelope_type = baseline_gdf.loc[baseline_gdf["id"] == idx, "Envelope"].values[0]
-#     building_type = envelope_type[:3]
-#     costs["capital cost"]={}
-#     costs["operational cost"] = {}
-    
-#     if 'envelope' in interv_dict[idx].keys():
-#         efficiency_measure = interv_dict[idx]['envelope']
-#         before_measure = efficiency_measure[0]
-#         if before_measure in ["medium", "deep"]:
-#             before_measure = before_measure + " " + building_type
-#         after_measure = efficiency_measure[1]
-#         if after_measure in ["medium", "deep"]:
-#             after_measure = after_measure + " " + building_type
-#         wall_area = building["base"]["opaque_exposed_area"] - building["base"]["pv_available_area"]
-#         roof_area = building["base"]["pv_available_area"]
-#         window_area = building ["base"]["glazing_area"]
-#         wall_cost_fix=ee_measure[after_measure]["wall cost constant"] - ee_measure[before_measure]["wall cost constant"]
-#         roof_cost_fix=ee_measure[after_measure]["roof cost constant"] - ee_measure[before_measure]["roof cost constant"]
-#         window_cost_fix=ee_measure[after_measure]["window cost constant"] - ee_measure[before_measure]["window cost constant"]
-#         wall_cost_persqm=ee_measure[after_measure]["roof cost per square meter"] - ee_measure[before_measure]["roof cost per square meter"]
-#         roof_cost_persqm=ee_measure[after_measure]["wall cost per square meter"] - ee_measure[before_measure]["wall cost per square meter"]
-#         window_cost_persqm=ee_measure[after_measure]["window cost per square meter"] - ee_measure[before_measure]["window cost per square meter"]
-#         efficiency_measure_cost = wall_cost_fix + roof_cost_fix + window_cost_fix \
-#                                 + wall_cost_persqm * wall_area \
-#                                 + window_cost_persqm * window_area\
-#                                 + roof_cost_persqm * roof_area
-                                
-#     if "PVpercentage" in interv_dict[idx].keys():
-#         pv_install = interv_dict[idx]["PVpercentage"]
-#         before_measure = pv_install[0]
-#         after_measure = pv_install[1]
-#         pv_type = meta["PV_type"]
-#         pv_install_area = (after_measure - before_measure) * building["base"]["pv_available_area"]/100
-#         pv_install_fix_cost = pv_installs[pv_type]["cost_fixed"]
-#         pv_install_persqm_cost = pv_installs[pv_type]["cost_per_m2"]
-#         pv_install_cost = pv_install_persqm_cost * pv_install_area + pv_install_fix_cost
-        
-#     if any(x in interv_dict[idx].keys() for x in ["dhw_source","sh_source"]):
-
-#         hp_install_cost = hp_cost(building, interv_dict[idx], hp_catalog, factor=1.0) * EUR_to_SEK 
-#         dhn_connection_cost =  dhn_cost(building, interv_dict[idx], connection_cost = 24000)
-        
-
-#     costs["capital cost"]["efficiency_measure_cost"]  =   efficiency_measure_cost     
-#     costs["capital cost"]["pv_install_cost"]  =   pv_install_cost      
-#     costs["capital cost"]["heating_systems"] = hp_install_cost + dhn_connection_cost 
-#     costs["capital cost"]["total"] = sum(list(costs["capital cost"].values()))
-#     costs["operational cost"]["electricity"] = np.pad(hourly_grid_cost(operation, prices, pricing["1"]), (8760 - 8759, 0), mode='edge')
-#     costs["operational cost"]["electricity"] = np.pad(costs["operational cost"]["electricity"], (8760 - len(costs["operational cost"]["electricity"]), 0), mode='edge')
-#     costs["operational cost"]["district_heating"] = hourly_dhn_cost(operation, dnn_pricing["1"]["buy"], used_area)
-#     if fuel != None:
-#         costs["operational cost"]["fuel"] = fuel_cost_array(meta["fuel"], operation["fuel_bought"], fuels)*EUR_to_SEK
-#     costs["operational cost"]["hourly_total"] = np.sum(list(costs["operational cost"].values()), axis=0)
-#     costs["operational cost"]["yearly_total"] = np.sum(costs["operational cost"]["hourly_total"])
-        
-#     Buildings_dict[idx] = {"meta": meta,
-#                            "interventions" : interventions,
-#                            "operation" : operation,
-#                            "costs": costs}
-        
-        
-        
-   
-    
-
-
-
-
-
-
 #%%
-# Building 
-# interventions 
-# operation 
+buildings0 = buildings
+import copy
+previous_config = current_optimal_config
+def diff_dicts(old, new, path=""):
+    changes = []
 
-# DH 
-# intervention
-# operation 
-# selling pricing 
+    old_keys = set(old.keys())
+    new_keys = set(new.keys())
 
-# Grid 
-# intervention 
-# operation 
-# selling pricing 
-# buying pricing 
+    for key in old_keys - new_keys:
+        changes.append((f"{path}{key}", old[key], "__MISSING__"))
 
+    for key in new_keys - old_keys:
+        changes.append((f"{path}{key}", "__MISSING__", new[key]))
 
+    for key in old_keys & new_keys:
+        old_val = old[key]
+        new_val = new[key]
+        new_path = f"{path}{key}"
+
+        if isinstance(old_val, dict) and isinstance(new_val, dict):
+            changes.extend(diff_dicts(old_val, new_val, path=new_path + "."))
+        elif old_val != new_val:
+            changes.append((new_path, old_val, new_val))
+
+    return changes
+for game_step in range(0,20):
+
+    now_config = copy.deepcopy(current_optimal_config)
+    # changes = diff_dicts(previous_config, now_config)
+
+    # if not changes:
+    #     print(f"Stopping at game_step={game_step}: no building changed configuration.")
+    #     current_optimal_config = copy.deepcopy(now_config)
+    #     break
+    
+    # print(f"\nChanges at game_step={game_step}:")
+    # for key_path, old_value, new_value in changes:
+    #     print(f"  {key_path}: {old_value} -> {new_value}")
+    
+    # current_optimal_config = copy.deepcopy(now_config)
+
+    # if previous_config is not None and now_config == previous_config:
+    #     print(f"Stopping at game_step={game_step}: configuration did not change.")
+    #     break
+    
+    interv_dict, building_info = sc.make_dictionary(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+                                                   city=mycity,
+                                                   baseline_scenario=baseline,
+                                                   weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+                                                   intervention_dictionary = now_config)
+    retrofit, buildings, _ = sc.analyze_intervention(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+                                                   city=mycity,
+                                                   baseline_scenario=baseline,
+                                                   weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+                                                   intervention_dictionary = interv_dict)
+    
+    retro_n = retrofit 
+    # 0.1. system capital cost initial
+    # 0.1.1 dhn capital cost initial 
+    dhn_pipe_costs = dc.build_cost_table(pipe_data = "C:\Works\EUReCA\EUReCA\eureca_pubem\dhn\_pipe_diameters.json")
+    capital_costs_dhn = dc.compute_dhn_cost(
+            dhn_pipe_changes = retrofit.dhn_pipe_changes,
+            area_type = "urban",
+            assumptions = {
+            "replacement_factor_ground": 0.5,
+            "removal_factor": 0.3
+        },
+            pipe_json = dhn_pipe_costs
+            )
+    capital_costs_grid = gc.compute_grid_cost(
+        grid_line_changes=retrofit.grid_line_changes,
+        area_type="town",
+        assumptions={
+            "replacement_factor_ground": 1.0,
+            "removal_factor": 0.2,
+            "ground_share": 0.55,
+            "rest_share": 0.45
+        },
+        cable_json="C:/Works/EUReCA/EUReCA/eureca_pubem/grid/swedish_cable.json",
+        cable_key="name"
+    )
+    # 0.1.2 grid capital cost initial 
+    
+    # 0.2. initial market 
+    buildings = market.reachables (buildings, retrofit.District_Heating_Systems, retrofit.Electrical_Network)
+    
+    buildings = market.build_network_maps(buildings, 
+                              retrofit.District_Heating_Systems,
+                              retrofit.Electrical_Network)
+    dhn_levers, grid_levers = market.initialize_market_levers(dhns = retrofit.District_Heating_Systems, grids=retrofit.Electrical_Network)
+    building_option_cache = market.build_building_option_cache(
+        buildings=buildings,
+        grids=retrofit.Electrical_Network,
+        dhns=retrofit.District_Heating_Systems,
+        grid_levers=grid_levers,
+        dhn_levers=dhn_levers,
+        assumptions = assumptions
+    )
+    tech_data = market.prepare_global_assumptions(assumptions)
+    avg_n_occ = sum(d["meta"]["n_occ"] for d in buildings.values()) / len(buildings)
+    market_results = market.optimize_market_levers(
+        building_option_cache=building_option_cache,
+        initial_grid_levers=grid_levers,
+        initial_dhn_levers=dhn_levers,
+        tech_data=tech_data,
+        supplier_costs=supplier_costs,
+        optimization_settings=optimization_settings,
+        grid_regulation=grid_regulation,
+        zero_study_area_baseline_grid_totals=zero_study_area_baseline_grid_totals,
+        avg_n_occ=avg_n_occ,
+        study_area_grid_capex=capital_costs_grid,
+    )
+    
+    #0.3. first building move 
+    grid_pricing = {"1":market_results["grid_levers"][0]["pricing"]}
+    dhn_pricing = {"1":{"buy": market_results["dhn_levers"][next(iter(market_results["dhn_levers"]))]["pricing"]}}
+    print(grid_pricing)
+    print(dhn_pricing)
+    
+    current_dict = bc.build_dict_gen(building_info,
+                       interv_dict,
+                       baseline_gdf_path = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+                       configuration = now_config, 
+                       ee_measure_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json",
+                       pv_type_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json",
+                       hp_catalog_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json",
+                       grid_pricing_path = grid_pricing,
+                       dhn_pricing_path = dhn_pricing,
+                       fuels_path =r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json",
+                       spot_price_path="C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv"
+                       )
+    
+    previous_config = copy.deepcopy(current_optimal_config)
+    current_optimal_config, current_optimal_set = bc.optimize_configuration_per_building_one_step(config_current = now_config,
+                                  current_dictionary=current_dict,
+                                    baseline_dictionary = Building_dict,
+                                   baseline_gdf_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+                                   ee_measure_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\EE_measures_catalog.json",
+                                   pv_type_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\pv_config.json",
+                                   hp_catalog_path = "C:\Works\EUReCA\EUReCA\eureca_pubem\hp_config.json",
+                                   grid_pricing_path = grid_pricing,
+                                   dhn_pricing_path = dhn_pricing,
+                                   fuels_path =r"C:\Works\EUReCA\EUReCA\eureca_pubem\fuels.json",
+                                   spot_price_path="C:\Works\EUReCA\EUReCA\eureca_pubem\spot_price_se3.csv",
+                                   weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+                                   mycity=mycity,
+                                   baseline_scenario=baseline,
+                                   r = 0.05, 
+                                   T = 50
+                                   )
+    now_config = copy.deepcopy(current_optimal_config)
+    changes = diff_dicts(previous_config, now_config)
+
+    if not changes:
+        print(f"Stopping at game_step={game_step}: no building changed configuration.")
+        current_optimal_config = copy.deepcopy(now_config)
+        break
+    
+    print(f"\nChanges at game_step={game_step}:")
+    for key_path, old_value, new_value in changes:
+        print(f"  {key_path}: {old_value} -> {new_value}")
+    
+    current_optimal_config = copy.deepcopy(now_config)
+
+    if previous_config is not None and now_config == previous_config:
+        print(f"Stopping at game_step={game_step}: configuration did not change.")
+        break
+    
+    
+# #%%
+# from eureca_pubem import scenario_process as sc
+
+# now_config = current_optimal_config 
+# interv_dict, building_info = sc.make_dictionary(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+#                                                city=mycity,
+#                                                baseline_scenario=baseline,
+#                                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+#                                                intervention_dictionary = now_config)
+# retrofit, buildings, _ = sc.analyze_intervention(baseline_geojson = "C:/Works/EUReCA/EUReCA/eureca_ubem/Input/soderman_limited_reproject.geojson",
+#                                                city=mycity,
+#                                                baseline_scenario=baseline,
+#                                                weatherfile_path="C:/Works/EUReCA/EUReCA/eureca_ubem/Input/SWE_UP_Uppsala.Univ.024620_TMYx.2009-2023.epw",
+#                                                intervention_dictionary = interv_dict)

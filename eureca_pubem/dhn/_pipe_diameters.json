@@ -1,37 +1,39 @@
 {
   "_meta": {
-    "description": "Standard DN pipe geometry (inner and outer diameters only)",
+    "description": "Standard DN pipe geometry with cost per meter (SEK/m)",
     "standard_reference": [
-      "EN 10220 (Steel tubes — dimensions)"
+      "EN 10220 (Steel tubes — dimensions)",
+      "Swedish district heating cost report (2017–2021 averages) (450, 800, 900, 1000 intrapolated/extrapolated)"
     ],
-    "notes": "",
+    "notes": "Costs are base values (SEK/m) before area factor",
     "units": {
-      "diameter": "m"
+      "diameter": "m",
+      "cost_per_meter": "SEK/m"
     }
   },
 
   "pipes": [
-    { "dn": "DN20",  "inner_diameter": 0.020, "outer_diameter": 0.0259 },
-    { "dn": "DN25",  "inner_diameter": 0.025, "outer_diameter": 0.0327 },
-    { "dn": "DN32",  "inner_diameter": 0.032, "outer_diameter": 0.0424 },
-    { "dn": "DN40",  "inner_diameter": 0.040, "outer_diameter": 0.0483 },
-    { "dn": "DN50",  "inner_diameter": 0.050, "outer_diameter": 0.0603 },
-    { "dn": "DN65",  "inner_diameter": 0.065, "outer_diameter": 0.0761 },
-    { "dn": "DN80",  "inner_diameter": 0.080, "outer_diameter": 0.0889 },
-    { "dn": "DN100", "inner_diameter": 0.100, "outer_diameter": 0.1145 },
-    { "dn": "DN125", "inner_diameter": 0.125, "outer_diameter": 0.1367 },
-    { "dn": "DN150", "inner_diameter": 0.150, "outer_diameter": 0.1682 },
-    { "dn": "DN200", "inner_diameter": 0.200, "outer_diameter": 0.2181 },
-    { "dn": "DN250", "inner_diameter": 0.250, "outer_diameter": 0.2758 },
-    { "dn": "DN300", "inner_diameter": 0.300, "outer_diameter": 0.3239 },
-    { "dn": "DN350", "inner_diameter": 0.350, "outer_diameter": 0.3688 },
-    { "dn": "DN400", "inner_diameter": 0.400, "outer_diameter": 0.4100 },
-    { "dn": "DN450", "inner_diameter": 0.450, "outer_diameter": 0.4672 },
-    { "dn": "DN500", "inner_diameter": 0.500, "outer_diameter": 0.5100 },
-    { "dn": "DN600", "inner_diameter": 0.600, "outer_diameter": 0.6100 },
-    { "dn": "DN700", "inner_diameter": 0.700, "outer_diameter": 0.7118 },
-    { "dn": "DN800", "inner_diameter": 0.800, "outer_diameter": 0.8130 },
-    { "dn": "DN900", "inner_diameter": 0.900, "outer_diameter": 0.9140 },
-    { "dn": "DN1000","inner_diameter": 1.000, "outer_diameter": 1.0160 }
+    { "dn": "DN20",  "inner_diameter": 0.020, "outer_diameter": 0.0259, "cost_per_meter": 5132 },
+    { "dn": "DN25",  "inner_diameter": 0.025, "outer_diameter": 0.0327, "cost_per_meter": 5485 },
+    { "dn": "DN32",  "inner_diameter": 0.032, "outer_diameter": 0.0424, "cost_per_meter": 5797 },
+    { "dn": "DN40",  "inner_diameter": 0.040, "outer_diameter": 0.0483, "cost_per_meter": 6543 },
+    { "dn": "DN50",  "inner_diameter": 0.050, "outer_diameter": 0.0603, "cost_per_meter": 7249 },
+    { "dn": "DN65",  "inner_diameter": 0.065, "outer_diameter": 0.0761, "cost_per_meter": 8304 },
+    { "dn": "DN80",  "inner_diameter": 0.080, "outer_diameter": 0.0889, "cost_per_meter": 9366 },
+    { "dn": "DN100", "inner_diameter": 0.100, "outer_diameter": 0.1145, "cost_per_meter": 10777 },
+    { "dn": "DN125", "inner_diameter": 0.125, "outer_diameter": 0.1367, "cost_per_meter": 12545 },
+    { "dn": "DN150", "inner_diameter": 0.150, "outer_diameter": 0.1682, "cost_per_meter": 14305 },
+    { "dn": "DN200", "inner_diameter": 0.200, "outer_diameter": 0.2181, "cost_per_meter": 17833 },
+    { "dn": "DN250", "inner_diameter": 0.250, "outer_diameter": 0.2758, "cost_per_meter": 21631 },
+    { "dn": "DN300", "inner_diameter": 0.300, "outer_diameter": 0.3239, "cost_per_meter": 24886 },
+    { "dn": "DN350", "inner_diameter": 0.350, "outer_diameter": 0.3688, "cost_per_meter": 28418 },
+    { "dn": "DN400", "inner_diameter": 0.400, "outer_diameter": 0.4100, "cost_per_meter": 31496 },
+    { "dn": "DN450", "inner_diameter": 0.450, "outer_diameter": 0.4672, "cost_per_meter": 35600 }, 
+    { "dn": "DN500", "inner_diameter": 0.500, "outer_diameter": 0.5100, "cost_per_meter": 39602 },
+    { "dn": "DN600", "inner_diameter": 0.600, "outer_diameter": 0.6100, "cost_per_meter": 46036 },
+    { "dn": "DN700", "inner_diameter": 0.700, "outer_diameter": 0.7118, "cost_per_meter": 53114 },
+    { "dn": "DN800", "inner_diameter": 0.800, "outer_diameter": 0.8130, "cost_per_meter": 60200 },
+    { "dn": "DN900", "inner_diameter": 0.900, "outer_diameter": 0.9140, "cost_per_meter": 67400 },
+    { "dn": "DN1000","inner_diameter": 1.000, "outer_diameter": 1.0160, "cost_per_meter": 74800 }
   ]
 }

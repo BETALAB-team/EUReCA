@@ -55,6 +55,7 @@ def load_config(file: str = None):
 
     """
     global CONFIG
+    print(file)
     try:
         if file.endswith('ini'):
             CONFIG = Config()
